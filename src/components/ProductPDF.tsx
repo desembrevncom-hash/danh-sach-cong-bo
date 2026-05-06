@@ -1,19 +1,19 @@
 import { Document, Page, Text, View, StyleSheet, Font, Image, Link } from '@react-pdf/renderer';
 
-// Đăng ký font Tiếng Việt (Be Vietnam Pro cho cảm giác cao cấp)
+// Đăng ký font Tiếng Việt (Roboto - ổn định và phổ biến nhất)
 Font.register({
-  family: 'BeVietnamPro',
+  family: 'Roboto',
   fonts: [
-    { src: 'https://fonts.gstatic.com/s/bevietnampro/v11/q5uXRT0Lp_47W2rk2drzpb_f1A_M6yU.ttf', fontWeight: 400 },
-    { src: 'https://fonts.gstatic.com/s/bevietnampro/v11/q5uTRT0Lp_47W2rk2drzpb_f9A_3zSf8Cg.ttf', fontWeight: 600 },
-    { src: 'https://fonts.gstatic.com/s/bevietnampro/v11/q5uTRT0Lp_47W2rk2drzpb_f4A_3zSf8Cg.ttf', fontWeight: 700 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-light-webfont.ttf', fontWeight: 300 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf', fontWeight: 400 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf', fontWeight: 700 },
   ]
 });
 
 const styles = StyleSheet.create({
   page: {
     padding: 30,
-    fontFamily: 'BeVietnamPro',
+    fontFamily: 'Roboto',
     backgroundColor: '#FFFFFF',
   },
   header: {
