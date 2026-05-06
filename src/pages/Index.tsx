@@ -544,11 +544,17 @@ const Index = () => {
     let mounted = true;
     (async () => {
       const { data, error } = await supabase.from("product_overrides").select("*");
-      if (error || !mounted || !data) return;
+      if (error) {
+        console.error("Fetch error:", error);
+        toast.error(`Không thể tải dữ liệu từ Supabase: ${error.message}. Hãy đảm bảo bạn đã chạy Migration để tạo bảng 'product_overrides'.`);
+        return;
+      }
+      if (!mounted || !data) return;
       const map: Record<number, OverrideRow> = {};
       for (const r of data as OverrideRow[]) map[r.no] = r;
       setOverrides(map);
     })();
+
     return () => {
       mounted = false;
     };
