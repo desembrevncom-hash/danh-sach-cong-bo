@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search, RotateCcw, Lock, LockOpen, Plus, Pencil, Trash2, Undo2, FileDown } from "lucide-react";
-import { exportTableToPdf, type ExportProgress } from "@/lib/exportPdf";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { ProductPDF } from "@/components/ProductPDF";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
@@ -36,29 +37,7 @@ const IndexInner = ({
 
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
 
-  const handleExportPdf = async () => {
-    if (!tableWrapRef.current) return;
-    setExporting(true);
-    setExportProgress({ phase: "preparing", percent: 0, message: "Khởi tạo…" });
-    try {
-      await exportTableToPdf(
-        tableWrapRef.current,
-        "danh-sach-san-pham-desembre.pdf",
-        (p) => setExportProgress(p),
-      );
-      toast.success("Đã xuất PDF");
-      // Auto-close after a short delay so the user sees the success state.
-      setTimeout(() => {
-        setExporting(false);
-        setExportProgress(null);
-      }, 1200);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Xuất PDF thất bại";
-      toast.error(msg);
-      setExportProgress({ phase: "error", percent: 0, message: msg });
-      // Keep dialog open so the user can read the error; closes on user action.
-    }
-  };
+  // We no longer need the old handleExportPdf since react-pdf handles it via PDFDownloadLink
 
   const upsertOverride = useCallback(
     (row: OverrideRow, options?: { snapshotLabel?: string }) => {
@@ -267,16 +246,21 @@ const IndexInner = ({
             Reset
           </button>
 
-          <button
-            type="button"
-            onClick={handleExportPdf}
-            disabled={exporting}
-            className="h-11 px-4 rounded-md border border-border bg-card text-foreground text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-muted/50 transition disabled:opacity-50"
-            title="Xuất danh sách ra PDF"
+          <PDFDownloadLink
+            document={<ProductPDF products={filtered.map(p => ({
+              ...p,
+              image: overrides[p.no]?.image_url ?? undefined
+            }))} />}
+            fileName="danh-sach-san-pham-desembre.pdf"
+            className="h-11 px-4 rounded-md border border-border bg-card text-foreground text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-muted/50 transition"
           >
-            <FileDown className="w-4 h-4" />
-            {exporting ? "Đang xuất…" : "Xuất PDF"}
-          </button>
+            {({ loading }) => (
+              <>
+                <FileDown className={`w-4 h-4 ${loading ? 'animate-pulse' : ''}`} />
+                {loading ? "Đang tạo…" : "Xuất PDF"}
+              </>
+            )}
+          </PDFDownloadLink>
 
           {unlocked && (
             <>
