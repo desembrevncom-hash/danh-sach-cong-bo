@@ -19,53 +19,64 @@ export async function exportTableToPdf(
     // Yield to UI so the progress modal paints before heavy work begins.
     await new Promise((r) => setTimeout(r, 50));
 
+    // 1. Temporarily disable sticky positioning and transitions for accurate coordinate calculation
+    const style = document.createElement("style");
+    style.innerHTML = `
+      [data-pdf-exporting] .sticky { position: static !important; }
+      [data-pdf-exporting] * { transition: none !important; animation: none !important; }
+    `;
+    document.head.appendChild(style);
+    tableEl.setAttribute("data-pdf-exporting", "true");
+
     report({ phase: "rendering", percent: 20, message: "Đang chụp bảng dữ liệu…" });
     const canvas = await html2canvas(tableEl, {
       scale: 2,
       backgroundColor: "#ffffff",
       useCORS: true,
-      // Ensure off-screen content (e.g. link badges) renders fully
+      logging: false,
       windowWidth: tableEl.scrollWidth,
       windowHeight: tableEl.scrollHeight,
     });
-    report({ phase: "rendering", percent: 55, message: "Đã chụp xong, tạo trang PDF…" });
 
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
     const margin = 8;
     const imgW = pageW - margin * 2;
+    
+    // Scale factor between CSS pixels and Canvas pixels (html2canvas scale)
     const canvasScale = canvas.width / tableEl.scrollWidth;
-    const mmPerPx = imgW / canvas.width * canvasScale;
+    // Ratio to convert CSS pixels to PDF millimeters
+    const mmPerPx = imgW / tableEl.scrollWidth;
 
     // Capture all links from the DOM relative to the table container
+    const tableRect = tableEl.getBoundingClientRect();
     const links = Array.from(tableEl.querySelectorAll("[data-pdf-link]")).map((el) => {
       const rect = el.getBoundingClientRect();
-      const tableRect = tableEl.getBoundingClientRect();
       return {
         url: el.getAttribute("data-pdf-link") || "",
-        x: (rect.left - tableRect.left),
-        y: (rect.top - tableRect.top),
+        // Distance from top/left of the table in CSS pixels
+        x: rect.left - tableRect.left,
+        y: rect.top - tableRect.top,
         w: rect.width,
         h: rect.height,
       };
     });
 
-    const addLinksToPage = (currentPageYpx: number, currentPageHmm: number) => {
-      const pageYpx = currentPageYpx;
-      const pageHmm = currentPageHmm;
+    const addLinksToPage = (pageYpx: number, pageHmm: number) => {
+      const pageBottomPx = pageYpx + (pageHmm / mmPerPx);
       
       links.forEach((link) => {
         // Check if the link is within the current Y-slice of the table
-        const linkBottom = link.y + link.h;
-        const pageBottomPx = pageYpx + (pageHmm / mmPerPx);
-        
-        if (link.y >= pageYpx && linkBottom <= pageBottomPx) {
+        const linkCenterY = link.y + link.h / 2;
+        if (linkCenterY >= pageYpx && linkCenterY <= pageBottomPx) {
           const xMm = margin + (link.x * mmPerPx);
           const yMm = margin + ((link.y - pageYpx) * mmPerPx);
           const wMm = link.w * mmPerPx;
           const hMm = link.h * mmPerPx;
-          pdf.link(xMm, yMm, wMm, hMm, { url: link.url });
+          
+          // Add a small buffer (1mm) to make the link easier to click
+          pdf.link(xMm - 0.5, yMm - 0.5, wMm + 1, hMm + 1, { url: link.url });
         }
       });
     };
@@ -104,7 +115,7 @@ export async function exportTableToPdf(
           sliceMm,
         );
         
-        // Add hyperlinks for this specific page slice
+        // Add hyperlinks for this specific page slice (y is in canvas px, convert to CSS px)
         addLinksToPage(y / canvasScale, sliceMm);
 
         page += 1;
@@ -115,11 +126,16 @@ export async function exportTableToPdf(
           percent: pct,
           message: `Đang dựng trang ${page}/${totalPages}…`,
         });
-        await new Promise((r) => setTimeout(r, 0));
+        await new Promise((r) => setTimeout(r, 10));
       }
     }
 
+    // Cleanup temporary styles
+    tableEl.removeAttribute("data-pdf-exporting");
+    document.head.removeChild(style);
+
     report({ phase: "saving", percent: 95, message: "Đang lưu tệp…" });
+
     pdf.save(filename);
 
     report({ phase: "done", percent: 100, message: "Hoàn tất!" });
