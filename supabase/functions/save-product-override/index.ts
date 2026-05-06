@@ -89,9 +89,13 @@ Deno.serve(async (req) => {
       const { error: upErr } = await supabase.storage
         .from("product-images")
         .upload(path, bytes, { contentType: mime, upsert: true });
-      if (upErr) return json(500, { error: "Tải ảnh thất bại: " + upErr.message });
+      if (upErr) {
+        console.error("Storage upload error:", upErr);
+        return json(500, { error: `Không thể tải ảnh lên Storage. Hãy đảm bảo Bucket 'product-images' đã được tạo và ở chế độ Public. Chi tiết: ${upErr.message}` });
+      }
       const { data: pub } = supabase.storage.from("product-images").getPublicUrl(path);
       image_url = pub.publicUrl;
+
     }
   } else if ("image_url" in body) {
     const v = body.image_url;
