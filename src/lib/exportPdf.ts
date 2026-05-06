@@ -32,13 +32,13 @@ export async function exportTableToPdf(
     const totalRows = tableRows.length;
 
     for (let i = 0; i < totalRows; i++) {
-      const tr = tableRows[i];
-      const section = tr.querySelector("td:nth-child(1)")?.textContent?.trim() || "";
-      const no = tr.querySelector("td:nth-child(2)")?.textContent?.trim() || "";
+      const tr = tableRows[i] as HTMLTableRowElement;
       
-      // Get image URL
-      const img = tr.querySelector("td:nth-child(3) img") as HTMLImageElement;
-      const imgUrl = img?.src;
+      // Skip helper rows or empty rows if any
+      if (!tr.cells || tr.cells.length < 2) continue;
+
+      const section = tr.cells[0]?.textContent?.trim() || "";
+      const no = tr.cells[1]?.textContent?.trim() || "";
       
       // Get Name and Description
       const name = tr.querySelector(".product-name")?.textContent?.trim() || "";
@@ -47,19 +47,16 @@ export async function exportTableToPdf(
 
       // Get Link
       const linkEl = tr.querySelector("[data-pdf-link]") as HTMLAnchorElement;
-      const linkUrl = linkEl?.getAttribute("data-pdf-link") || "";
+      const linkUrl = linkEl?.getAttribute("data-pdf-link") || null;
 
-      rows.push([
+      rows.push({
         section,
         no,
-        "", // Placeholder for image
-        productContent,
-        linkUrl ? "Link" : "—"
-      ]);
-
-      if (imgUrl && !imgUrl.includes("data:image/svg")) {
-        imagesToLoad.push({ url: imgUrl, rowIdx: i, colIdx: 2 });
-      }
+        image: "", 
+        content: productContent,
+        link: linkUrl ? "Link" : "—",
+        rawUrl: linkUrl
+      });
 
       const pct = 10 + Math.round((i / totalRows) * 30);
       if (i % 10 === 0) report({ phase: "preparing", percent: pct, message: `Đang xử lý dòng ${i + 1}...` });
@@ -69,15 +66,15 @@ export async function exportTableToPdf(
 
     autoTable(pdf, {
       head: headers,
-      body: rows,
+      body: rows.map(r => [r.section, r.no, r.image, r.content, r.link]),
       startY: 20,
       margin: { top: 20, left: 10, right: 10, bottom: 20 },
       theme: "grid",
       styles: {
-        fontSize: 9,
-        cellPadding: 4,
+        fontSize: 8.5,
+        cellPadding: 3,
         valign: "middle",
-        font: "helvetica", // standard font
+        font: "helvetica",
       },
       headStyles: {
         fillColor: [34, 34, 34],
@@ -86,40 +83,24 @@ export async function exportTableToPdf(
         halign: "center",
       },
       columnStyles: {
-        0: { cellWidth: 25, halign: "center", fontStyle: "bold" },
-        1: { cellWidth: 12, halign: "center" },
-        2: { cellWidth: 30, halign: "center" },
+        0: { cellWidth: 22, halign: "center", fontStyle: "bold" },
+        1: { cellWidth: 10, halign: "center" },
+        2: { cellWidth: 28, halign: "center" },
         3: { cellWidth: "auto" },
-        4: { cellWidth: 25, halign: "center", textColor: [0, 102, 204] },
+        4: { cellWidth: 20, halign: "center", textColor: [0, 102, 204] },
       },
       didDrawCell: (data) => {
-        // Handle links in the last column
+        // Handle links in the last column (index 4)
         if (data.section === "body" && data.column.index === 4) {
-          const rowData = rows[data.row.index];
-          const url = rowData[4] === "Link" ? tableRows[data.row.index].querySelector("[data-pdf-link]")?.getAttribute("data-pdf-link") : null;
-          if (url) {
-            pdf.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url });
-          }
-        }
-
-        // Handle images
-        if (data.section === "body" && data.column.index === 2) {
-          const imgData = imagesToLoad.find(it => it.rowIdx === data.row.index);
-          if (imgData) {
-            try {
-              // We'll draw images in a separate pass or if already cached.
-              // For simplicity in this logic, we use a hook to mark positions.
-            } catch (e) {}
+          const rowIdx = data.row.index;
+          const rowData = rows[rowIdx];
+          if (rowData && rowData.rawUrl) {
+            pdf.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: rowData.rawUrl });
           }
         }
       },
-      didParseCell: (data) => {
-        // Multi-line support for product content
-        if (data.column.index === 3 && data.section === "body") {
-          // data.cell.text is already handled by the string concatenation above
-        }
-      }
     });
+
 
     // Add a title to the PDF
     pdf.setFontSize(16);
