@@ -19,7 +19,7 @@ export async function exportTableToPdf(
     // Yield to UI so the progress modal paints before heavy work begins.
     await new Promise((r) => setTimeout(r, 50));
 
-    // 1. Temporarily disable sticky positioning and transitions for accurate coordinate calculation
+    // 1. Temporarily disable sticky and transitions
     const style = document.createElement("style");
     style.innerHTML = `
       [data-pdf-exporting] .sticky { position: static !important; }
@@ -29,6 +29,8 @@ export async function exportTableToPdf(
     tableEl.setAttribute("data-pdf-exporting", "true");
 
     report({ phase: "rendering", percent: 20, message: "Đang chụp bảng dữ liệu…" });
+    
+    // Ensure we capture from the very top
     const canvas = await html2canvas(tableEl, {
       scale: 2,
       backgroundColor: "#ffffff",
@@ -36,6 +38,14 @@ export async function exportTableToPdf(
       logging: false,
       windowWidth: tableEl.scrollWidth,
       windowHeight: tableEl.scrollHeight,
+      onclone: (clonedDoc) => {
+        // Find the table in the cloned document and reset its parent's scroll
+        const clonedTable = clonedDoc.querySelector("[data-pdf-exporting]") as HTMLElement;
+        if (clonedTable && clonedTable.parentElement) {
+          clonedTable.parentElement.scrollTop = 0;
+          clonedTable.parentElement.scrollLeft = 0;
+        }
+      }
     });
 
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -44,22 +54,23 @@ export async function exportTableToPdf(
     const margin = 8;
     const imgW = pageW - margin * 2;
     
-    // Scale factor between CSS pixels and Canvas pixels (html2canvas scale)
-    const canvasScale = canvas.width / tableEl.scrollWidth;
-    // Ratio to convert CSS pixels to PDF millimeters
-    const mmPerPx = imgW / tableEl.scrollWidth;
-
-    // Capture all links from the DOM relative to the table container
+    // Use the actual rendered width for the ratio calculation
     const tableRect = tableEl.getBoundingClientRect();
+    const mmPerPx = imgW / tableRect.width;
+
+    // Capture all links with a larger hit area (the entire cell if possible)
     const links = Array.from(tableEl.querySelectorAll("[data-pdf-link]")).map((el) => {
       const rect = el.getBoundingClientRect();
+      // If the link is inside a cell (TD), let's try to get the cell's bounds for a bigger hit area
+      const cell = el.closest("td");
+      const hitRect = cell ? cell.getBoundingClientRect() : rect;
+      
       return {
         url: el.getAttribute("data-pdf-link") || "",
-        // Distance from top/left of the table in CSS pixels
-        x: rect.left - tableRect.left,
-        y: rect.top - tableRect.top,
-        w: rect.width,
-        h: rect.height,
+        x: hitRect.left - tableRect.left,
+        y: hitRect.top - tableRect.top,
+        w: hitRect.width,
+        h: hitRect.height,
       };
     });
 
@@ -67,7 +78,7 @@ export async function exportTableToPdf(
       const pageBottomPx = pageYpx + (pageHmm / mmPerPx);
       
       links.forEach((link) => {
-        // Check if the link is within the current Y-slice of the table
+        // Use the center of the link/cell to determine which page it belongs to
         const linkCenterY = link.y + link.h / 2;
         if (linkCenterY >= pageYpx && linkCenterY <= pageBottomPx) {
           const xMm = margin + (link.x * mmPerPx);
@@ -75,8 +86,8 @@ export async function exportTableToPdf(
           const wMm = link.w * mmPerPx;
           const hMm = link.h * mmPerPx;
           
-          // Add a small buffer (1mm) to make the link easier to click
-          pdf.link(xMm - 0.5, yMm - 0.5, wMm + 1, hMm + 1, { url: link.url });
+          // Add the link area to the PDF
+          pdf.link(xMm, yMm, wMm, hMm, { url: link.url });
         }
       });
     };
@@ -93,6 +104,10 @@ export async function exportTableToPdf(
       const totalPages = Math.ceil(canvas.height / pageHpx);
       let y = 0;
       let page = 0;
+      
+      // Calculate CSS pixels per Canvas pixel
+      const cssToCanvas = canvas.width / tableRect.width;
+
       while (y < canvas.height) {
         const sliceH = Math.min(pageHpx, canvas.height - y);
         const sliceCanvas = document.createElement("canvas");
@@ -115,8 +130,8 @@ export async function exportTableToPdf(
           sliceMm,
         );
         
-        // Add hyperlinks for this specific page slice (y is in canvas px, convert to CSS px)
-        addLinksToPage(y / canvasScale, sliceMm);
+        // Add hyperlinks for this specific page slice (y is canvas px, convert to CSS px)
+        addLinksToPage(y / cssToCanvas, sliceMm);
 
         page += 1;
         y += sliceH;
@@ -130,9 +145,10 @@ export async function exportTableToPdf(
       }
     }
 
-    // Cleanup temporary styles
+    // Cleanup
     tableEl.removeAttribute("data-pdf-exporting");
     document.head.removeChild(style);
+
 
     report({ phase: "saving", percent: 95, message: "Đang lưu tệp…" });
 
