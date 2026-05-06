@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 
 export type ExportProgress = {
   phase: "preparing" | "rendering" | "paginating" | "saving" | "done" | "error";
@@ -8,112 +8,140 @@ export type ExportProgress = {
 };
 
 export async function exportTableToPdf(
-  tableEl: HTMLTableElement,
+  tableEl: HTMLElement,
   filename = "danh-sach-san-pham.pdf",
   onProgress?: (p: ExportProgress) => void,
 ) {
   const report = (p: ExportProgress) => onProgress?.(p);
 
   try {
-    report({ phase: "preparing", percent: 10, message: "Đang thu thập dữ liệu..." });
+    report({ phase: "preparing", percent: 5, message: "Chuẩn bị nội dung…" });
     await new Promise((r) => setTimeout(r, 50));
 
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    
-    // Add font support if needed, but standard fonts work for basic Vietnamese
-    // For full Vietnamese support, we usually need a custom font. 
-    // Since jspdf standard fonts have limited VN support, we'll try to use the built-in ones first.
+    // 1. Temporarily style the table for perfect capture
+    const originalStyle = tableEl.getAttribute("style") || "";
+    const style = document.createElement("style");
+    style.innerHTML = `
+      .pdf-export-mode .sticky { position: static !important; }
+      .pdf-export-mode .link-badge { display: inline-block !important; }
+      .pdf-export-mode * { transition: none !important; animation: none !important; }
+    `;
+    document.head.appendChild(style);
+    tableEl.classList.add("pdf-export-mode");
 
-    const headers = [["SECTION", "NO.", "HÌNH ẢNH", "PRODUCT", "CÔNG BỐ"]];
-    const rows: any[] = [];
-    const imagesToLoad: { url: string; rowIdx: number; colIdx: number }[] = [];
+    report({ phase: "rendering", percent: 20, message: "Đang chụp bảng dữ liệu…" });
 
-    const tableRows = Array.from(tableEl.querySelectorAll("tbody tr"));
-    const totalRows = tableRows.length;
-
-    for (let i = 0; i < totalRows; i++) {
-      const tr = tableRows[i] as HTMLTableRowElement;
-      
-      // Skip helper rows or empty rows if any
-      if (!tr.cells || tr.cells.length < 2) continue;
-
-      const section = tr.cells[0]?.textContent?.trim() || "";
-      const no = tr.cells[1]?.textContent?.trim() || "";
-      
-      // Get Name and Description
-      const name = tr.querySelector(".product-name")?.textContent?.trim() || "";
-      const desc = tr.querySelector(".product-desc")?.textContent?.trim() || "";
-      const productContent = `${name}\n${desc}`;
-
-      // Get Link
-      const linkEl = tr.querySelector("[data-pdf-link]") as HTMLAnchorElement;
-      const linkUrl = linkEl?.getAttribute("data-pdf-link") || null;
-
-      rows.push({
-        section,
-        no,
-        image: "", 
-        content: productContent,
-        link: linkUrl ? "Link" : "—",
-        rawUrl: linkUrl
-      });
-
-      const pct = 10 + Math.round((i / totalRows) * 30);
-      if (i % 10 === 0) report({ phase: "preparing", percent: pct, message: `Đang xử lý dòng ${i + 1}...` });
-    }
-
-    report({ phase: "rendering", percent: 50, message: "Đang dựng bảng PDF..." });
-
-    autoTable(pdf, {
-      head: headers,
-      body: rows.map(r => [r.section, r.no, r.image, r.content, r.link]),
-      startY: 20,
-      margin: { top: 20, left: 10, right: 10, bottom: 20 },
-      theme: "grid",
-      styles: {
-        fontSize: 8.5,
-        cellPadding: 3,
-        valign: "middle",
-        font: "helvetica",
-      },
-      headStyles: {
-        fillColor: [34, 34, 34],
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-        halign: "center",
-      },
-      columnStyles: {
-        0: { cellWidth: 22, halign: "center", fontStyle: "bold" },
-        1: { cellWidth: 10, halign: "center" },
-        2: { cellWidth: 28, halign: "center" },
-        3: { cellWidth: "auto" },
-        4: { cellWidth: 20, halign: "center", textColor: [0, 102, 204] },
-      },
-      didDrawCell: (data) => {
-        // Handle links in the last column (index 4)
-        if (data.section === "body" && data.column.index === 4) {
-          const rowIdx = data.row.index;
-          const rowData = rows[rowIdx];
-          if (rowData && rowData.rawUrl) {
-            pdf.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: rowData.rawUrl });
-          }
-        }
-      },
+    // Capture the entire table width and height
+    const canvas = await html2canvas(tableEl, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+      logging: false,
+      width: tableEl.scrollWidth,
+      height: tableEl.scrollHeight,
+      windowWidth: tableEl.scrollWidth,
+      windowHeight: tableEl.scrollHeight,
     });
 
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 8;
+    const imgW = pageW - margin * 2;
+    const mmPerPx = imgW / tableEl.scrollWidth;
 
-    // Add a title to the PDF
-    pdf.setFontSize(16);
-    pdf.text("DANH SÁCH CÔNG BỐ SẢN PHẨM DESEMBRE", 105, 12, { align: "center" });
+    // Capture link positions BEFORE we cleanup the styles
+    // We use offsetTop/offsetLeft relative to the table to be 100% accurate
+    const links: { url: string; x: number; y: number; w: number; h: number }[] = [];
+    const linkEls = tableEl.querySelectorAll("[data-pdf-link]");
+    
+    linkEls.forEach((el) => {
+      const htmlEl = el as HTMLElement;
+      let top = 0;
+      let left = 0;
+      let curr: HTMLElement | null = htmlEl;
+      
+      // Calculate offset relative to the tableEl
+      while (curr && curr !== tableEl) {
+        top += curr.offsetTop;
+        left += curr.offsetLeft;
+        curr = curr.offsetParent as HTMLElement;
+      }
 
-    report({ phase: "saving", percent: 95, message: "Đang lưu tệp..." });
+      links.push({
+        url: htmlEl.getAttribute("data-pdf-link") || "",
+        x: left,
+        y: top,
+        w: htmlEl.offsetWidth,
+        h: htmlEl.offsetHeight,
+      });
+    });
+
+    const addLinksToPage = (pageYpx: number, pageHmm: number) => {
+      const pageBottomPx = pageYpx + (pageHmm / mmPerPx);
+      links.forEach((link) => {
+        // If the center of the link is on this page
+        const centerY = link.y + link.h / 2;
+        if (centerY >= pageYpx && centerY <= pageBottomPx) {
+          const xMm = margin + (link.x * mmPerPx);
+          const yMm = margin + ((link.y - pageYpx) * mmPerPx);
+          const wMm = link.w * mmPerPx;
+          const hMm = link.h * mmPerPx;
+          // Make the link area slightly larger for easier clicking
+          pdf.link(xMm - 1, yMm - 1, wMm + 2, hMm + 2, { url: link.url });
+        }
+      });
+    };
+
+    const imgH = (canvas.height * imgW) / canvas.width;
+
+    if (imgH <= pageH - margin * 2) {
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, imgW, imgH);
+      addLinksToPage(0, imgH);
+    } else {
+      const pxPerMm = canvas.width / imgW;
+      const canvasScale = canvas.width / tableEl.scrollWidth;
+      const pageHpx = (pageH - margin * 2) * pxPerMm;
+      const totalPages = Math.ceil(canvas.height / pageHpx);
+      
+      let y = 0;
+      let page = 0;
+      while (y < canvas.height) {
+        const sliceH = Math.min(pageHpx, canvas.height - y);
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceH;
+        const ctx = sliceCanvas.getContext("2d")!;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+        ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        
+        if (page > 0) pdf.addPage();
+        const sliceMm = sliceH / pxPerMm;
+        pdf.addImage(sliceCanvas.toDataURL("image/jpeg", 0.9), "JPEG", margin, margin, imgW, sliceMm);
+        
+        // Add links for this slice. y is in canvas pixels, convert to table CSS pixels
+        addLinksToPage(y / canvasScale, sliceMm);
+
+        page += 1;
+        y += sliceH;
+        report({ phase: "paginating", percent: 50 + Math.round((page / totalPages) * 40), message: `Đang dựng trang ${page}/${totalPages}…` });
+        await new Promise((r) => setTimeout(r, 10));
+      }
+    }
+
+    // Cleanup
+    tableEl.classList.remove("pdf-export-mode");
+    document.head.removeChild(style);
+
+    report({ phase: "saving", percent: 95, message: "Đang lưu tệp…" });
     pdf.save(filename);
     report({ phase: "done", percent: 100, message: "Hoàn tất!" });
-
   } catch (err) {
     console.error("PDF Export Error:", err);
     report({ phase: "error", percent: 0, message: err instanceof Error ? err.message : "Lỗi không xác định" });
     throw err;
   }
 }
+
 
