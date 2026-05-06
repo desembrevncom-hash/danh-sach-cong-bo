@@ -35,11 +35,47 @@ export async function exportTableToPdf(
     const pageH = pdf.internal.pageSize.getHeight();
     const margin = 8;
     const imgW = pageW - margin * 2;
+    const canvasScale = canvas.width / tableEl.scrollWidth;
+    const mmPerPx = imgW / canvas.width * canvasScale;
+
+    // Capture all links from the DOM relative to the table container
+    const links = Array.from(tableEl.querySelectorAll("[data-pdf-link]")).map((el) => {
+      const rect = el.getBoundingClientRect();
+      const tableRect = tableEl.getBoundingClientRect();
+      return {
+        url: el.getAttribute("data-pdf-link") || "",
+        x: (rect.left - tableRect.left),
+        y: (rect.top - tableRect.top),
+        w: rect.width,
+        h: rect.height,
+      };
+    });
+
+    const addLinksToPage = (currentPageYpx: number, currentPageHmm: number) => {
+      const pageYpx = currentPageYpx;
+      const pageHmm = currentPageHmm;
+      
+      links.forEach((link) => {
+        // Check if the link is within the current Y-slice of the table
+        const linkBottom = link.y + link.h;
+        const pageBottomPx = pageYpx + (pageHmm / mmPerPx);
+        
+        if (link.y >= pageYpx && linkBottom <= pageBottomPx) {
+          const xMm = margin + (link.x * mmPerPx);
+          const yMm = margin + ((link.y - pageYpx) * mmPerPx);
+          const wMm = link.w * mmPerPx;
+          const hMm = link.h * mmPerPx;
+          pdf.link(xMm, yMm, wMm, hMm, { url: link.url });
+        }
+      });
+    };
+
     const imgH = (canvas.height * imgW) / canvas.width;
 
     if (imgH <= pageH - margin * 2) {
       report({ phase: "saving", percent: 85, message: "Đang ghi tệp PDF…" });
       pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, imgW, imgH);
+      addLinksToPage(0, imgH);
     } else {
       const pxPerMm = canvas.width / imgW;
       const pageHpx = (pageH - margin * 2) * pxPerMm;
@@ -55,7 +91,9 @@ export async function exportTableToPdf(
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
         ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        
         if (page > 0) pdf.addPage();
+        
         const sliceMm = sliceH / pxPerMm;
         pdf.addImage(
           sliceCanvas.toDataURL("image/jpeg", 0.9),
@@ -65,6 +103,10 @@ export async function exportTableToPdf(
           imgW,
           sliceMm,
         );
+        
+        // Add hyperlinks for this specific page slice
+        addLinksToPage(y / canvasScale, sliceMm);
+
         page += 1;
         y += sliceH;
         const pct = 55 + Math.round((page / totalPages) * 35);
@@ -73,13 +115,13 @@ export async function exportTableToPdf(
           percent: pct,
           message: `Đang dựng trang ${page}/${totalPages}…`,
         });
-        // Let the UI breathe between pages
         await new Promise((r) => setTimeout(r, 0));
       }
     }
 
     report({ phase: "saving", percent: 95, message: "Đang lưu tệp…" });
     pdf.save(filename);
+
     report({ phase: "done", percent: 100, message: "Hoàn tất!" });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Lỗi không xác định";

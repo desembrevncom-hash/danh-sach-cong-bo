@@ -107,10 +107,12 @@ const ProductLinkCell = ({ productNo, href, onChange }: Props) => {
           rel="noopener noreferrer"
           className="link-badge"
           title={href}
+          data-pdf-link={href}
         >
           Link
           <ExternalLink className="w-3 h-3 ml-1 inline-block opacity-70" />
         </a>
+
       ) : unlocked ? (
         <button
           type="button"
