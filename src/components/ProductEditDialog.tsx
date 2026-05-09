@@ -39,6 +39,7 @@ type Props = {
 
 const ProductEditDialog = ({ open, onOpenChange, initial, sectionOptions, onSaved }: Props) => {
   const { getPassword } = useEditUnlock();
+  const [no, setNo] = useState("");
   const [section, setSection] = useState("");
   const [customSection, setCustomSection] = useState("");
   const [useCustom, setUseCustom] = useState(false);
@@ -48,6 +49,7 @@ const ProductEditDialog = ({ open, onOpenChange, initial, sectionOptions, onSave
 
   useEffect(() => {
     if (open && initial) {
+      setNo(initial.no != null ? String(initial.no) : "");
       const initSec = initial.section ?? "";
       const inList = initSec && sectionOptions.includes(initSec);
       setUseCustom(!!initSec && !inList);
@@ -66,6 +68,12 @@ const ProductEditDialog = ({ open, onOpenChange, initial, sectionOptions, onSave
       toast.error("Vui lòng nhập tên và nhóm sản phẩm");
       return;
     }
+    const targetNo = parseInt(no);
+    if (isNaN(targetNo)) {
+      toast.error("Số thứ tự phải là một con số");
+      return;
+    }
+
     const password = getPassword();
     if (!password) {
       toast.error("Cần mở khoá KEY");
@@ -75,7 +83,8 @@ const ProductEditDialog = ({ open, onOpenChange, initial, sectionOptions, onSave
     const res = await saveProductOverride({
       password,
       action: isCreate ? "create" : "upsert",
-      no: isCreate ? undefined : initial!.no,
+      no: targetNo,
+      original_no: isCreate ? undefined : initial!.no,
       section: finalSection,
       name: name.trim(),
       desc: desc.trim(),
@@ -97,6 +106,15 @@ const ProductEditDialog = ({ open, onOpenChange, initial, sectionOptions, onSave
           <DialogTitle>{isCreate ? "Thêm sản phẩm mới" : "Chỉnh sửa sản phẩm"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Số thứ tự (No)</Label>
+            <Input
+              type="number"
+              value={no}
+              onChange={(e) => setNo(e.target.value)}
+              placeholder="VD: 10"
+            />
+          </div>
           <div>
             <Label className="text-xs">Nhóm sản phẩm (Section)</Label>
             {useCustom ? (

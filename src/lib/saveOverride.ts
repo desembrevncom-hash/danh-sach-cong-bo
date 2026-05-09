@@ -13,6 +13,7 @@ export type OverrideRow = {
 
 type SavePayload = {
   no?: number;
+  original_no?: number;
   password: string;
   action?: "upsert" | "create" | "hard_delete";
   image_data_url?: string | null;
@@ -25,6 +26,11 @@ type SavePayload = {
 };
 
 export async function saveProductOverride(payload: SavePayload) {
+  if (payload.original_no && payload.original_no !== payload.no) {
+    // If we are renumbering, delete the old record first
+    await supabase.from('product_overrides').delete().eq('no', payload.original_no);
+  }
+
   const { data, error } = await supabase.functions.invoke("save-product-override", {
     body: payload,
   });
