@@ -5,7 +5,7 @@ import { ProductPDF } from "@/components/ProductPDF";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { sections, type FlatProduct } from "@/data/desembreProducts";
+import { sections, flatProducts, type FlatProduct } from "@/data/desembreProducts";
 import ProductImageCell from "@/components/ProductImageCell";
 import ProductLinkCell from "@/components/ProductLinkCell";
 import UnlockDialog from "@/components/UnlockDialog";
