@@ -151,7 +151,7 @@
 
   .product-table td {
     border: none;
-    padding: 10px 20px;
+    padding: 8px 20px;
     text-align: left !important;
     display: block;
   }
@@ -164,45 +164,49 @@
     font-weight: 800;
     letter-spacing: 0.1em;
     padding: 12px 20px !important;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
   }
 
-  /* No. badge on mobile */
+  /* STT at the start of the line (top-left) */
   .product-table td:nth-child(2) {
     position: absolute;
     top: 14px;
-    right: 14px;
-    padding: 4px 12px;
+    left: 14px;
+    padding: 2px 8px;
     background: hsl(var(--accent));
     color: hsl(var(--accent-foreground));
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 700;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 900;
     width: auto;
     z-index: 10;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
-  /* Image box on mobile - make it larger or more centered if needed */
+  /* Image box on mobile */
   .product-img-box {
     margin: 8px 0;
-    width: 120px;
-    height: 120px;
+    width: 100px;
+    height: 100px;
   }
 
-  /* Labels for mobile */
+  /* Labels for mobile - make them very subtle */
   .product-table td::before {
     content: attr(data-label);
     display: block;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
     text-transform: uppercase;
     color: hsl(var(--muted-foreground));
-    margin-bottom: 6px;
-    letter-spacing: 0.08em;
-    opacity: 0.8;
+    margin-bottom: 4px;
+    letter-spacing: 0.1em;
+    opacity: 0.4;
+  }
+
+  /* Hide the "HÌNH ẢNH" label as requested */
+  .product-table td[data-label="HÌNH ẢNH"]::before {
+    display: none;
   }
 
   .product-name {
