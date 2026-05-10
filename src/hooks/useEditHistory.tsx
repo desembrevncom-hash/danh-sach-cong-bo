@@ -26,9 +26,20 @@ type Props = {
   applyRestore: (no: number, row: OverrideRow | null) => void;
 };
 
+const HISTORY_KEY = "desembre-edit-history-v1";
+
 export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
   const { getPassword } = useEditUnlock();
-  const [stack, setStack] = useState<Snapshot[]>([]);
+  const [stack, setStack] = useState<Snapshot[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = localStorage.getItem(HISTORY_KEY);
+      if (stored) return JSON.parse(stored) as Snapshot[];
+    } catch {
+      // ignore parse errors
+    }
+    return [];
+  });
   const [busy, setBusy] = useState(false);
 
   const snapshot = useCallback(
@@ -36,6 +47,11 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
       setStack((s) => {
         const next = [...s, { no, prev: prev ?? null, label }];
         if (next.length > MAX_HISTORY) next.shift();
+        try {
+          localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+        } catch {
+          // ignore
+        }
         return next;
       });
     },
@@ -79,14 +95,25 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
         }
         applyRestore(p.no, res.row);
       }
-      setStack((s) => s.slice(0, -1));
+      setStack((s) => {
+        const next = s.slice(0, -1);
+        try {
+          localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+        } catch {}
+        return next;
+      });
       toast.success(`Đã hoàn tác: ${last.label}`);
     } finally {
       setBusy(false);
     }
   }, [stack, busy, getPassword, applyRestore]);
 
-  const clear = useCallback(() => setStack([]), []);
+  const clear = useCallback(() => {
+    setStack([]);
+    try {
+      localStorage.removeItem(HISTORY_KEY);
+    } catch {}
+  }, []);
 
   return (
     <HistoryContext.Provider
