@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Search, Lock, LockOpen, Plus, Pencil, Trash2, FileDown } from "lucide-react";
+import { Search, RotateCcw, Lock, LockOpen, Plus, Pencil, Trash2, FileDown } from "lucide-react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { ProductPDF } from "@/components/ProductPDF";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
