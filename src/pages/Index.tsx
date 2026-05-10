@@ -424,7 +424,8 @@ const IndexInner = ({
       </section>
 
       <main className="container mx-auto px-4 md:px-6 py-6 flex-1 w-full">
-        <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden mx-auto" style={{ maxWidth: "95%" }}>
+        {/* Desktop Table */}
+        <div className="hidden md:block bg-card rounded-lg shadow-sm border border-border overflow-hidden mx-auto" style={{ maxWidth: "95%" }}>
           <div className="table-wrap" ref={tableWrapRef}>
             <table className="product-table">
               <thead>
@@ -475,30 +476,129 @@ const IndexInner = ({
                               )}
                             </td>
                           )}
-                          <td className="text-center font-semibold text-foreground" data-label="STT">
+                          <td className="text-center font-semibold text-foreground">
                             {String(seq).padStart(2, "0")}
                           </td>
-                        <td className="overflow-visible" data-label="HÌNH ẢNH">
-                          <ProductImageCell
-                            productNo={row.no}
-                            src={overrides[row.no]?.image_url ?? undefined}
-                            onChange={(src) => setImage(row.no, src)}
-                          />
-                        </td>
-                        <td data-label="SẢN PHẨM">
-                          <div className="product-name">{row.name}</div>
-                          <div className="product-desc">{row.desc}</div>
-                        </td>
-                        <td className="text-center overflow-visible" data-label="CÔNG BỐ">
-                          <ProductLinkCell
-                            productNo={row.no}
-                            href={row.link}
-                            onChange={(href) => setLink(row.no, href)}
-                          />
-                        </td>
-                        {unlocked && (
-                          <td className="text-center">
-                            <div className="inline-flex gap-1">
+                          <td className="overflow-visible">
+                            <ProductImageCell
+                              productNo={row.no}
+                              src={overrides[row.no]?.image_url ?? undefined}
+                              onChange={(src) => setImage(row.no, src)}
+                            />
+                          </td>
+                          <td>
+                            <div className="product-name">{row.name}</div>
+                            <div className="product-desc">{row.desc}</div>
+                          </td>
+                          <td className="text-center overflow-visible">
+                            <ProductLinkCell
+                              productNo={row.no}
+                              href={row.link}
+                              onChange={(href) => setLink(row.no, href)}
+                            />
+                          </td>
+                          {unlocked && (
+                            <td className="text-center">
+                              <div className="inline-flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => openEdit(row)}
+                                  className="w-7 h-7 inline-flex items-center justify-center rounded border border-border hover:bg-accent/20"
+                                  title="Chỉnh sửa"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(row)}
+                                  className="w-7 h-7 inline-flex items-center justify-center rounded border border-border text-destructive hover:bg-destructive/10"
+                                  title="Xoá"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    }),
+                  );
+                })()}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Mobile Card List */}
+        <div className="md:hidden space-y-3">
+          {grouped.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground text-sm">
+              Không tìm thấy sản phẩm phù hợp.
+            </div>
+          )}
+          {(() => {
+            let seq = 0;
+            return grouped.map(([sectionTitle, rows]) => {
+              const sec = sections.find((s) => s.title === sectionTitle);
+              return (
+                <div key={sectionTitle}>
+                  {/* Section Header */}
+                  <div className="flex items-center gap-2 mb-3 mt-4">
+                    <div className="flex-1 h-[1px] bg-border" />
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                      style={{ background: "hsl(var(--header-bg))", color: "hsl(var(--header-text))" }}>
+                      <span className="text-xs font-black uppercase tracking-widest">{sectionTitle}</span>
+                      {unlocked && (
+                        <button
+                          type="button"
+                          onClick={() => handleRenameSection(sectionTitle, rows)}
+                          title="Đổi tên nhóm"
+                          className="opacity-60 hover:opacity-100 transition"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex-1 h-[1px] bg-border" />
+                  </div>
+                  {sec?.vi && (
+                    <p className="text-center text-xs text-muted-foreground mb-3 -mt-1">{sec.vi}</p>
+                  )}
+
+                  {/* Product Cards */}
+                  {rows.map((row) => {
+                    seq += 1;
+                    const currentSeq = seq;
+                    return (
+                      <div key={row.no}
+                        className="bg-card border border-border rounded-xl shadow-sm mb-3 overflow-hidden">
+                        {/* Card Top: image left, info right */}
+                        <div className="flex items-start gap-3 p-3">
+                          {/* Image */}
+                          <div className="flex-shrink-0">
+                            <ProductImageCell
+                              productNo={row.no}
+                              src={overrides[row.no]?.image_url ?? undefined}
+                              onChange={(src) => setImage(row.no, src)}
+                            />
+                          </div>
+                          {/* Text info */}
+                          <div className="flex-1 min-w-0 pt-1">
+                            {/* STT badge */}
+                            <span className="inline-block text-[10px] font-black px-2 py-0.5 rounded mb-1.5"
+                              style={{ background: "hsl(var(--accent))", color: "hsl(var(--accent-foreground))" }}>
+                              {String(currentSeq).padStart(2, "0")}
+                            </span>
+                            <div className="font-bold text-sm leading-tight text-foreground mb-1 uppercase tracking-wide">
+                              {row.name}
+                            </div>
+                            <div className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                              {row.desc}
+                            </div>
+                          </div>
+                          {/* Admin buttons */}
+                          {unlocked && (
+                            <div className="flex flex-col gap-1 flex-shrink-0">
                               <button
                                 type="button"
                                 onClick={() => openEdit(row)}
@@ -516,16 +616,25 @@ const IndexInner = ({
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
-                          </td>
+                          )}
+                        </div>
+                        {/* Card Bottom: Link button */}
+                        {row.link && (
+                          <div className="border-t border-border px-3 py-2">
+                            <ProductLinkCell
+                              productNo={row.no}
+                              href={row.link}
+                              onChange={(href) => setLink(row.no, href)}
+                            />
+                          </div>
                         )}
-                        </tr>
-                      );
-                    }),
-                  );
-                })()}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            });
+          })()}
         </div>
       </main>
 
