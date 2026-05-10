@@ -566,12 +566,14 @@ const IndexInner = ({
                   )}
 
                   {/* Product Cards */}
-                  {rows.map((row) => {
+                  {rows.map((row, rowIdx) => {
                     seq += 1;
                     const currentSeq = seq;
+                    const isEven = rowIdx % 2 === 1;
                     return (
                       <div key={row.no}
-                        className="bg-card border border-border rounded-xl shadow-sm mb-2 overflow-hidden">
+                        className="border border-border rounded-xl shadow-sm mb-2 overflow-hidden"
+                        style={{ background: isEven ? "hsl(var(--row-alt))" : "hsl(var(--card))" }}>
                         {/* Card Top: image left, info right */}
                         <div className="flex items-start gap-3 p-3">
                           {/* Image */}
