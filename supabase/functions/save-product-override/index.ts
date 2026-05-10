@@ -42,6 +42,24 @@ Deno.serve(async (req) => {
   }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
+  // Bulk upsert support
+  if (Array.isArray(body.products)) {
+    const products = body.products.map((p: any) => ({
+      no: Number(p.no),
+      name: p.name,
+      desc: p.desc,
+      section: p.section,
+      image_url: p.image_url ?? null,
+      link_url: p.link_url ?? null,
+      deleted: Boolean(p.deleted ?? false),
+      is_custom: Boolean(p.is_custom ?? false),
+      updated_at: new Date().toISOString(),
+    }));
+    const { data: saved, error } = await supabase.from("product_overrides").upsert(products, { onConflict: "no" }).select();
+    if (error) return json(500, { error: error.message });
+    return json(200, { ok: true, count: saved?.length });
+  }
+
   const action = String(body.action ?? "upsert");
 
   // Hard delete a custom product (or unset deleted flag — handled via upsert)
@@ -72,6 +90,31 @@ Deno.serve(async (req) => {
     }
   }
 
+  const originalNo = "original_no" in body ? Number(body.original_no) : undefined;
+  
+  // Shifting logic if moving a product
+  if (originalNo && originalNo !== no && action !== "create") {
+    const isMovingUp = originalNo > no;
+    const minNo = isMovingUp ? no : originalNo + 1;
+    const maxNo = isMovingUp ? originalNo - 1 : no;
+
+    const { data: toShift } = await supabase
+      .from("product_overrides")
+      .select("*")
+      .gte("no", minNo)
+      .lte("no", maxNo)
+      .order("no", { ascending: isMovingUp ? false : true }); // Process backwards to avoid conflicts
+
+    if (toShift && toShift.length > 0) {
+      // Delete original first to avoid primary key collision
+      await supabase.from("product_overrides").delete().eq("no", originalNo);
+      for (const item of toShift) {
+        const newNo = isMovingUp ? item.no + 1 : item.no - 1;
+        await supabase.from("product_overrides").update({ no: newNo }).eq("no", item.no);
+      }
+    }
+  }
+
   // Optional image upload
   let image_url: string | null | undefined = undefined;
   if ("image_data_url" in body) {
@@ -91,11 +134,10 @@ Deno.serve(async (req) => {
         .upload(path, bytes, { contentType: mime, upsert: true });
       if (upErr) {
         console.error("Storage upload error:", upErr);
-        return json(500, { error: `Không thể tải ảnh lên Storage. Hãy đảm bảo Bucket 'product-images' đã được tạo và ở chế độ Public. Chi tiết: ${upErr.message}` });
+        return json(500, { error: `Không thể tải ảnh lên Storage. Chi tiết: ${upErr.message}` });
       }
       const { data: pub } = supabase.storage.from("product-images").getPublicUrl(path);
       image_url = pub.publicUrl;
-
     }
   } else if ("image_url" in body) {
     const v = body.image_url;
@@ -119,7 +161,7 @@ Deno.serve(async (req) => {
   const { data: existing } = await supabase
     .from("product_overrides")
     .select("*")
-    .eq("no", no)
+    .eq("no", originalNo && originalNo !== no ? originalNo : no)
     .maybeSingle();
 
   const row: Record<string, unknown> = {

@@ -26,11 +26,7 @@ type SavePayload = {
 };
 
 export async function saveProductOverride(payload: SavePayload) {
-  if (payload.original_no && payload.original_no !== payload.no) {
-    // If we are renumbering, delete the old record first
-    await supabase.from('product_overrides').delete().eq('no', payload.original_no);
-  }
-
+  // The Edge Function handles deletion during shifting, no need for client-side delete.
   const { data, error } = await supabase.functions.invoke("save-product-override", {
     body: payload,
   });

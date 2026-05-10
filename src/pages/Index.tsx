@@ -21,9 +21,11 @@ const ALL = "ALL";
 const IndexInner = ({
   overrides,
   setOverrides,
+  refreshOverrides,
 }: {
   overrides: Record<number, OverrideRow>;
   setOverrides: React.Dispatch<React.SetStateAction<Record<number, OverrideRow>>>;
+  refreshOverrides: () => Promise<void>;
 }) => {
   const { unlocked, lock, getPassword } = useEditUnlock();
   const history = useEditHistory();
@@ -282,6 +284,46 @@ const IndexInner = ({
                 <Undo2 className="w-4 h-4" />
                 Hoàn tác{history.count > 0 ? ` (${history.count})` : ""}
               </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!confirm("Thao tác này sẽ đồng bộ toàn bộ 67 sản phẩm gốc lên máy chủ để tính năng tự động đẩy số thứ tự hoạt động chính xác. Bạn có muốn tiếp tục?")) return;
+                  const pwd = getPassword();
+                  if (!pwd) return;
+                  try {
+                    const res = await fetch(
+                      "https://rhawuzlpwlzqfxluifyv.supabase.co/functions/v1/save-product-override",
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          password: pwd,
+                          products: flatProducts.map(p => ({
+                            no: p.no,
+                            name: p.name,
+                            desc: p.desc,
+                            section: p.section,
+                            link_url: p.link,
+                          }))
+                        }),
+                      }
+                    );
+                    const data = await res.json();
+                    if (data.ok) {
+                      toast.success(`Đã đồng bộ ${data.count} sản phẩm lên máy chủ`);
+                      refreshOverrides();
+                    } else {
+                      toast.error("Đồng bộ thất bại: " + data.error);
+                    }
+                  } catch (e: any) {
+                    toast.error("Lỗi: " + e.message);
+                  }
+                }}
+                className="h-11 px-4 rounded-md bg-yellow-500/20 text-yellow-600 border border-yellow-500/30 text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-yellow-500/30 transition"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Đồng bộ Database
+              </button>
             </>
           )}
 
@@ -305,13 +347,18 @@ const IndexInner = ({
           onOpenChange={setEditOpen}
           initial={editInitial}
           sectionOptions={sectionTitles}
-          onSaved={(row) =>
-            upsertOverride(row, {
-              snapshotLabel: editInitial?.no
-                ? `Sửa "${editInitial?.name ?? row.name ?? row.no}"`
-                : `Thêm "${row.name ?? row.no}"`,
-            })
-          }
+          onSaved={(row) => {
+            if (editInitial?.no && editInitial.no !== row.no) {
+              refreshOverrides();
+              toast.success("Đã sắp xếp lại danh sách");
+            } else {
+              upsertOverride(row, {
+                snapshotLabel: editInitial?.no
+                  ? `Sửa "${editInitial?.name ?? row.name ?? row.no}"`
+                  : `Thêm "${row.name ?? row.no}"`,
+              });
+            }
+          }}
         />
 
         <Dialog
@@ -524,25 +571,22 @@ function defaultOverride(no: number): OverrideRow {
 const Index = () => {
   const [overrides, setOverrides] = useState<Record<number, OverrideRow>>({});
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const { data, error } = await supabase.from("product_overrides").select("*");
-      if (error) {
-        console.error("Fetch error:", error);
-        toast.error(`Không thể tải dữ liệu từ Supabase: ${error.message}. Hãy đảm bảo bạn đã chạy Migration để tạo bảng 'product_overrides'.`);
-        return;
-      }
-      if (!mounted || !data) return;
-      const map: Record<number, OverrideRow> = {};
-      for (const r of data as OverrideRow[]) map[r.no] = r;
-      setOverrides(map);
-    })();
-
-    return () => {
-      mounted = false;
-    };
+  const refreshOverrides = useCallback(async () => {
+    const { data, error } = await supabase.from("product_overrides").select("*");
+    if (error) {
+      console.error("Fetch error:", error);
+      toast.error(`Không thể tải dữ liệu từ Supabase: ${error.message}`);
+      return;
+    }
+    if (!data) return;
+    const map: Record<number, OverrideRow> = {};
+    for (const r of data as OverrideRow[]) map[r.no] = r;
+    setOverrides(map);
   }, []);
+
+  useEffect(() => {
+    refreshOverrides();
+  }, [refreshOverrides]);
 
   const applyRestore = useCallback((no: number, row: OverrideRow | null) => {
     setOverrides((prev) => {
@@ -555,7 +599,7 @@ const Index = () => {
 
   return (
     <EditHistoryProvider applyRestore={applyRestore}>
-      <IndexInner overrides={overrides} setOverrides={setOverrides} />
+      <IndexInner overrides={overrides} setOverrides={setOverrides} refreshOverrides={refreshOverrides} />
     </EditHistoryProvider>
   );
 };
