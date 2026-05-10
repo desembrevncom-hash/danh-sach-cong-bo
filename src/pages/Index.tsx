@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Search, RotateCcw, Lock, LockOpen, Plus, Pencil, Trash2, Undo2, FileDown } from "lucide-react";
+import { Search, RotateCcw, Lock, LockOpen, Plus, Pencil, Trash2, FileDown } from "lucide-react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { ProductPDF } from "@/components/ProductPDF";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -14,6 +14,7 @@ import { useEditUnlock } from "@/hooks/useEditUnlock";
 import { supabase } from "@/integrations/supabase/client";
 import { saveProductOverride, type OverrideRow } from "@/lib/saveOverride";
 import { EditHistoryProvider, useEditHistory } from "@/hooks/useEditHistory";
+import { HistoryPanel } from "@/components/HistoryPanel";
 import { toast } from "sonner";
 
 const ALL = "ALL";
@@ -274,16 +275,7 @@ const IndexInner = ({
                 <Plus className="w-4 h-4" />
                 Thêm sản phẩm
               </button>
-              <button
-                type="button"
-                onClick={() => history.undo()}
-                disabled={!history.canUndo}
-                title={history.canUndo ? "Hoàn tác thay đổi gần nhất" : "Chưa có thay đổi để hoàn tác"}
-                className="h-11 px-4 rounded-md border border-border bg-card text-foreground text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-muted/50 transition disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Undo2 className="w-4 h-4" />
-                Hoàn tác{history.count > 0 ? ` (${history.count})` : ""}
-              </button>
+              <HistoryPanel />
               <button
                 type="button"
                 onClick={async () => {
