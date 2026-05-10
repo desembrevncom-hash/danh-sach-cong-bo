@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Search, RotateCcw, Lock, LockOpen, Plus, Pencil, Trash2, FileDown } from "lucide-react";
+import { Search, Lock, LockOpen, Plus, Pencil, Trash2, FileDown } from "lucide-react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { ProductPDF } from "@/components/ProductPDF";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { sections, flatProducts, type FlatProduct } from "@/data/desembreProducts";
+import { sections, type FlatProduct } from "@/data/desembreProducts";
 import ProductImageCell from "@/components/ProductImageCell";
 import ProductLinkCell from "@/components/ProductLinkCell";
 import UnlockDialog from "@/components/UnlockDialog";
@@ -276,39 +276,7 @@ const IndexInner = ({
                 Thêm sản phẩm
               </button>
               <HistoryPanel />
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!confirm("Thao tác này sẽ đồng bộ toàn bộ 67 sản phẩm gốc lên máy chủ để tính năng tự động đẩy số thứ tự hoạt động chính xác. Bạn có muốn tiếp tục?")) return;
-                  const pwd = getPassword();
-                  if (!pwd) return;
-                  try {
-                    let count = 0;
-                    toast.info(`Bắt đầu đồng bộ ${flatProducts.length} sản phẩm. Quá trình này có thể mất 15-30 giây...`);
-                    for (const p of flatProducts) {
-                      count++;
-                      if (count % 10 === 0) toast.info(`Đang đồng bộ ${count}/${flatProducts.length}...`);
-                      await saveProductOverride({
-                        password: pwd,
-                        action: "upsert",
-                        no: p.no,
-                        section: p.section,
-                        name: p.name,
-                        desc: p.desc,
-                        link_url: p.link,
-                      });
-                    }
-                    toast.success(`Đã đồng bộ thành công ${count} sản phẩm lên máy chủ`);
-                    refreshOverrides();
-                  } catch (e: any) {
-                    toast.error("Lỗi: " + e.message);
-                  }
-                }}
-                className="h-11 px-4 rounded-md bg-yellow-500/20 text-yellow-600 border border-yellow-500/30 text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-yellow-500/30 transition"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Đồng bộ Database
-              </button>
+
             </>
           )}
 
