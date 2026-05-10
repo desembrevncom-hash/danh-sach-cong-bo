@@ -92,6 +92,13 @@ Deno.serve(async (req) => {
 
   const originalNo = "original_no" in body ? Number(body.original_no) : undefined;
   
+  // Fetch existing record BEFORE shifting deletes it
+  const { data: existing } = await supabase
+    .from("product_overrides")
+    .select("*")
+    .eq("no", originalNo && originalNo !== no ? originalNo : no)
+    .maybeSingle();
+
   // Shifting logic if moving a product
   if (originalNo && originalNo !== no && action !== "create") {
     const isMovingUp = originalNo > no;
@@ -157,12 +164,6 @@ Deno.serve(async (req) => {
 
   const deleted = "deleted" in body ? Boolean(body.deleted) : undefined;
   const is_custom = action === "create" ? true : ("is_custom" in body ? Boolean(body.is_custom) : undefined);
-
-  const { data: existing } = await supabase
-    .from("product_overrides")
-    .select("*")
-    .eq("no", originalNo && originalNo !== no ? originalNo : no)
-    .maybeSingle();
 
   const row: Record<string, unknown> = {
     no,

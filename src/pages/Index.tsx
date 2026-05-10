@@ -291,30 +291,23 @@ const IndexInner = ({
                   const pwd = getPassword();
                   if (!pwd) return;
                   try {
-                    const res = await fetch(
-                      "https://rhawuzlpwlzqfxluifyv.supabase.co/functions/v1/save-product-override",
-                      {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          password: pwd,
-                          products: flatProducts.map(p => ({
-                            no: p.no,
-                            name: p.name,
-                            desc: p.desc,
-                            section: p.section,
-                            link_url: p.link,
-                          }))
-                        }),
-                      }
-                    );
-                    const data = await res.json();
-                    if (data.ok) {
-                      toast.success(`Đã đồng bộ ${data.count} sản phẩm lên máy chủ`);
-                      refreshOverrides();
-                    } else {
-                      toast.error("Đồng bộ thất bại: " + data.error);
+                    let count = 0;
+                    toast.info(`Bắt đầu đồng bộ ${flatProducts.length} sản phẩm. Quá trình này có thể mất 15-30 giây...`);
+                    for (const p of flatProducts) {
+                      count++;
+                      if (count % 10 === 0) toast.info(`Đang đồng bộ ${count}/${flatProducts.length}...`);
+                      await saveProductOverride({
+                        password: pwd,
+                        action: "upsert",
+                        no: p.no,
+                        section: p.section,
+                        name: p.name,
+                        desc: p.desc,
+                        link_url: p.link,
+                      });
                     }
+                    toast.success(`Đã đồng bộ thành công ${count} sản phẩm lên máy chủ`);
+                    refreshOverrides();
                   } catch (e: any) {
                     toast.error("Lỗi: " + e.message);
                   }
