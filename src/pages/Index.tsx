@@ -208,7 +208,7 @@ const IndexInner = ({
         </div>
       </header>
 
-      <section className="container mx-auto px-4 md:px-6 pt-4 md:pt-8 sticky top-0 z-50 bg-background/80 backdrop-blur-sm pb-2">
+      <section className="container mx-auto px-3 md:px-6 pt-3 md:pt-8 sticky top-0 z-50 bg-background/80 backdrop-blur-sm pb-2">
         <div className="bg-card border border-border rounded-lg p-3 md:p-5 shadow-md flex flex-col md:flex-row gap-2 md:gap-3 md:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -571,7 +571,7 @@ const IndexInner = ({
                     const currentSeq = seq;
                     return (
                       <div key={row.no}
-                        className="bg-card border border-border rounded-xl shadow-sm mb-3 overflow-hidden">
+                        className="bg-card border border-border rounded-xl shadow-sm mb-2 overflow-hidden">
                         {/* Card Top: image left, info right */}
                         <div className="flex items-start gap-3 p-3">
                           {/* Image */}
@@ -620,12 +620,17 @@ const IndexInner = ({
                         </div>
                         {/* Card Bottom: Link button */}
                         {row.link && (
-                          <div className="border-t border-border px-3 py-2">
-                            <ProductLinkCell
-                              productNo={row.no}
+                          <div className="border-t border-border px-3 py-2.5">
+                            <a
                               href={row.link}
-                              onChange={(href) => setLink(row.no, href)}
-                            />
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md text-xs font-bold tracking-widest uppercase"
+                              style={{ background: "hsl(var(--header-bg))", color: "hsl(var(--header-text))" }}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                              Xem Công Bố
+                            </a>
                           </div>
                         )}
                       </div>
