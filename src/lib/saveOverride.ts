@@ -39,6 +39,7 @@ export async function saveProductOverride(payload: SavePayload) {
       
     payload.no = (maxRow?.no ?? 999) + 1;
     payload.action = "upsert"; // Fallback to standard upsert for old edge function
+    (payload as any).is_custom = true; // Ensure it's marked as custom
   }
 
   // CLient-side shifting logic because the user cannot deploy the Edge Function
