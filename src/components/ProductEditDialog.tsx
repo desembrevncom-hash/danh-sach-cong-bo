@@ -68,10 +68,14 @@ const ProductEditDialog = ({ open, onOpenChange, initial, sectionOptions, onSave
       toast.error("Vui lòng nhập tên và nhóm sản phẩm");
       return;
     }
-    const targetNo = parseInt(no);
-    if (isNaN(targetNo)) {
-      toast.error("Số thứ tự phải là một con số");
-      return;
+    
+    let targetNo = 0;
+    if (!isCreate) {
+      targetNo = parseInt(no);
+      if (isNaN(targetNo)) {
+        toast.error("Số thứ tự phải là một con số");
+        return;
+      }
     }
 
     const password = getPassword();
@@ -106,15 +110,22 @@ const ProductEditDialog = ({ open, onOpenChange, initial, sectionOptions, onSave
           <DialogTitle>{isCreate ? "Thêm sản phẩm mới" : "Chỉnh sửa sản phẩm"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <div>
-            <Label className="text-xs">Số thứ tự (No)</Label>
-            <Input
-              type="number"
-              value={no}
-              onChange={(e) => setNo(e.target.value)}
-              placeholder="VD: 10"
-            />
-          </div>
+          {!isCreate && (
+            <div>
+              <Label className="text-xs">Số thứ tự (No)</Label>
+              <Input
+                type="number"
+                value={no}
+                onChange={(e) => setNo(e.target.value)}
+                placeholder="VD: 10"
+              />
+            </div>
+          )}
+          {isCreate && (
+            <div className="text-xs text-muted-foreground italic mb-2">
+              * Sản phẩm mới sẽ tự động nằm ở cuối nhóm. Bạn có thể đổi vị trí sau.
+            </div>
+          )}
           <div>
             <Label className="text-xs">Nhóm sản phẩm (Section)</Label>
             {useCustom ? (
