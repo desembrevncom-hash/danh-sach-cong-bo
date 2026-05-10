@@ -475,21 +475,21 @@ const IndexInner = ({
                               )}
                             </td>
                           )}
-                          <td className="text-center font-semibold text-foreground">
+                          <td className="text-center font-semibold text-foreground" data-label="STT">
                             {String(seq).padStart(2, "0")}
                           </td>
-                        <td className="overflow-visible">
+                        <td className="overflow-visible" data-label="HÌNH ẢNH">
                           <ProductImageCell
                             productNo={row.no}
                             src={overrides[row.no]?.image_url ?? undefined}
                             onChange={(src) => setImage(row.no, src)}
                           />
                         </td>
-                        <td>
+                        <td data-label="SẢN PHẨM">
                           <div className="product-name">{row.name}</div>
                           <div className="product-desc">{row.desc}</div>
                         </td>
-                        <td className="text-center overflow-visible">
+                        <td className="text-center overflow-visible" data-label="CÔNG BỐ">
                           <ProductLinkCell
                             productNo={row.no}
                             href={row.link}

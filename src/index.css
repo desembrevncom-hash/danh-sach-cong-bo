@@ -119,3 +119,106 @@
 }
 
 .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Mobile Optimization */
+@media (max-width: 768px) {
+  .elegant-title { font-size: 1.75rem !important; }
+  
+  .product-table, 
+  .product-table thead, 
+  .product-table tbody, 
+  .product-table th, 
+  .product-table td, 
+  .product-table tr {
+    display: block;
+    width: 100%;
+    min-width: unset;
+  }
+
+  .product-table thead {
+    display: none;
+  }
+
+  .product-table tr {
+    margin-bottom: 2rem;
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    background: hsl(var(--card));
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+    position: relative;
+    padding-bottom: 8px;
+  }
+
+  .product-table td {
+    border: none;
+    padding: 12px 20px;
+    text-align: left !important;
+    display: block;
+  }
+
+  .section-cell {
+    background: hsl(var(--header-bg)) !important;
+    color: hsl(var(--header-text)) !important;
+    text-transform: uppercase;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    padding: 10px 20px !important;
+    margin-bottom: 8px;
+  }
+
+  /* No. badge on mobile */
+  .product-table td:nth-child(2) {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px 10px;
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border-radius: 20px;
+    font-size: 11px;
+    width: auto;
+    z-index: 10;
+  }
+
+  /* Image box on mobile */
+  .product-img-box {
+    margin: 8px 0;
+    width: 100px;
+    height: 100px;
+  }
+
+  /* Labels for mobile */
+  .product-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .product-name {
+    font-size: 16px;
+    margin-top: 4px;
+  }
+
+  .product-desc {
+    font-size: 13px;
+  }
+
+  .link-badge {
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+    margin-top: 8px;
+  }
+
+  /* Hide labels if they are self-explanatory or handled elsewhere */
+  .section-cell::before,
+  td:nth-child(2)::before {
+    display: none;
+  }
+}
