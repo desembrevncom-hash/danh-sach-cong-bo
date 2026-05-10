@@ -208,8 +208,8 @@ const IndexInner = ({
         </div>
       </header>
 
-      <section className="container mx-auto px-4 md:px-6 pt-8">
-        <div className="bg-card border border-border rounded-lg p-4 md:p-5 shadow-sm flex flex-col md:flex-row gap-3 md:items-center">
+      <section className="container mx-auto px-4 md:px-6 pt-4 md:pt-8 sticky top-0 z-50 bg-background/80 backdrop-blur-sm pb-2">
+        <div className="bg-card border border-border rounded-lg p-3 md:p-5 shadow-md flex flex-col md:flex-row gap-2 md:gap-3 md:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
