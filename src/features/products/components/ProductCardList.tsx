@@ -1,5 +1,16 @@
+import { useState } from "react";
 import { Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { sections, type FlatProduct } from "@/data/desembreProducts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import ProductImageCell from "@/features/products/components/ProductImageCell";
 import ProductLinkCell from "@/features/products/components/ProductLinkCell";
 import type { ProductOverrideRow, ProductActionHandlers } from "@/features/products/types";
@@ -17,8 +28,11 @@ export function ProductCardList({
   unlocked,
   actions,
 }: ProductCardListProps) {
+  const [productToDelete, setProductToDelete] = useState<FlatProduct | null>(null);
+
   return (
-    <div className="md:hidden space-y-3">
+    <>
+      <div className="md:hidden space-y-3">
       {groupedProducts.length === 0 && (
         <div className="text-center py-12 text-muted-foreground text-sm">
           Không tìm thấy sản phẩm phù hợp.
@@ -79,7 +93,7 @@ export function ProductCardList({
                                 }
                               }}
                               disabled={rowIdx === 0}
-                              className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-accent/20 disabled:opacity-30 disabled:pointer-events-none"
+                              className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-accent/20 disabled:opacity-30 disabled:pointer-events-none transition-transform duration-150 active:scale-[0.92]"
                               title="Lên trên"
                             >
                               <ArrowUp className="w-3.5 h-3.5" />
@@ -94,7 +108,7 @@ export function ProductCardList({
                                 }
                               }}
                               disabled={rowIdx === rows.length - 1}
-                              className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-accent/20 disabled:opacity-30 disabled:pointer-events-none"
+                              className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-accent/20 disabled:opacity-30 disabled:pointer-events-none transition-transform duration-150 active:scale-[0.92]"
                               title="Xuống dưới"
                             >
                               <ArrowDown className="w-3.5 h-3.5" />
@@ -102,15 +116,15 @@ export function ProductCardList({
                             <button
                               type="button"
                               onClick={() => actions.onEdit(row)}
-                              className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-accent/20"
+                              className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-accent/20 transition-transform duration-150 active:scale-[0.92]"
                               title="Chỉnh sửa"
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button
                               type="button"
-                              onClick={() => actions.onDelete(row)}
-                              className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-border bg-background shadow-sm text-destructive hover:bg-destructive/10"
+                              onClick={() => setProductToDelete(row)}
+                              className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-border bg-background shadow-sm text-destructive hover:bg-destructive/10 transition-transform duration-150 active:scale-[0.92]"
                               title="Xoá"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -164,5 +178,31 @@ export function ProductCardList({
         });
       })()}
     </div>
+
+      <AlertDialog open={!!productToDelete} onOpenChange={(open) => !open && setProductToDelete(null)}>
+        <AlertDialogContent className="w-[90%] rounded-lg max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa sản phẩm?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa sản phẩm <strong className="text-foreground">{productToDelete?.name}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-2 sm:justify-end">
+            <AlertDialogCancel className="mt-0 flex-1 sm:flex-initial">Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 flex-1 sm:flex-initial"
+              onClick={() => {
+                if (productToDelete) {
+                  actions.onDelete(productToDelete);
+                  setProductToDelete(null);
+                }
+              }}
+            >
+              Xóa sản phẩm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

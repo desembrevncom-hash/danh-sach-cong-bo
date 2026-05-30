@@ -1,5 +1,16 @@
+import { useState } from "react";
 import { Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { sections, type FlatProduct } from "@/data/desembreProducts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import ProductImageCell from "@/features/products/components/ProductImageCell";
 import ProductLinkCell from "@/features/products/components/ProductLinkCell";
 import type { ProductOverrideRow, ProductActionHandlers } from "@/features/products/types";
@@ -17,8 +28,11 @@ export function ProductTable({
   unlocked,
   actions,
 }: ProductTableProps) {
+  const [productToDelete, setProductToDelete] = useState<FlatProduct | null>(null);
+
   return (
-    <div className="hidden md:block bg-card rounded-lg shadow-sm border border-border overflow-hidden mx-auto" style={{ maxWidth: "95%" }}>
+    <>
+      <div className="hidden md:block bg-card rounded-lg shadow-sm border border-border overflow-hidden mx-auto" style={{ maxWidth: "95%" }}>
       <div className="table-wrap">
         <table className="product-table">
           <thead>
@@ -114,7 +128,7 @@ export function ProductTable({
                                 }
                               }}
                               disabled={idx === 0}
-                              className="w-7 h-7 inline-flex items-center justify-center rounded border border-border hover:bg-accent/20 disabled:opacity-30 disabled:pointer-events-none"
+                              className="w-7 h-7 inline-flex items-center justify-center rounded border border-border hover:bg-accent/20 disabled:opacity-30 disabled:pointer-events-none transition-all duration-150"
                               title="Lên trên"
                             >
                               <ArrowUp className="w-3.5 h-3.5" />
@@ -129,7 +143,7 @@ export function ProductTable({
                                 }
                               }}
                               disabled={idx === rows.length - 1}
-                              className="w-7 h-7 inline-flex items-center justify-center rounded border border-border hover:bg-accent/20 disabled:opacity-30 disabled:pointer-events-none"
+                              className="w-7 h-7 inline-flex items-center justify-center rounded border border-border hover:bg-accent/20 disabled:opacity-30 disabled:pointer-events-none transition-all duration-150"
                               title="Xuống dưới"
                             >
                               <ArrowDown className="w-3.5 h-3.5" />
@@ -137,15 +151,15 @@ export function ProductTable({
                             <button
                               type="button"
                               onClick={() => actions.onEdit(row)}
-                              className="w-7 h-7 inline-flex items-center justify-center rounded border border-border hover:bg-accent/20"
+                              className="w-7 h-7 inline-flex items-center justify-center rounded border border-border hover:bg-accent/20 transition-all duration-150"
                               title="Chỉnh sửa"
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button
                               type="button"
-                              onClick={() => actions.onDelete(row)}
-                              className="w-7 h-7 inline-flex items-center justify-center rounded border border-border text-destructive hover:bg-destructive/10"
+                              onClick={() => setProductToDelete(row)}
+                              className="w-7 h-7 inline-flex items-center justify-center rounded border border-border text-destructive hover:bg-destructive/10 transition-all duration-150"
                               title="Xoá"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -162,5 +176,31 @@ export function ProductTable({
         </table>
       </div>
     </div>
+
+      <AlertDialog open={!!productToDelete} onOpenChange={(open) => !open && setProductToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa sản phẩm?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa sản phẩm <strong className="text-foreground">{productToDelete?.name}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (productToDelete) {
+                  actions.onDelete(productToDelete);
+                  setProductToDelete(null);
+                }
+              }}
+            >
+              Xóa sản phẩm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

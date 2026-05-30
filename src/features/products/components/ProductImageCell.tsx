@@ -97,14 +97,14 @@ const ProductImageCell = ({ productNo, src, onChange }: Props) => {
           <img
             src={src}
             alt={`Sản phẩm ${productNo}`}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover md:transition-transform md:duration-200 md:group-hover:scale-[1.02]"
             onError={() => {
               setError("Không tải được ảnh.");
               onChange(undefined);
             }}
           />
         ) : (
-          <Sparkles className="w-7 h-7 text-primary/40" strokeWidth={1.25} />
+          <Sparkles className="w-7 h-7 text-primary/40 md:transition-transform md:duration-200 md:group-hover:scale-[1.02]" strokeWidth={1.25} />
         )}
       </div>
 

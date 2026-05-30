@@ -145,7 +145,7 @@ const IndexInner = ({
           }}
         />
 
-        <p className="text-xs text-muted-foreground mt-3 px-1">
+        <p className="text-xs text-muted-foreground mt-2 px-1">
           Hiển thị <span className="font-semibold text-foreground">{filtered.length}</span> / {merged.length} sản phẩm
         </p>
       </section>

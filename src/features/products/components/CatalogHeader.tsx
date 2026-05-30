@@ -1,7 +1,7 @@
 export function CatalogHeader() {
   return (
     <header className="border-b border-border bg-card">
-      <div className="container mx-auto px-6 py-8 md:py-12 text-center">
+      <div className="container mx-auto px-6 py-8 md:py-12 text-center md:animate-header-fadein">
         <p className="text-[11px] uppercase tracking-[0.4em] text-muted-foreground mb-4">
           www.desembrevn.com · 2026 Catalog
         </p>
