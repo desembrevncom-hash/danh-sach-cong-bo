@@ -150,7 +150,7 @@ const IndexInner = ({
         </p>
       </section>
 
-      <main className="container mx-auto px-4 md:px-6 py-6 flex-1 w-full">
+      <main className="container mx-auto px-4 md:px-6 pt-2 pb-6 md:py-6 flex-1 w-full">
         <ProductTable
           groupedProducts={grouped}
           overrides={overrides}

@@ -70,7 +70,11 @@ export function ProductToolbar({
         type="button"
         onClick={onReset}
         disabled={!isFiltered}
-        className="h-11 px-5 rounded-md bg-primary text-primary-foreground text-sm font-semibold tracking-wide inline-flex items-center justify-center gap-2 hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+        className={`h-11 px-5 rounded-md text-sm font-semibold tracking-wide inline-flex items-center justify-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed ${
+          isFiltered
+            ? "bg-primary text-primary-foreground hover:opacity-90"
+            : "bg-transparent text-muted-foreground border border-border hover:bg-muted/50"
+        }`}
       >
         <RotateCcw className="w-4 h-4" />
         Reset

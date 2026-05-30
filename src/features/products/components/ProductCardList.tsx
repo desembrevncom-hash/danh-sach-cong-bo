@@ -129,13 +129,13 @@ export function ProductCardList({
                           />
                         </div>
                         <div className="flex-1 pt-1 min-w-0">
-                          <div className="font-semibold text-[15px] leading-tight text-foreground mb-1.5">
+                          <div className="font-semibold text-[15px] leading-snug text-foreground mb-1.5">
                             {row.name}
                           </div>
-                          <div className="text-xs text-muted-foreground line-clamp-3 mb-3">
+                          <div className="text-xs text-muted-foreground line-clamp-3 leading-5 mb-3">
                             {row.desc}
                           </div>
-                          <div className="pt-2 border-t border-border mt-auto flex flex-wrap gap-1.5">
+                          <div className="pt-2 border-t border-border mt-3 flex flex-wrap gap-1.5">
                             <ProductLinkCell
                               productNo={row.no}
                               href={row.link}
