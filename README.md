@@ -2,6 +2,9 @@
 
 Ứng dụng web hiển thị và quản lý danh sách sản phẩm Desembre. Catalog có thể xem công khai; chỉnh sửa yêu cầu mở khoá bằng KEY admin.
 
+🌍 **Live Production:** [https://danh-sach-cong-bo.desembre-vn.com](https://danh-sach-cong-bo.desembre-vn.com/)
+
+
 ## Tech Stack
 
 | Lớp | Công nghệ |
