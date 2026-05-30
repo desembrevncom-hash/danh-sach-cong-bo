@@ -174,6 +174,11 @@ export function useProductActions({
         return;
       }
 
+      // Ghi snapshot cho từng sản phẩm bị đổi thứ tự
+      res.rows!.forEach((row) => {
+        snapshot(row.no, overrides[row.no], `Đổi thứ tự nhóm "${section}"`);
+      });
+
       // Apply actual rows returned
       setOverrides((prev) => {
         const next = { ...prev };
@@ -185,7 +190,7 @@ export function useProductActions({
       
       toast.success("Đã cập nhật thứ tự hiển thị!");
     },
-    [getPassword, setOverrides, refreshOverrides],
+    [getPassword, overrides, setOverrides, snapshot, refreshOverrides],
   );
 
   // ── Compose actions object ────────────────────────────────────────────────
