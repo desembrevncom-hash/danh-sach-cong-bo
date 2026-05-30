@@ -5,10 +5,26 @@ export function mergeProducts(
   baseProducts: FlatProduct[],
   overrides: Record<number, ProductOverrideRow>
 ): FlatProduct[] {
+  // 1. Group base products by section to calculate their default baseline sort order
+  const baseProductsBySection: Record<string, FlatProduct[]> = {};
+  for (const p of baseProducts) {
+    if (!baseProductsBySection[p.section]) {
+      baseProductsBySection[p.section] = [];
+    }
+    baseProductsBySection[p.section].push(p);
+  }
+
   const list: FlatProduct[] = [];
+  
   for (const p of baseProducts) {
     const o = overrides[p.no];
     if (o?.deleted) continue;
+
+    // Default index is its 1-indexed order within its own section group
+    const sectionList = baseProductsBySection[p.section] || [];
+    const defaultIdx = sectionList.findIndex((item) => item.no === p.no);
+    const defaultSort = defaultIdx !== -1 ? defaultIdx + 1 : 999;
+
     list.push({
       ...p,
       name: o?.name ?? p.name,
@@ -16,6 +32,7 @@ export function mergeProducts(
       section: o?.section ?? p.section,
       link: o?.link_url ?? p.link,
       image: o?.image_url ?? p.image,
+      sort_order: o?.sort_order !== undefined && o?.sort_order !== null ? o.sort_order : defaultSort,
     });
   }
   
@@ -31,8 +48,26 @@ export function mergeProducts(
       sectionVi: sec?.vi,
       link: o.link_url ?? undefined,
       image: o.image_url ?? undefined,
+      sort_order: o.sort_order !== undefined && o.sort_order !== null ? o.sort_order : 999,
     });
   }
+
+  // Sort by section order (matching static sections array) then by sort_order
+  const sectionTitles = sections.map((s) => s.title);
+  list.sort((a, b) => {
+    const secA = sectionTitles.indexOf(a.section);
+    const secB = sectionTitles.indexOf(b.section);
+    
+    // If one is in "OTHER" or custom section not in main sections list, put at the end
+    const idxA = secA === -1 ? 999 : secA;
+    const idxB = secB === -1 ? 999 : secB;
+    
+    if (idxA !== idxB) {
+      return idxA - idxB;
+    }
+    return (a.sort_order ?? 999) - (b.sort_order ?? 999);
+  });
+
   return list;
 }
 

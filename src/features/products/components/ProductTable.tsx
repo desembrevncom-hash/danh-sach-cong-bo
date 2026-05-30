@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { sections, type FlatProduct } from "@/data/desembreProducts";
 import ProductImageCell from "@/features/products/components/ProductImageCell";
 import ProductLinkCell from "@/features/products/components/ProductLinkCell";
@@ -93,6 +93,36 @@ export function ProductTable({
                       {unlocked && (
                         <td className="text-center">
                           <div className="inline-flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (idx > 0) {
+                                  const next = [...rows];
+                                  [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                                  actions.onReorderProduct(sectionTitle, next.map(r => r.no));
+                                }
+                              }}
+                              disabled={idx === 0}
+                              className="w-7 h-7 inline-flex items-center justify-center rounded border border-border hover:bg-accent/20 disabled:opacity-30 disabled:pointer-events-none"
+                              title="Lên trên"
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (idx < rows.length - 1) {
+                                  const next = [...rows];
+                                  [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                                  actions.onReorderProduct(sectionTitle, next.map(r => r.no));
+                                }
+                              }}
+                              disabled={idx === rows.length - 1}
+                              className="w-7 h-7 inline-flex items-center justify-center rounded border border-border hover:bg-accent/20 disabled:opacity-30 disabled:pointer-events-none"
+                              title="Xuống dưới"
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
                             <button
                               type="button"
                               onClick={() => actions.onEdit(row)}

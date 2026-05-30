@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { type FlatProduct } from "@/data/desembreProducts";
-import { saveProductOverride } from "@/features/products/services/productOverrideService";
+import { saveProductOverride, saveProductOrder } from "@/features/products/services/productOverrideService";
 import { createDefaultOverride } from "@/features/products/utils/productTransforms";
 import type {
   ProductOverrideRow as OverrideRow,
@@ -142,7 +142,47 @@ export function useProductActions({
       if (failed) toast.error(`${failed} sản phẩm lỗi`);
       else toast.success(`Đã đổi nhóm thành "${newTitle}"`);
     },
-    [getPassword, upsertOverride],
+    [getPassword, overrides, setOverrides, snapshot, upsertOverride],
+  );
+
+  const onReorderProduct = useCallback(
+    async (section: string, orderedNos: number[]) => {
+      const password = getPassword();
+      if (!password) return toast.error("Cần mở khoá KEY");
+
+      // Optimistically update frontend display first
+      setOverrides((prev) => {
+        const next = { ...prev };
+        orderedNos.forEach((no, idx) => {
+          next[no] = {
+            ...(next[no] ?? createDefaultOverride(no)),
+            sort_order: idx + 1,
+            section,
+          };
+        });
+        return next;
+      });
+
+      const res = await saveProductOrder({ password, section, ordered_nos: orderedNos });
+      if (!res.ok || !res.rows) {
+        toast.error(res.error ?? "Cập nhật thứ tự thất bại");
+        // Revert overrides on failure
+        refreshOverrides();
+        return;
+      }
+
+      // Apply actual rows returned
+      setOverrides((prev) => {
+        const next = { ...prev };
+        res.rows!.forEach((row) => {
+          next[row.no] = row;
+        });
+        return next;
+      });
+      
+      toast.success("Đã cập nhật thứ tự hiển thị!");
+    },
+    [getPassword, setOverrides, refreshOverrides],
   );
 
   // ── Compose actions object ────────────────────────────────────────────────
@@ -153,6 +193,7 @@ export function useProductActions({
     onEdit: openEdit,
     onDelete,
     onRenameSection,
+    onReorderProduct,
   };
 
   return {

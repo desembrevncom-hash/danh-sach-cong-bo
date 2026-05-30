@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { sections, type FlatProduct } from "@/data/desembreProducts";
 import ProductImageCell from "@/features/products/components/ProductImageCell";
 import ProductLinkCell from "@/features/products/components/ProductLinkCell";
@@ -71,8 +71,39 @@ export function ProductCardList({
                           <div className="flex items-center gap-1.5">
                             <button
                               type="button"
+                              onClick={() => {
+                                if (rowIdx > 0) {
+                                  const next = [...rows];
+                                  [next[rowIdx - 1], next[rowIdx]] = [next[rowIdx], next[rowIdx - 1]];
+                                  actions.onReorderProduct(sectionTitle, next.map(r => r.no));
+                                }
+                              }}
+                              disabled={rowIdx === 0}
+                              className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-accent/20 disabled:opacity-30 disabled:pointer-events-none"
+                              title="Lên trên"
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (rowIdx < rows.length - 1) {
+                                  const next = [...rows];
+                                  [next[rowIdx], next[rowIdx + 1]] = [next[rowIdx + 1], next[rowIdx]];
+                                  actions.onReorderProduct(sectionTitle, next.map(r => r.no));
+                                }
+                              }}
+                              disabled={rowIdx === rows.length - 1}
+                              className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-accent/20 disabled:opacity-30 disabled:pointer-events-none"
+                              title="Xuống dưới"
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => actions.onEdit(row)}
                               className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-accent/20"
+                              title="Chỉnh sửa"
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
@@ -80,6 +111,7 @@ export function ProductCardList({
                               type="button"
                               onClick={() => actions.onDelete(row)}
                               className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-border bg-background shadow-sm text-destructive hover:bg-destructive/10"
+                              title="Xoá"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>

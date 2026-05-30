@@ -7,11 +7,11 @@ export type ProductOverrideRow = {
   desc: string | null;
   deleted: boolean;
   is_custom: boolean;
+  sort_order: number | null;
 };
 
 export type SaveProductOverridePayload = {
   no?: number;
-  original_no?: number;
   password: string;
   action?: "upsert" | "create" | "hard_delete";
   image_data_url?: string | null;
@@ -22,6 +22,13 @@ export type SaveProductOverridePayload = {
   desc?: string | null;
   deleted?: boolean;
   is_custom?: boolean;
+  sort_order?: number | null;
+};
+
+export type SaveProductOrderPayload = {
+  password: string;
+  section: string;
+  ordered_nos: number[];
 };
 
 import type { FlatProduct } from "@/data/desembreProducts";
@@ -32,6 +39,7 @@ export type ProductActionHandlers = {
   onEdit: (p: FlatProduct) => void;
   onDelete: (p: FlatProduct) => Promise<void>;
   onRenameSection: (oldTitle: string, rows: FlatProduct[]) => Promise<void>;
+  onReorderProduct: (section: string, orderedNos: number[]) => Promise<void>;
 };
 
 /**
@@ -43,4 +51,5 @@ export type ProductDialogInitial = {
   section: string;
   name: string;
   desc: string;
+  sort_order?: number | null;
 };

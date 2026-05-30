@@ -22,6 +22,7 @@ import { saveProductOverride } from "@/features/products/services/productOverrid
 import type { ProductOverrideRow as OverrideRow, ProductDialogInitial } from "@/features/products/types";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import type { FlatProduct } from "@/data/desembreProducts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,7 +33,8 @@ export type ProductEditDialogProps = {
   onOpenChange: (v: boolean) => void;
   initial: ProductDialogInitial | null;
   sectionOptions: string[];
-  onSaved: (row: OverrideRow) => void;
+  groupedProducts?: [string, FlatProduct[]][];
+  onSaved: (row: OverrideRow, insertAfterNo?: number) => void;
 };
 
 // ─── Form state ───────────────────────────────────────────────────────────────
@@ -82,16 +84,19 @@ const ProductEditDialog = ({
   onOpenChange,
   initial,
   sectionOptions,
+  groupedProducts,
   onSaved,
 }: ProductEditDialogProps) => {
   const { getPassword } = useEditUnlock();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [insertPos, setInsertPos] = useState<number>(-2); // -2: end, -1: start, others: after product no
   const [saving, setSaving] = useState(false);
 
   // Reset form whenever the dialog opens or initial data changes
   useEffect(() => {
     if (open && initial) {
       setForm(buildFormState(initial, sectionOptions));
+      setInsertPos(-2); // reset to end
     }
   }, [open, initial, sectionOptions]);
 
@@ -129,9 +134,11 @@ const ProductEditDialog = ({
     }
 
     toast.success(isCreate ? "Đã thêm sản phẩm" : "Đã cập nhật");
-    onSaved(res.row);
+    onSaved(res.row, isCreate ? insertPos : undefined);
     onOpenChange(false);
   };
+
+  const currentSectionProducts = groupedProducts?.find(g => g[0] === finalSection)?.[1] || [];
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -213,6 +220,30 @@ const ProductEditDialog = ({
               rows={3}
             />
           </div>
+
+          {/* Insert Position (Only Create) */}
+          {isCreate && finalSection && currentSectionProducts.length > 0 && (
+            <div>
+              <Label className="text-xs">Vị trí thêm (Tuỳ chọn)</Label>
+              <Select
+                value={String(insertPos)}
+                onValueChange={(v) => setInsertPos(Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn vị trí thêm" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="-2">Thêm vào cuối danh sách</SelectItem>
+                  <SelectItem value="-1">Thêm vào đầu danh sách</SelectItem>
+                  {currentSectionProducts.map((p) => (
+                    <SelectItem key={p.no} value={String(p.no)}>
+                      Thêm vào sau "{p.name}"
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         <DialogFooter>

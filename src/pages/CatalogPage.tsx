@@ -99,7 +99,8 @@ const IndexInner = ({
           onOpenChange={setEditOpen}
           initial={editInitial}
           sectionOptions={sectionTitles}
-          onSaved={(row) => {
+          groupedProducts={grouped}
+          onSaved={(row, insertAfterNo) => {
             if (editInitial?.no && editInitial.no !== row.no) {
               refreshOverrides();
               toast.success("Đã sắp xếp lại danh sách");
@@ -109,6 +110,37 @@ const IndexInner = ({
                   ? `Sửa "${editInitial?.name ?? row.name ?? row.no}"`
                   : `Thêm "${row.name ?? row.no}"`,
               });
+              
+              if (insertAfterNo !== undefined && row.section) {
+                // Find current products in this section
+                const sectionGroup = grouped.find(g => g[0] === row.section);
+                if (sectionGroup) {
+                  const items = sectionGroup[1].filter(p => p.no !== row.no);
+                  
+                  let newOrderedNos: number[] = [];
+                  if (insertAfterNo === -1) {
+                    newOrderedNos = [row.no, ...items.map(p => p.no)];
+                  } else if (insertAfterNo === -2) {
+                    newOrderedNos = [...items.map(p => p.no), row.no];
+                  } else {
+                    const insertIdx = items.findIndex(p => p.no === insertAfterNo);
+                    if (insertIdx !== -1) {
+                      newOrderedNos = [
+                        ...items.slice(0, insertIdx + 1).map(p => p.no),
+                        row.no,
+                        ...items.slice(insertIdx + 1).map(p => p.no)
+                      ];
+                    } else {
+                      newOrderedNos = [...items.map(p => p.no), row.no];
+                    }
+                  }
+                  
+                  // Optimistically delay the reorder slightly to let state settle
+                  setTimeout(() => {
+                    actions.onReorderProduct(row.section!, newOrderedNos);
+                  }, 100);
+                }
+              }
             }
           }}
         />

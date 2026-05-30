@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { ProductOverrideRow, SaveProductOverridePayload } from "../types";
+import type { ProductOverrideRow, SaveProductOverridePayload, SaveProductOrderPayload } from "../types";
 
 export async function fetchAllProductOverrides() {
   const { data, error } = await supabase.from("product_overrides").select("*");
@@ -37,4 +37,18 @@ export async function saveProductOverride(payload: SaveProductOverridePayload) {
     return { ok: false as const, error: data.error as string };
   }
   return { ok: true as const, row: data?.row as ProductOverrideRow | undefined };
+}
+
+export async function saveProductOrder(payload: SaveProductOrderPayload) {
+  const { data, error } = await supabase.functions.invoke("save-product-order", {
+    body: payload,
+  });
+
+  if (error) {
+    return { ok: false as const, error: error.message ?? "Lỗi mạng" };
+  }
+  if (data?.error) {
+    return { ok: false as const, error: data.error as string };
+  }
+  return { ok: true as const, rows: data?.rows as ProductOverrideRow[] | undefined };
 }
