@@ -68,7 +68,9 @@ export const EditUnlockProvider = ({ children }: { children: ReactNode }) => {
         setUnlocked(true);
         try {
           localStorage.setItem(PWD_KEY, password);
-        } catch {}
+        } catch {
+          // ignore
+        }
         return { ok: true };
       }
       return { ok: false, error: e instanceof Error ? e.message : "Lỗi không xác định" };

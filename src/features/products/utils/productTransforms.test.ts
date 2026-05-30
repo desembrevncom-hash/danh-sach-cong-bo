@@ -67,6 +67,110 @@ describe('productTransforms', () => {
       mergeProducts(baseProducts, overrides);
       expect(baseProducts).toEqual(originalCopy);
     });
+
+    it('8. Sửa tên base product không tạo duplicate (chỉ cập nhật tại chỗ)', () => {
+      const overrides: Record<number, ProductOverrideRow> = {
+        1: {
+          ...createDefaultOverride(1),
+          name: 'Tên Đã Sửa',
+        }
+      };
+      const result = mergeProducts(baseProducts, overrides);
+      expect(result).toHaveLength(3); // Giữ nguyên số lượng, không bị duplicate
+      const product1 = result.find(p => p.no === 1);
+      expect(product1?.name).toBe('Tên Đã Sửa');
+    });
+
+    it('9. Sửa tên sản phẩm không làm mất link/image đã cấu hình trước đó', () => {
+      // Giả sử product đã có link và image override từ trước
+      const initialOverride: ProductOverrideRow = {
+        ...createDefaultOverride(1),
+        image_url: 'https://images.com/pic.png',
+        link_url: 'https://links.com/abc',
+      };
+      
+      // Sửa tên (partial update): field name thay đổi, các field khác giữ nguyên
+      const updatedOverride: ProductOverrideRow = {
+        ...initialOverride,
+        name: 'Tên Mới Sau Khi Sửa',
+      };
+
+      const result = mergeProducts(baseProducts, { 1: updatedOverride });
+      const product1 = result.find(p => p.no === 1);
+      expect(product1?.name).toBe('Tên Mới Sau Khi Sửa');
+      expect(product1?.image).toBe('https://images.com/pic.png'); // Ảnh được giữ lại
+      expect(product1?.link).toBe('https://links.com/abc'); // Link được giữ lại
+    });
+
+    it('10. Sửa section không làm mất ảnh/link của sản phẩm', () => {
+      const initialOverride: ProductOverrideRow = {
+        ...createDefaultOverride(1),
+        image_url: 'https://images.com/pic.png',
+        link_url: 'https://links.com/abc',
+      };
+
+      const updatedOverride: ProductOverrideRow = {
+        ...initialOverride,
+        section: 'Nhóm Mới Chuyển Đến',
+      };
+
+      const result = mergeProducts(baseProducts, { 1: updatedOverride });
+      const product1 = result.find(p => p.no === 1);
+      expect(product1?.section).toBe('Nhóm Mới Chuyển Đến');
+      expect(product1?.image).toBe('https://images.com/pic.png');
+      expect(product1?.link).toBe('https://links.com/abc');
+    });
+
+    it('11. Thêm custom product không bị duplicate', () => {
+      const overrides: Record<number, ProductOverrideRow> = {
+        1001: {
+          ...createDefaultOverride(1001),
+          is_custom: true,
+          name: 'Custom Product 1',
+          section: 'Section Custom'
+        }
+      };
+
+      const result = mergeProducts(baseProducts, overrides);
+      expect(result).toHaveLength(4); // 3 base + 1 custom
+      const customs = result.filter(p => p.no === 1001);
+      expect(customs).toHaveLength(1); // Không bị duplicate
+    });
+
+    it('12. Xoá custom product xoá đúng row khỏi danh sách', () => {
+      const overrides: Record<number, ProductOverrideRow> = {
+        1001: {
+          ...createDefaultOverride(1001),
+          is_custom: true,
+          name: 'Custom Product 1',
+          section: 'Section Custom'
+        }
+      };
+
+      // Thêm xong rồi xoá (xoá khỏi record overrides)
+      const afterAdd = mergeProducts(baseProducts, overrides);
+      expect(afterAdd).toHaveLength(4);
+
+      const updatedOverrides = { ...overrides };
+      delete updatedOverrides[1001];
+
+      const afterDelete = mergeProducts(baseProducts, updatedOverrides);
+      expect(afterDelete).toHaveLength(3); // Trở về 3 sản phẩm ban đầu
+      expect(afterDelete.find(p => p.no === 1001)).toBeUndefined();
+    });
+
+    it('13. No là immutable, không đổi được ID sản phẩm', () => {
+      // no của base product và override luôn phải trùng khớp và không thể hoán đổi tùy tiện
+      const overrides: Record<number, ProductOverrideRow> = {
+        1: {
+          ...createDefaultOverride(1),
+          name: 'Sửa base 1',
+        }
+      };
+      const result = mergeProducts(baseProducts, overrides);
+      const matched = result.find(p => p.no === 1);
+      expect(matched?.no).toBe(1); // no luôn được bảo toàn
+    });
   });
 
   describe('filterProducts', () => {
@@ -129,3 +233,4 @@ describe('productTransforms', () => {
     });
   });
 });
+

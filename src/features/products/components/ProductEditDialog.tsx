@@ -106,15 +106,6 @@ const ProductEditDialog = ({
       return;
     }
 
-    let targetNo = 0;
-    if (!isCreate) {
-      targetNo = parseInt(form.no);
-      if (isNaN(targetNo)) {
-        toast.error("Số thứ tự phải là một con số");
-        return;
-      }
-    }
-
     const password = getPassword();
     if (!password) {
       toast.error("Cần mở khoá KEY");
@@ -125,8 +116,7 @@ const ProductEditDialog = ({
     const res = await saveProductOverride({
       password,
       action: isCreate ? "create" : "upsert",
-      no: targetNo,
-      original_no: isCreate ? undefined : initial!.no,
+      no: isCreate ? undefined : initial!.no,
       section: finalSection,
       name: form.name.trim(),
       desc: form.desc.trim(),
@@ -153,23 +143,10 @@ const ProductEditDialog = ({
         </DialogHeader>
 
         <div className="space-y-3">
-          {/* No field — only shown in edit mode */}
+          {/* Info showing immutable ID in edit mode */}
           {!isCreate && (
-            <div>
-              <Label className="text-xs">Số thứ tự (No)</Label>
-              <Input
-                type="number"
-                value={form.no}
-                onChange={(e) => setForm({ ...form, no: e.target.value })}
-                placeholder="VD: 10"
-              />
-            </div>
-          )}
-
-          {/* Hint for create mode */}
-          {isCreate && (
-            <div className="text-xs text-muted-foreground italic mb-2">
-              * Sản phẩm mới sẽ tự động nằm ở cuối nhóm. Bạn có thể đổi vị trí sau.
+            <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+              Mã định danh sản phẩm (No): <span className="font-semibold text-foreground">{form.no}</span> (Không thể thay đổi)
             </div>
           )}
 

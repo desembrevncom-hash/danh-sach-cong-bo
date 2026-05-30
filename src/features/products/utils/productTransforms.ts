@@ -15,6 +15,7 @@ export function mergeProducts(
       desc: o?.desc ?? p.desc,
       section: o?.section ?? p.section,
       link: o?.link_url ?? p.link,
+      image: o?.image_url ?? p.image,
     });
   }
   
@@ -29,6 +30,7 @@ export function mergeProducts(
       section: o.section ?? "OTHER",
       sectionVi: sec?.vi,
       link: o.link_url ?? undefined,
+      image: o.image_url ?? undefined,
     });
   }
   return list;

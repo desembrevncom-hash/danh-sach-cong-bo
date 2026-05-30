@@ -176,6 +176,7 @@ export type FlatProduct = Product & {
   no: number;
   section: string;
   sectionVi?: string;
+  image?: string | null;
 };
 
 export const flatProducts: FlatProduct[] = (() => {

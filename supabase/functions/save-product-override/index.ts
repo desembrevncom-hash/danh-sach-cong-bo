@@ -124,37 +124,12 @@ Deno.serve(async (req) => {
     }
   }
 
-  const originalNo = "original_no" in body ? Number(body.original_no) : undefined;
-  
-  // Fetch existing record BEFORE shifting deletes it
+  // Fetch existing record
   const { data: existing } = await supabase
     .from("product_overrides")
     .select("*")
-    .eq("no", originalNo && originalNo !== no ? originalNo : no)
+    .eq("no", no)
     .maybeSingle();
-
-  // Shifting logic if moving a product
-  if (originalNo && originalNo !== no && action !== "create") {
-    const isMovingUp = originalNo > no;
-    const minNo = isMovingUp ? no : originalNo + 1;
-    const maxNo = isMovingUp ? originalNo - 1 : no;
-
-    const { data: toShift } = await supabase
-      .from("product_overrides")
-      .select("*")
-      .gte("no", minNo)
-      .lte("no", maxNo)
-      .order("no", { ascending: isMovingUp ? false : true }); // Process backwards to avoid conflicts
-
-    if (toShift && toShift.length > 0) {
-      // Delete original first to avoid primary key collision
-      await supabase.from("product_overrides").delete().eq("no", originalNo);
-      for (const item of toShift) {
-        const newNo = isMovingUp ? item.no + 1 : item.no - 1;
-        await supabase.from("product_overrides").update({ no: newNo }).eq("no", item.no);
-      }
-    }
-  }
 
   // Optional image upload
   let image_url: string | null | undefined = undefined;
