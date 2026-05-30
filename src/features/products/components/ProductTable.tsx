@@ -84,11 +84,22 @@ export function ProductTable({
                         <div className="product-desc">{row.desc}</div>
                       </td>
                       <td className="text-center overflow-visible">
-                        <ProductLinkCell
-                          productNo={row.no}
-                          href={row.link}
-                          onChange={(href) => actions.onSetLink(row.no, href)}
-                        />
+                        <div className="flex flex-col gap-1 items-center justify-center">
+                          <ProductLinkCell
+                            productNo={row.no}
+                            href={row.link}
+                            onChange={(href) => actions.onSetLink(row.no, href, false)}
+                          />
+                          {(unlocked || row.link2) && (
+                            <ProductLinkCell
+                              productNo={row.no}
+                              href={row.link2}
+                              onChange={(href) => actions.onSetLink(row.no, href, true)}
+                              label="Link 2"
+                              variant="secondary"
+                            />
+                          )}
+                        </div>
                       </td>
                       {unlocked && (
                         <td className="text-center">

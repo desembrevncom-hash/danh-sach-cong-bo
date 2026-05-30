@@ -31,6 +31,7 @@ export function mergeProducts(
       desc: o?.desc ?? p.desc,
       section: o?.section ?? p.section,
       link: o?.link_url ?? p.link,
+      link2: o?.link_url_2 ?? p.link2,
       image: o?.image_url ?? p.image,
       sort_order: o?.sort_order !== undefined && o?.sort_order !== null ? o.sort_order : defaultSort,
     });
@@ -47,6 +48,7 @@ export function mergeProducts(
       section: o.section ?? "OTHER",
       sectionVi: sec?.vi,
       link: o.link_url ?? undefined,
+      link2: o.link_url_2 ?? undefined,
       image: o.image_url ?? undefined,
       sort_order: o.sort_order !== undefined && o.sort_order !== null ? o.sort_order : 999,
     });
@@ -102,6 +104,7 @@ export function createDefaultOverride(no: number): ProductOverrideRow {
     no,
     image_url: null,
     link_url: null,
+    link_url_2: null,
     section: null,
     name: null,
     desc: null,

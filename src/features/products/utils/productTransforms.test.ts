@@ -328,4 +328,39 @@ describe('productTransforms', () => {
       }
     });
   });
+
+  // ── link_url_2 and link2 support ─────────────────────────────────────────
+  describe('hỗ trợ link_url_2 và link2', () => {
+    it('createDefaultOverride trả về link_url_2: null', () => {
+      const row = createDefaultOverride(1);
+      expect(row.link_url_2).toBeNull();
+    });
+
+    it('mergeProducts map link_url_2 thành link2 đúng cho base product', () => {
+      const overrides: Record<number, ProductOverrideRow> = {
+        1: {
+          ...createDefaultOverride(1),
+          link_url_2: 'http://test-link-2'
+        }
+      };
+      const result = mergeProducts(baseProducts, overrides);
+      const product1 = result.find(p => p.no === 1);
+      expect(product1?.link2).toBe('http://test-link-2');
+    });
+
+    it('mergeProducts map link_url_2 thành link2 đúng cho custom product', () => {
+      const overrides: Record<number, ProductOverrideRow> = {
+        1005: {
+          ...createDefaultOverride(1005),
+          is_custom: true,
+          name: 'Custom Prod',
+          section: 'Sec Custom',
+          link_url_2: 'http://custom-link-2'
+        }
+      };
+      const result = mergeProducts(baseProducts, overrides);
+      const customProduct = result.find(p => p.no === 1005);
+      expect(customProduct?.link2).toBe('http://custom-link-2');
+    });
+  });
 });

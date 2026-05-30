@@ -135,13 +135,23 @@ export function ProductCardList({
                           <div className="text-xs text-muted-foreground line-clamp-3 mb-3">
                             {row.desc}
                           </div>
-                          <div className="pt-2 border-t border-border mt-auto">
+                          <div className="pt-2 border-t border-border mt-auto flex flex-wrap gap-1.5">
                             <ProductLinkCell
                               productNo={row.no}
                               href={row.link}
-                              onChange={(href) => actions.onSetLink(row.no, href)}
+                              onChange={(href) => actions.onSetLink(row.no, href, false)}
                               mobile
                             />
+                            {(unlocked || row.link2) && (
+                              <ProductLinkCell
+                                productNo={row.no}
+                                href={row.link2}
+                                onChange={(href) => actions.onSetLink(row.no, href, true)}
+                                label="Link 2"
+                                variant="secondary"
+                                mobile
+                              />
+                            )}
                           </div>
                         </div>
                       </div>

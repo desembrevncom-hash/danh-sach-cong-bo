@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
   if ("deleted" in body && typeof body.deleted !== "boolean") return json(200, { error: "Dữ liệu không hợp lệ: deleted" });
   if ("is_custom" in body && typeof body.is_custom !== "boolean") return json(200, { error: "Dữ liệu không hợp lệ: is_custom" });
   if ("link_url" in body && body.link_url !== null && typeof body.link_url !== "string") return json(200, { error: "Dữ liệu không hợp lệ: link_url" });
+  if ("link_url_2" in body && body.link_url_2 !== null && typeof body.link_url_2 !== "string") return json(200, { error: "Dữ liệu không hợp lệ: link_url_2" });
   if ("image_url" in body && body.image_url !== null && typeof body.image_url !== "string") return json(200, { error: "Dữ liệu không hợp lệ: image_url" });
 
   const actionStr = String(body.action ?? "upsert");
@@ -85,6 +86,7 @@ Deno.serve(async (req) => {
       section: p.section,
       image_url: p.image_url ?? null,
       link_url: p.link_url ?? null,
+      link_url_2: p.link_url_2 ?? null,
       deleted: Boolean(p.deleted ?? false),
       is_custom: Boolean(p.is_custom ?? false),
       updated_at: new Date().toISOString(),
@@ -167,6 +169,7 @@ Deno.serve(async (req) => {
     return String(v);
   };
   const link_url = pickStr("link_url");
+  const link_url_2 = pickStr("link_url_2");
   const section = pickStr("section");
   const name = pickStr("name");
   const desc = pickStr("desc");
@@ -178,6 +181,7 @@ Deno.serve(async (req) => {
     no,
     image_url: image_url === undefined ? existing?.image_url ?? null : image_url,
     link_url: link_url === undefined ? existing?.link_url ?? null : link_url,
+    link_url_2: link_url_2 === undefined ? existing?.link_url_2 ?? null : link_url_2,
     section: section === undefined ? existing?.section ?? null : section,
     name: name === undefined ? existing?.name ?? null : name,
     desc: desc === undefined ? existing?.desc ?? null : desc,

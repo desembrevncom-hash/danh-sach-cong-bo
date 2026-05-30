@@ -78,11 +78,14 @@ export function useProductActions({
   );
 
   const onSetLink = useCallback(
-    async (no: number, href: string | undefined) => {
-      snapshot(no, overrides[no], `Liên kết #${String(no).padStart(2, "0")}`);
+    async (no: number, href: string | undefined, isLink2?: boolean) => {
+      const fieldName = isLink2 ? "link_url_2" : "link_url";
+      const label = isLink2 ? `Liên kết 2 #${String(no).padStart(2, "0")}` : `Liên kết #${String(no).padStart(2, "0")}`;
+      
+      snapshot(no, overrides[no], label);
       setOverrides((p) => ({
         ...p,
-        [no]: { ...(p[no] ?? createDefaultOverride(no)), link_url: href ?? null },
+        [no]: { ...(p[no] ?? createDefaultOverride(no)), [fieldName]: href ?? null },
       }));
     },
     [overrides, setOverrides, snapshot],

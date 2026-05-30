@@ -9,6 +9,9 @@ type Props = {
   productNo: number;
   href?: string;
   onChange: (href: string | undefined) => void;
+  label?: string;
+  variant?: "primary" | "secondary";
+  mobile?: boolean;
 };
 
 const normalize = (raw: string): string | undefined => {
@@ -18,7 +21,7 @@ const normalize = (raw: string): string | undefined => {
   return `https://${v}`;
 };
 
-const ProductLinkCell = ({ productNo, href, onChange }: Props) => {
+const ProductLinkCell = ({ productNo, href, onChange, label = "Link", variant = "primary", mobile }: Props) => {
   const { unlocked, getPassword } = useEditUnlock();
   const [open, setOpen] = useState(false);
   const [askUnlock, setAskUnlock] = useState(false);
@@ -62,7 +65,7 @@ const ProductLinkCell = ({ productNo, href, onChange }: Props) => {
     };
   }, [open]);
 
-  const persist = async (link_url: string | null) => {
+  const persist = async (link_val: string | null) => {
     const password = getPassword();
     if (!password) {
       toast.error("Cần mở khoá KEY trước khi lưu");
@@ -70,7 +73,8 @@ const ProductLinkCell = ({ productNo, href, onChange }: Props) => {
       return false;
     }
     setSaving(true);
-    const res = await saveProductOverride({ no: productNo, password, link_url });
+    const fieldName = label === "Link 2" ? "link_url_2" : "link_url";
+    const res = await saveProductOverride({ no: productNo, password, [fieldName]: link_val });
     setSaving(false);
     if (!res.ok) {
       toast.error(res.error ?? "Lưu thất bại");
@@ -105,11 +109,11 @@ const ProductLinkCell = ({ productNo, href, onChange }: Props) => {
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="link-badge"
+          className={`link-badge ${variant === "secondary" ? "secondary" : ""}`}
           title={href}
           data-pdf-link={href}
         >
-          Link
+          {label}
           <ExternalLink className="w-3 h-3 ml-1 inline-block opacity-70" />
         </a>
 
@@ -117,10 +121,10 @@ const ProductLinkCell = ({ productNo, href, onChange }: Props) => {
         <button
           type="button"
           onClick={requestOpen}
-          className="link-badge opacity-60 hover:opacity-100 inline-flex items-center gap-1"
-          title="Thêm liên kết"
+          className={`link-badge opacity-60 hover:opacity-100 inline-flex items-center gap-1 ${variant === "secondary" ? "secondary" : ""}`}
+          title={`Thêm ${label.toLowerCase()}`}
         >
-          + Link
+          + {label}
         </button>
       ) : (
         <span className="text-[11px] text-muted-foreground/60">—</span>
@@ -147,10 +151,10 @@ const ProductLinkCell = ({ productNo, href, onChange }: Props) => {
       {open && unlocked && (
         <div
           ref={popRef}
-          className="absolute z-30 right-0 top-full mt-2 w-72 bg-card border border-border rounded-md shadow-lg p-3"
+          className={`absolute z-30 ${mobile ? "left-0" : "right-0"} top-full mt-2 w-72 bg-card border border-border rounded-md shadow-lg p-3`}
         >
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
-            Liên kết sản phẩm #{String(productNo).padStart(2, "0")}
+            {label} sản phẩm #{String(productNo).padStart(2, "0")}
           </label>
           <input
             type="url"

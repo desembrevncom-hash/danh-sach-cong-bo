@@ -8,6 +8,7 @@ export type ProductOverrideRow = {
   deleted: boolean;
   is_custom: boolean;
   sort_order: number | null;
+  link_url_2: string | null;
 };
 
 export type SaveProductOverridePayload = {
@@ -23,6 +24,7 @@ export type SaveProductOverridePayload = {
   deleted?: boolean;
   is_custom?: boolean;
   sort_order?: number | null;
+  link_url_2?: string | null;
 };
 
 export type SaveProductOrderPayload = {
@@ -35,7 +37,7 @@ import type { FlatProduct } from "@/data/desembreProducts";
 
 export type ProductActionHandlers = {
   onSetImage: (no: number, src: string | undefined) => Promise<void>;
-  onSetLink: (no: number, href: string | undefined) => Promise<void>;
+  onSetLink: (no: number, href: string | undefined, isLink2?: boolean) => Promise<void>;
   onEdit: (p: FlatProduct) => void;
   onDelete: (p: FlatProduct) => Promise<void>;
   onRenameSection: (oldTitle: string, rows: FlatProduct[]) => Promise<void>;

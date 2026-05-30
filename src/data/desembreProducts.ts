@@ -2,6 +2,7 @@ export type Product = {
   name: string;
   desc: string;
   link?: string;
+  link2?: string;
 };
 
 export type Section = {
@@ -172,11 +173,16 @@ export const sections: Section[] = [
 ];
 
 // Flatten with stable global No.
-export type FlatProduct = Product & {
+export type FlatProduct = {
   no: number;
   section: string;
   sectionVi?: string;
+  name: string;
+  desc: string;
+  link?: string;
+  link2?: string;
   image?: string | null;
+  sort_order?: number | null;
 };
 
 export const flatProducts: FlatProduct[] = (() => {
