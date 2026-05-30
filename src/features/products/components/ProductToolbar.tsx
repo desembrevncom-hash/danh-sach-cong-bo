@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Search, RotateCcw, Lock, LockOpen, Plus, FileDown } from "lucide-react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { ProductPDF } from "@/features/export-pdf/components/ProductPDF";
@@ -21,6 +22,27 @@ export type ProductToolbarProps = {
 };
 
 const ALL = "ALL";
+
+function AnimatedDots() {
+  const [count, setCount] = useState(1);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setCount((value) => (value >= 3 ? 1 : value + 1));
+    }, 500);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <span
+      className="inline-block w-[18px] text-left"
+      aria-hidden="true"
+    >
+      {".".repeat(count)}
+    </span>
+  );
+}
 
 export function ProductToolbar({
   query,
@@ -126,7 +148,13 @@ export function ProductToolbar({
         }`}
       >
         {unlocked ? <LockOpen className="w-4 h-4 text-[#c5a86b]" /> : <Lock className="w-4 h-4" />}
-        {unlocked ? "Đang chỉnh sửa" : "Mở khóa KEY"}
+        {unlocked ? (
+          <span className="flex items-center">
+            Đang chỉnh sửa<AnimatedDots />
+          </span>
+        ) : (
+          "Mở khóa KEY"
+        )}
       </button>
     </div>
   );
