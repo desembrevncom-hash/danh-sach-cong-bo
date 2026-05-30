@@ -38,7 +38,18 @@ export const EditUnlockProvider = ({ children }: { children: ReactNode }) => {
         body: { password },
       });
       if (error) {
-        return { ok: false, error: error.message ?? "Không thể xác thực" };
+        // Fallback: Check locally using VITE_EDIT_PASSWORD env var
+        const localPwd = import.meta.env.VITE_EDIT_PASSWORD;
+        if (localPwd && password === localPwd) {
+          setUnlocked(true);
+          try {
+            localStorage.setItem(PWD_KEY, password);
+          } catch {
+            // ignore
+          }
+          return { ok: true };
+        }
+        return { ok: false, error: "Sai mật khẩu hoặc Edge Function không phản hồi. Hãy cấu hình VITE_EDIT_PASSWORD trên frontend để dùng chế độ dự phòng." };
       }
       if (data?.valid) {
         setUnlocked(true);
@@ -51,6 +62,15 @@ export const EditUnlockProvider = ({ children }: { children: ReactNode }) => {
       }
       return { ok: false, error: "Sai mật khẩu" };
     } catch (e) {
+      // Local fallback in case of exceptions
+      const localPwd = import.meta.env.VITE_EDIT_PASSWORD;
+      if (localPwd && password === localPwd) {
+        setUnlocked(true);
+        try {
+          localStorage.setItem(PWD_KEY, password);
+        } catch {}
+        return { ok: true };
+      }
       return { ok: false, error: e instanceof Error ? e.message : "Lỗi không xác định" };
     } finally {
       setVerifying(false);
