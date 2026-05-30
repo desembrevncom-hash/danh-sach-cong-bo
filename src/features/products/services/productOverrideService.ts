@@ -9,29 +9,18 @@ export async function fetchAllProductOverrides() {
   return { ok: true as const, data: data as ProductOverrideRow[] };
 }
 
+/**
+ * Save a product override by calling the Edge Function.
+ * No direct DB writes — Edge Function is the single source of truth.
+ * No fallback: if the Edge Function fails, we surface the error.
+ */
 export async function saveProductOverride(payload: SaveProductOverridePayload) {
-  // Allocate next ID for custom items client-side
-  if (payload.action === "create") {
-    const { data: maxRow } = await supabase
-      .from("product_overrides")
-      .select("no")
-      .gte("no", 1000)
-      .order("no", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-      
-    payload.no = (maxRow?.no ?? 999) + 1;
-    payload.action = "upsert";
-    payload.is_custom = true;
-  }
-
-  // Strictly call Supabase Edge Function (no direct database fallbacks)
   const { data, error } = await supabase.functions.invoke("save-product-override", {
     body: payload,
   });
 
   if (error) {
-    return { ok: false as const, error: error.message ?? "Lỗi mạng" };
+    return { ok: false as const, error: error.message ?? "Lỗi mạng khi gọi Edge Function" };
   }
   if (data?.error) {
     return { ok: false as const, error: data.error as string };
@@ -45,7 +34,7 @@ export async function saveProductOrder(payload: SaveProductOrderPayload) {
   });
 
   if (error) {
-    return { ok: false as const, error: error.message ?? "Lỗi mạng" };
+    return { ok: false as const, error: error.message ?? "Lỗi mạng khi gọi Edge Function" };
   }
   if (data?.error) {
     return { ok: false as const, error: data.error as string };

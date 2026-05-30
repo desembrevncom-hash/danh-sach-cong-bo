@@ -36,6 +36,7 @@ src/
 
 supabase/
 ├── functions/
+│   ├── save-product-order/    # Edge Function: lưu thứ tự sản phẩm (sort_order)
 │   ├── save-product-override/    # Edge Function: ghi/xoá override
 │   └── verify-edit-key/          # Edge Function: xác thực KEY admin
 └── migrations/                   # SQL schema migrations
@@ -106,9 +107,13 @@ Cần [Supabase CLI](https://supabase.com/docs/guides/cli):
 # Login
 npx supabase login
 
-# Deploy từng function
-npx supabase functions deploy verify-edit-key --project-ref <project-ref>
-npx supabase functions deploy save-product-override --project-ref <project-ref>
+# Deploy từng function (--no-verify-jwt: hàm dùng mật khẩu riêng, không cần JWT Supabase)
+npx supabase functions deploy verify-edit-key --no-verify-jwt --project-ref <project-ref>
+npx supabase functions deploy save-product-override --no-verify-jwt --project-ref <project-ref>
+npx supabase functions deploy save-product-order --no-verify-jwt --project-ref <project-ref>
+
+# Hoặc deploy tất cả một lần:
+npx supabase functions deploy --no-verify-jwt --project-ref <project-ref>
 ```
 
 `<project-ref>` là ID dự án (phần subdomain trong URL Supabase, ví dụ `toytykbimcpkieocozzm`).

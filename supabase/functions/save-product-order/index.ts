@@ -4,13 +4,12 @@ const EDIT_PASSWORD = Deno.env.get("EDIT_PASSWORD");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ALLOWED_ORIGINS_ENV = Deno.env.get("ALLOWED_ORIGINS") || "";
-const allowedOrigins = ALLOWED_ORIGINS_ENV.split(",").map(s => s.trim()).filter(Boolean);
+const allowedOrigins = ALLOWED_ORIGINS_ENV.split(",").map((s) => s.trim()).filter(Boolean);
 
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get("origin") || "";
   const isAllowed = allowedOrigins.length === 0 || allowedOrigins.includes(origin);
   const allowOrigin = isAllowed ? (origin || "*") : (allowedOrigins[0] || "*");
-  
   return {
     "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -28,7 +27,7 @@ function safeEqual(a: string, b: string): boolean {
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
-  
+
   const json = (status: number, body: unknown) =>
     new Response(JSON.stringify(body), {
       status,
@@ -36,38 +35,98 @@ Deno.serve(async (req) => {
     });
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "Method not allowed" });
-  if (!EDIT_PASSWORD) return json(500, { error: "Lỗi hệ thống" });
+  if (req.method !== "POST") return json(200, { error: "Method not allowed" });
+  if (!EDIT_PASSWORD) return json(200, { error: "Lỗi hệ thống: Chưa cấu hình EDIT_PASSWORD" });
 
-  let body: { password?: string; section?: string; ordered_nos?: number[] };
+  let body: { password?: unknown; section?: unknown; ordered_nos?: unknown };
   try {
     body = await req.json();
   } catch {
-    return json(400, { error: "Yêu cầu không hợp lệ" });
+    return json(200, { error: "Yêu cầu không hợp lệ" });
   }
 
+  // Auth
   const password = String(body.password ?? "");
   if (!password || password.length > 256 || !safeEqual(password, EDIT_PASSWORD)) {
     await new Promise((r) => setTimeout(r, 250));
-    return json(401, { error: "Thông tin không hợp lệ" });
+    return json(200, { error: "Mật khẩu không hợp lệ" });
   }
 
+  // Validate section
   const section = body.section;
+  if (typeof section !== "string" || section.trim() === "" || section.length > 100) {
+    return json(200, { error: "Dữ liệu không hợp lệ: section phải là chuỗi không rỗng" });
+  }
+
+  // Validate ordered_nos
   const orderedNos = body.ordered_nos;
-  if (!section || !Array.isArray(orderedNos)) {
-    return json(400, { error: "Dữ liệu không hợp lệ: thiếu section hoặc ordered_nos" });
+  if (!Array.isArray(orderedNos)) {
+    return json(200, { error: "Dữ liệu không hợp lệ: ordered_nos phải là mảng" });
+  }
+  if (orderedNos.length === 0) {
+    return json(200, { error: "Dữ liệu không hợp lệ: ordered_nos không được rỗng" });
+  }
+  if (orderedNos.length > 500) {
+    return json(200, { error: "Dữ liệu không hợp lệ: ordered_nos quá dài (tối đa 500)" });
+  }
+  for (const no of orderedNos) {
+    if (!Number.isInteger(no) || no < 1 || no > 99999) {
+      return json(200, { error: `Dữ liệu không hợp lệ: no=${no} không phải số nguyên hợp lệ` });
+    }
+  }
+  // Check duplicates
+  const nosSet = new Set(orderedNos);
+  if (nosSet.size !== orderedNos.length) {
+    return json(200, { error: "Dữ liệu không hợp lệ: ordered_nos có chứa giá trị trùng lặp" });
   }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-  // Prepare batch upsert rows. PostgREST partial upsert will ONLY update the specified fields,
-  // preserving existing name, desc, link_url, image_url, etc.
-  const updates = orderedNos.map((no, idx) => ({
-    no: Number(no),
-    sort_order: idx + 1,
-    section: String(section),
-    updated_at: new Date().toISOString(),
-  }));
+  // Fetch existing override rows for these nos to preserve all existing fields
+  const { data: existingRows, error: fetchError } = await supabase
+    .from("product_overrides")
+    .select("*")
+    .in("no", orderedNos);
+
+  if (fetchError) {
+    return json(200, { error: `Lỗi Database khi đọc dữ liệu: ${fetchError.message}` });
+  }
+
+  // Build a lookup map: no → existing row
+  const existingMap: Record<number, Record<string, unknown>> = {};
+  for (const row of (existingRows ?? [])) {
+    existingMap[row.no] = row;
+  }
+
+  // Build upsert rows: preserve all existing fields, only update sort_order + section
+  const now = new Date().toISOString();
+  const updates = (orderedNos as number[]).map((no, idx) => {
+    const existing = existingMap[no];
+    if (existing) {
+      // Preserve all existing fields, only update sort_order (+ section for safety, keep existing if different)
+      return {
+        ...existing,
+        no,
+        sort_order: idx + 1,
+        section: existing.section ?? section, // keep existing section if already set
+        updated_at: now,
+      };
+    } else {
+      // Base product with no override row yet — create a safe minimal row
+      return {
+        no,
+        section: section,
+        sort_order: idx + 1,
+        name: null,
+        desc: null,
+        image_url: null,
+        link_url: null,
+        deleted: false,
+        is_custom: false,
+        updated_at: now,
+      };
+    }
+  });
 
   const { data: saved, error } = await supabase
     .from("product_overrides")
@@ -75,7 +134,9 @@ Deno.serve(async (req) => {
     .select();
 
   if (error) {
-    return json(500, { error: error.message });
+    return json(200, {
+      error: `Lỗi Database: ${error.message}. (Gợi ý: Kiểm tra xem đã chạy migration thêm cột sort_order chưa)`,
+    });
   }
 
   return json(200, { ok: true, rows: saved });

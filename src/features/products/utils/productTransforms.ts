@@ -107,5 +107,6 @@ export function createDefaultOverride(no: number): ProductOverrideRow {
     desc: null,
     deleted: false,
     is_custom: false,
+    sort_order: null,
   };
 }

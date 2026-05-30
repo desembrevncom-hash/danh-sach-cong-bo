@@ -41,36 +41,36 @@ Deno.serve(async (req) => {
     });
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "Method not allowed" });
-  if (!EDIT_PASSWORD) return json(500, { error: "Lỗi hệ thống" });
+  if (req.method !== "POST") return json(200, { error: "Method not allowed" });
+  if (!EDIT_PASSWORD) return json(200, { error: "Lỗi hệ thống: Chưa cấu hình EDIT_PASSWORD" });
 
   let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
-    return json(400, { error: "Yêu cầu không hợp lệ" });
+    return json(200, { error: "Yêu cầu không hợp lệ" });
   }
 
   const password = String(body.password ?? "");
   if (!password || password.length > 256 || !safeEqual(password, EDIT_PASSWORD)) {
     await new Promise((r) => setTimeout(r, 250));
-    return json(401, { error: "Thông tin không hợp lệ" });
+    return json(200, { error: "Thông tin không hợp lệ" });
   }
 
   // --- Validate Payload ---
-  if ("no" in body && typeof body.no !== "number") return json(400, { error: "Dữ liệu không hợp lệ: no" });
-  if ("original_no" in body && typeof body.original_no !== "number") return json(400, { error: "Dữ liệu không hợp lệ: original_no" });
-  if ("name" in body && typeof body.name === "string" && body.name.length > 255) return json(400, { error: "Tên quá dài" });
-  if ("desc" in body && typeof body.desc === "string" && body.desc.length > 2000) return json(400, { error: "Mô tả quá dài" });
-  if ("section" in body && typeof body.section === "string" && body.section.length > 100) return json(400, { error: "Section quá dài" });
-  if ("deleted" in body && typeof body.deleted !== "boolean") return json(400, { error: "Dữ liệu không hợp lệ: deleted" });
-  if ("is_custom" in body && typeof body.is_custom !== "boolean") return json(400, { error: "Dữ liệu không hợp lệ: is_custom" });
-  if ("link_url" in body && body.link_url !== null && typeof body.link_url !== "string") return json(400, { error: "Dữ liệu không hợp lệ: link_url" });
-  if ("image_url" in body && body.image_url !== null && typeof body.image_url !== "string") return json(400, { error: "Dữ liệu không hợp lệ: image_url" });
+  if ("no" in body && typeof body.no !== "number") return json(200, { error: "Dữ liệu không hợp lệ: no" });
+  if ("original_no" in body && typeof body.original_no !== "number") return json(200, { error: "Dữ liệu không hợp lệ: original_no" });
+  if ("name" in body && typeof body.name === "string" && body.name.length > 255) return json(200, { error: "Tên quá dài" });
+  if ("desc" in body && typeof body.desc === "string" && body.desc.length > 2000) return json(200, { error: "Mô tả quá dài" });
+  if ("section" in body && typeof body.section === "string" && body.section.length > 100) return json(200, { error: "Section quá dài" });
+  if ("deleted" in body && typeof body.deleted !== "boolean") return json(200, { error: "Dữ liệu không hợp lệ: deleted" });
+  if ("is_custom" in body && typeof body.is_custom !== "boolean") return json(200, { error: "Dữ liệu không hợp lệ: is_custom" });
+  if ("link_url" in body && body.link_url !== null && typeof body.link_url !== "string") return json(200, { error: "Dữ liệu không hợp lệ: link_url" });
+  if ("image_url" in body && body.image_url !== null && typeof body.image_url !== "string") return json(200, { error: "Dữ liệu không hợp lệ: image_url" });
 
   const actionStr = String(body.action ?? "upsert");
   if (!["upsert", "create", "hard_delete"].includes(actionStr) && !Array.isArray(body.products)) {
-    return json(400, { error: "Hành động không hợp lệ" });
+    return json(200, { error: "Hành động không hợp lệ" });
   }
   // -------------------------
 
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     }));
     const { data: saved, error } = await supabase.from("product_overrides").upsert(products, { onConflict: "no" }).select();
-    if (error) return json(500, { error: error.message });
+    if (error) return json(200, { error: `Lỗi DB: ${error.message}` });
     return json(200, { ok: true, count: saved?.length });
   }
 
@@ -99,9 +99,9 @@ Deno.serve(async (req) => {
   // Hard delete a custom product (or unset deleted flag — handled via upsert)
   if (action === "hard_delete") {
     const no = Number(body.no);
-    if (!Number.isInteger(no)) return json(400, { error: "no không hợp lệ" });
+    if (!Number.isInteger(no)) return json(200, { error: "no không hợp lệ" });
     const { error } = await supabase.from("product_overrides").delete().eq("no", no);
-    if (error) return json(500, { error: error.message });
+    if (error) return json(200, { error: `Lỗi DB: ${error.message}` });
     return json(200, { ok: true });
   }
 
@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
   } else {
     no = Number(body.no);
     if (!Number.isInteger(no) || no < 1 || no > 99999) {
-      return json(400, { error: "Sản phẩm không hợp lệ" });
+      return json(200, { error: "Sản phẩm không hợp lệ" });
     }
   }
 
@@ -139,11 +139,11 @@ Deno.serve(async (req) => {
       image_url = null;
     } else if (typeof dataUrl === "string" && dataUrl.startsWith("data:")) {
       const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-      if (!match) return json(400, { error: "Ảnh không hợp lệ" });
+      if (!match) return json(200, { error: "Ảnh không hợp lệ" });
       const mime = match[1];
       const ext = mime.split("/")[1].split("+")[0].replace("jpeg", "jpg");
       const bytes = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
-      if (bytes.length > 2 * 1024 * 1024) return json(400, { error: "Ảnh quá lớn (tối đa 2MB)" });
+      if (bytes.length > 2 * 1024 * 1024) return json(200, { error: "Ảnh quá lớn (tối đa 2MB)" });
       const path = `product-${no}-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("product-images")
@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
     .upsert(row, { onConflict: "no" })
     .select()
     .maybeSingle();
-  if (error) return json(500, { error: error.message });
+  if (error) return json(200, { error: `Lỗi DB: ${error.message}` });
 
   return json(200, { ok: true, row: saved });
 });
