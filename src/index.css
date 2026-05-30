@@ -109,17 +109,23 @@
   .product-name { font-weight: 700; font-size: 13px; letter-spacing: 0.06em; color: hsl(var(--foreground)); margin-bottom: 4px; }
   .product-desc { font-size: 12px; color: hsl(var(--muted-foreground)); line-height: 1.4; }
   .link-badge {
-    display: inline-block; padding: 4px 14px; border-radius: 4px;
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 76px; padding: 4px 12px; border-radius: 4px;
     background: hsl(var(--header-bg)); color: hsl(var(--header-text));
     font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
-    cursor: pointer; transition: opacity 0.2s; text-decoration: none;
+    cursor: pointer; transition: all 0.2s; text-decoration: none;
   }
   .link-badge.secondary {
-    background: hsl(var(--secondary));
-    color: hsl(var(--secondary-foreground));
-    border: 1px solid hsl(var(--border));
+    background: #fef3c7; /* bg-amber-100 */
+    color: #78350f; /* text-amber-900 */
+    border: 1px solid #fcd34d; /* border-amber-300 */
   }
   .link-badge:hover { opacity: 0.8; }
+  .link-badge.secondary:hover {
+    background: #fde68a; /* hover:bg-amber-200 */
+    color: #78350f;
+    opacity: 1;
+  }
   .footer-gradient { background: var(--gradient-footer); }
 }
 
