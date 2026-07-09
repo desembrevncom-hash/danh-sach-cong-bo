@@ -86,6 +86,7 @@ const IndexInner = ({
           image_url?: string;
           sort_order?: number;
           total_count?: number;
+          brand?: string;
         }
 
         const formattedData = data.map((item: RpcProductItem) => ({
