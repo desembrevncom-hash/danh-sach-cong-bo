@@ -126,36 +126,37 @@ export default function Dashboard() {
   // 3. Xóa mềm (Soft Delete)
   const handleDelete = async (no: number, name: string) => {
     if (!window.confirm(`Bạn có chắc muốn xóa/ẩn sản phẩm "${name}"?`)) return;
-    
-    // Tạm thời hiển thị loading bằng toast promise
-    toast.promise(
-      supabase.from("product_overrides").update({ deleted: true }).eq("no", no),
-      {
-        loading: 'Đang ẩn...',
-        success: () => {
-          // Optimistic update
-          setProducts(prev => prev.map(p => p.no === no ? { ...p, deleted: true } : p));
-          return 'Đã ẩn sản phẩm thành công!';
-        },
-        error: 'Ẩn thất bại!'
-      }
-    );
+    try {
+      const { error } = await supabase.from("product_overrides").update({ deleted: true }).eq("no", no);
+      if (error) throw error;
+      
+      // Optimistic update
+      setProducts(prev => prev.map(p => p.no === no ? { ...p, deleted: true } : p));
+      toast.success('Đã ẩn sản phẩm thành công!');
+    } catch (err) {
+      console.error("Lỗi khi ẩn sản phẩm:", err);
+      toast.error('Ẩn thất bại!');
+    }
   };
 
   // Khôi phục (Restore)
   const handleRestore = async (no: number, name: string) => {
-    toast.promise(
-      supabase.from("product_overrides").update({ deleted: false }).eq("no", no),
-      {
-        loading: 'Đang khôi phục...',
-        success: () => {
-          // Optimistic update
-          setProducts(prev => prev.map(p => p.no === no ? { ...p, deleted: false } : p));
-          return 'Đã khôi phục sản phẩm thành công!';
-        },
-        error: 'Khôi phục thất bại!'
+    try {
+      const { error } = await supabase.from("product_overrides").update({ deleted: false }).eq("no", no);
+      if (error) throw error;
+      
+      // Optimistic update
+      setProducts(prev => prev.map(p => p.no === no ? { ...p, deleted: false } : p));
+      
+      if (typeof toast !== 'undefined' && toast.success) {
+        toast.success('Đã khôi phục sản phẩm thành công!');
+      } else {
+        console.log("Đã khôi phục thành công sản phẩm số: " + no);
       }
-    );
+    } catch (err) {
+      console.error("Lỗi khi khôi phục sản phẩm:", err);
+      toast.error('Khôi phục thất bại!');
+    }
   };
 
   // 4. Validate file ảnh ngay khi chọn
