@@ -41,15 +41,37 @@ export default function Dashboard() {
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  // 1. Auth Guard
+  // 1. Auth Guard & Role Check
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let mounted = true;
+
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
+
       if (!session) {
         navigate("/admin/login");
-      } else {
-        setSessionLoading(false);
+        return;
       }
-    });
+
+      // Check role
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (profile?.role !== "admin") {
+        toast.error("Bạn không có quyền truy cập trang này.");
+        // We could redirect or just show an error state. For now, redirect.
+        navigate("/admin/login");
+        return;
+      }
+
+      setSessionLoading(false);
+    }
+
+    checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
@@ -57,7 +79,10 @@ export default function Dashboard() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   useEffect(() => {

@@ -127,7 +127,6 @@ Vào **Supabase Dashboard → Settings → Edge Functions → Secrets**:
 
 | Key | Mô tả |
 |---|---|
-| `EDIT_PASSWORD` | Mật khẩu admin để mở khoá chỉnh sửa |
 | `ALLOWED_ORIGINS` | CORS origins, ví dụ: `https://yourdomain.com,http://localhost:8080` |
 
 ## Thiết lập Database
@@ -174,5 +173,27 @@ npx supabase db push --project-ref <project-ref>
 
 - `.env` đã được thêm vào `.gitignore` — **không commit file này**.
 - Service Role key (`sb_secret_*`) chỉ dùng server-side qua Supabase secrets.
-- EDIT_PASSWORD nên đủ mạnh và được đổi định kỳ.
-- Edge Functions có rate limit nhẹ cho `verify-edit-key` (5 lần sai / 60s / IP).
+
+## 🔒 Security Architecture (Round 5)
+Bảo mật Admin của ứng dụng sử dụng Supabase Auth và Role-Based Access Control:
+1. **Supabase Auth**: Admin đăng nhập thông qua email/password được tạo bằng giao diện quản lý của Supabase.
+2. **`public.profiles`**: Có role `admin` (mặc định là `viewer`).
+3. **Edge Functions**: Các thao tác chỉnh sửa gọi đến Edge Function kèm JWT, backend sẽ xác thực JWT và kiểm tra role `admin` trong bảng `profiles` trước khi cho phép.
+- (Lịch sử) **Legacy Fallback**: Trước đây hệ thống hỗ trợ nhập Edit Key bằng mật khẩu trực tiếp qua `VITE_EDIT_PASSWORD` và `EDIT_PASSWORD`. Cơ chế này đã bị loại bỏ hoàn toàn trong Round 5. Tương tự, `verify-edit-key` edge function hiện sẽ trả về `410 Gone`.
+
+## ⚙️ Edge Functions
+
+```bash
+# Deploy hàm lưu sản phẩm
+npx supabase functions deploy save-product-override --project-ref <project-ref>
+npx supabase functions deploy save-product-order --project-ref <project-ref>
+```
+
+### Cách cấp quyền Admin:
+Sau khi User đăng ký tài khoản trên Supabase, hãy chạy SQL sau trong SQL Editor của Supabase để cấp quyền admin:
+
+```sql
+INSERT INTO public.profiles (user_id, role)
+VALUES ('<uuid-cua-user>', 'admin')
+ON CONFLICT (user_id) DO UPDATE SET role = 'admin';
+```

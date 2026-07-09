@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Eye, EyeOff, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { FlatProduct } from "@/data/desembreProducts";
+import type { ProductViewModel } from "@/features/products/types";
 import type { ProductOverrideRow } from "@/features/products/types";
 import { AdminEditModal } from "@/features/products/components/AdminEditModal";
 
 type AdminInlineActionsProps = {
-  product: FlatProduct;
+  product: ProductViewModel;
   override?: ProductOverrideRow;
   /** Optimistic UI: cập nhật local ngay lập tức */
   onOptimisticUpdate: (no: number, patch: Partial<ProductOverrideRow>) => void;
@@ -31,16 +31,16 @@ export function AdminInlineActions({
     const newDeleted = !isDeleted;
 
     // 1. Optimistic UI — cập nhật ngay lập tức
-    onOptimisticUpdate(product.no, { deleted: newDeleted });
+    onOptimisticUpdate(product.id, { deleted: newDeleted });
 
     // 2. Gửi request xuống DB ngầm
     const { error } = await supabase
       .from("product_overrides")
-      .upsert({ no: product.no, deleted: newDeleted });
+      .upsert({ no: product.id, deleted: newDeleted });
 
     if (error) {
       // Rollback nếu lỗi
-      onOptimisticUpdate(product.no, { deleted: isDeleted });
+      onOptimisticUpdate(product.id, { deleted: isDeleted });
       toast.error("Lỗi khi thay đổi trạng thái hiển thị.");
     } else {
       toast.success(newDeleted ? "Đã ẩn sản phẩm." : "Đã hiện sản phẩm.");

@@ -1,6 +1,5 @@
-import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { type FlatProduct } from "@/data/desembreProducts";
+import { type ProductViewModel } from "@/features/products/types";
 import { saveProductOverride, saveProductOrder } from "@/features/products/services/productOverrideService";
 import { createDefaultOverride } from "@/features/products/utils/productTransforms";
 import type {
@@ -13,7 +12,6 @@ import type { ProductDialogInitial } from "@/features/products/types";
 export type UseProductActionsOptions = {
   overrides: Record<number, OverrideRow>;
   setOverrides: React.Dispatch<React.SetStateAction<Record<number, OverrideRow>>>;
-  getPassword: () => string | null;
   snapshot: (no: number, prev: OverrideRow | undefined, label: string) => void;
   refreshOverrides: () => Promise<void>;
 };
@@ -33,7 +31,6 @@ export type UseProductActionsReturn = {
 export function useProductActions({
   overrides,
   setOverrides,
-  getPassword,
   snapshot,
   refreshOverrides,
 }: UseProductActionsOptions): UseProductActionsReturn {
@@ -47,7 +44,7 @@ export function useProductActions({
       if (options?.snapshotLabel) {
         snapshot(row.no, overrides[row.no], options.snapshotLabel);
       }
-      setOverrides((p) => ({ ...p, [row.no]: row }));
+      setOverrides((prev) => ({ ...prev, [row.no]: row }));
     },
     [overrides, setOverrides, snapshot],
   );
@@ -59,8 +56,8 @@ export function useProductActions({
     setEditOpen(true);
   }, []);
 
-  const openEdit = useCallback((p: FlatProduct) => {
-    setEditInitial({ no: p.no, section: p.section, name: p.name, desc: p.desc });
+  const openEdit = useCallback((p: ProductViewModel) => {
+    setEditInitial({ no: p.id, section: p.section, name: p.name, desc: p.desc });
     setEditOpen(true);
   }, []);
 
@@ -92,41 +89,33 @@ export function useProductActions({
   );
 
   const onDelete = useCallback(
-    async (p: FlatProduct) => {
-      const password = getPassword();
-      if (!password) {
-        toast.error("Cần mở khoá KEY");
-        return;
-      }
+    async (p: ProductViewModel) => {
       if (!confirm(`Xoá sản phẩm "${p.name}"?`)) return;
 
-      const prev = overrides[p.no];
+      const prev = overrides[p.id];
       const isCustom = !!prev?.is_custom;
 
       if (isCustom) {
-        const res = await saveProductOverride({ password, action: "hard_delete", no: p.no });
+        const res = await saveProductOverride({ action: "hard_delete", productId: p.id });
         if (!res.ok) return toast.error(res.error ?? "Xoá thất bại");
-        snapshot(p.no, prev, `Xoá "${p.name}"`);
+        snapshot(p.id, prev, `Xoá "${p.name}"`);
         setOverrides((prev2) => {
           const n = { ...prev2 };
-          delete n[p.no];
+          delete n[p.id];
           return n;
         });
       } else {
-        const res = await saveProductOverride({ password, no: p.no, deleted: true });
+        const res = await saveProductOverride({ productId: p.id, deleted: true });
         if (!res.ok || !res.row) return toast.error(res.error ?? "Xoá thất bại");
         upsertOverride(res.row, { snapshotLabel: `Xoá "${p.name}"` });
       }
       toast.success("Đã xoá — có thể hoàn tác");
     },
-    [getPassword, overrides, setOverrides, snapshot, upsertOverride],
+    [overrides, setOverrides, snapshot, upsertOverride],
   );
 
   const onRenameSection = useCallback(
-    async (oldTitle: string, rows: FlatProduct[]) => {
-      const password = getPassword();
-      if (!password) return toast.error("Cần mở khoá KEY");
-
+    async (oldTitle: string, rows: ProductViewModel[]) => {
       const next = window.prompt(`Đổi tên nhóm "${oldTitle}" thành:`, oldTitle);
       if (!next) return;
       const newTitle = next.trim();
@@ -135,62 +124,44 @@ export function useProductActions({
       toast.info(`Đang đổi tên ${rows.length} sản phẩm…`);
       let failed = 0;
       for (const r of rows) {
-        const res = await saveProductOverride({ password, no: r.no, section: newTitle });
+        const res = await saveProductOverride({ productId: r.id, section: newTitle });
         if (!res.ok || !res.row) {
           failed++;
           continue;
         }
-        upsertOverride(res.row, { snapshotLabel: `Đổi nhóm #${String(r.no).padStart(2, "0")}` });
+        upsertOverride(res.row, { snapshotLabel: `Đổi nhóm #${String(r.id).padStart(2, "0")}` });
       }
       if (failed) toast.error(`${failed} sản phẩm lỗi`);
       else toast.success(`Đã đổi nhóm thành "${newTitle}"`);
     },
-    [getPassword, overrides, setOverrides, snapshot, upsertOverride],
+    [overrides, setOverrides, snapshot, upsertOverride],
   );
 
   const onReorderProduct = useCallback(
-    async (section: string, orderedNos: number[]) => {
-      const password = getPassword();
-      if (!password) return toast.error("Cần mở khoá KEY");
-
-      // Optimistically update frontend display first
-      setOverrides((prev) => {
-        const next = { ...prev };
-        orderedNos.forEach((no, idx) => {
-          next[no] = {
-            ...(next[no] ?? createDefaultOverride(no)),
-            sort_order: idx + 1,
-            section,
-          };
-        });
-        return next;
+    async (section: string, orderedIds: string[]) => {
+      const res = await saveProductOrder({
+        section,
+        ordered_ids: orderedIds,
       });
-
-      const res = await saveProductOrder({ password, section, ordered_nos: orderedNos });
-      if (!res.ok || !res.rows) {
-        toast.error(res.error ?? "Cập nhật thứ tự thất bại");
-        // Revert overrides on failure
-        refreshOverrides();
+      if (!res.ok) {
+        toast.error(res.error ?? "Lỗi lưu vị trí");
         return;
       }
 
-      // Ghi snapshot cho từng sản phẩm bị đổi thứ tự
-      res.rows!.forEach((row) => {
-        snapshot(row.no, overrides[row.no], `Đổi thứ tự nhóm "${section}"`);
-      });
-
       // Apply actual rows returned
-      setOverrides((prev) => {
-        const next = { ...prev };
-        res.rows!.forEach((row) => {
-          next[row.no] = row;
+      if (res.rows) {
+        setOverrides((prev) => {
+          const next = { ...prev };
+          res.rows!.forEach((row) => {
+            next[row.no] = row;
+          });
+          return next;
         });
-        return next;
-      });
+      }
       
       toast.success("Đã cập nhật thứ tự hiển thị!");
     },
-    [getPassword, overrides, setOverrides, snapshot, refreshOverrides],
+    [setOverrides, refreshOverrides],
   );
 
   // ── Compose actions object ────────────────────────────────────────────────

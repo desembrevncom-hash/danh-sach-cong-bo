@@ -22,7 +22,7 @@ import { saveProductOverride } from "@/features/products/services/productOverrid
 import type { ProductOverrideRow as OverrideRow, ProductDialogInitial } from "@/features/products/types";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import type { FlatProduct } from "@/data/desembreProducts";
+import type { ProductViewModel } from "@/features/products/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ export type ProductEditDialogProps = {
   onOpenChange: (v: boolean) => void;
   initial: ProductDialogInitial | null;
   sectionOptions: string[];
-  groupedProducts?: [string, FlatProduct[]][];
+  groupedProducts?: [string, ProductViewModel[]][];
   onSaved: (row: OverrideRow, insertAfterNo?: number) => void;
 };
 
@@ -59,7 +59,7 @@ function buildFormState(
   const initSec = initial.section ?? "";
   const inList = initSec && sectionOptions.includes(initSec);
   return {
-    no: initial.no != null ? String(initial.no) : "",
+    no: initial.id != null ? String(initial.id) : "",
     section: inList ? initSec : "",
     customSection: !inList ? initSec : "",
     useCustom: !!initSec && !inList,
@@ -87,7 +87,6 @@ const ProductEditDialog = ({
   groupedProducts,
   onSaved,
 }: ProductEditDialogProps) => {
-  const { getPassword } = useEditUnlock();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [insertPos, setInsertPos] = useState<number>(-2); // -2: end, -1: start, others: after product no
   const [saving, setSaving] = useState(false);
@@ -101,7 +100,7 @@ const ProductEditDialog = ({
   }, [open, initial, sectionOptions]);
 
   const finalSection = (form.useCustom ? form.customSection : form.section).trim();
-  const isCreate = !initial?.no;
+  const isCreate = !initial?.id;
 
   // ── Submit ──────────────────────────────────────────────────────────────────
 
@@ -111,17 +110,10 @@ const ProductEditDialog = ({
       return;
     }
 
-    const password = getPassword();
-    if (!password) {
-      toast.error("Cần mở khoá KEY");
-      return;
-    }
-
     setSaving(true);
     const res = await saveProductOverride({
-      password,
       action: isCreate ? "create" : "upsert",
-      no: isCreate ? undefined : initial!.no,
+      productId: isCreate ? undefined : initial!.id,
       section: finalSection,
       name: form.name.trim(),
       desc: form.desc.trim(),
@@ -153,7 +145,7 @@ const ProductEditDialog = ({
           {/* Info showing immutable ID in edit mode */}
           {!isCreate && (
             <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-              Mã định danh sản phẩm (No): <span className="font-semibold text-foreground">{form.no}</span> (Không thể thay đổi)
+              Mã định danh sản phẩm (No): <span className="font-semibold text-foreground">{form.id}</span> (Không thể thay đổi)
             </div>
           )}
 
@@ -236,7 +228,7 @@ const ProductEditDialog = ({
                   <SelectItem value="-2">Thêm vào cuối danh sách</SelectItem>
                   <SelectItem value="-1">Thêm vào đầu danh sách</SelectItem>
                   {currentSectionProducts.map((p) => (
-                    <SelectItem key={p.no} value={String(p.no)}>
+                    <SelectItem key={p.id} value={String(p.id)}>
                       Thêm vào sau "{p.name}"
                     </SelectItem>
                   ))}

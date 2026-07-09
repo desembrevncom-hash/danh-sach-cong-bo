@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
 import { useParams, Navigate } from "react-router-dom";
-import { sections, flatProducts, type FlatProduct } from "@/data/desembreProducts";
+import { sections, flatProducts } from '@/data/desembreProducts';
+import type { ProductViewModel, ProductRowFromRpc } from '@/features/products/types';
+import { mapProductRowsToViewModels } from '@/features/products/mappers';
 import UnlockDialog from "@/features/edit-unlock/components/UnlockDialog";
 import ProductEditDialog from "@/features/products/components/ProductEditDialog";
 import { useEditUnlock } from "@/features/edit-unlock/hooks/useEditUnlock";
@@ -35,7 +36,7 @@ const IndexInner = ({
   setOverrides: React.Dispatch<React.SetStateAction<Record<number, OverrideRow>>>;
   refreshOverrides: () => Promise<void>;
 }) => {
-  const { unlocked, lock, getPassword } = useEditUnlock();
+  const { unlocked, lock } = useEditUnlock();
   const history = useEditHistory();
   const { isAdmin } = useAdminSession();
   const { brandId } = useParams();
@@ -51,7 +52,7 @@ const IndexInner = ({
   const [isLoading, setIsLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [productsData, setProductsData] = useState<FlatProduct[]>([]);
+  const [productsData, setProductsData] = useState<ProductViewModel[]>([]);
 
   const debouncedQuery = useDebounce(query, 300);
 
@@ -96,19 +97,7 @@ const IndexInner = ({
         const rawData = data as RpcProductItem[];
         const filteredData = rawData.filter((item) => (item.brand || "desembre") === activeBrand);
 
-        const formattedData = filteredData.map((item: RpcProductItem) => ({
-          // SỬA LỖI NGHIÊM TRỌNG Ở ĐÂY: item.no do RPC trả về chỉ là số thứ tự (1, 2, 3...). 
-          // Cần dùng item.id_alias làm khóa chính để khớp đúng với bảng product_overrides!
-          // TODO Round 2: Replace no/id_alias fallback with explicit ProductRowFromRpc and ProductViewModel.
-          no: item.id_alias ?? item.no,
-          section: item.section,
-          name: item.name,
-          desc: item.desc,
-          link: item.link_url,
-          link2: item.link_url_2,
-          image: item.image_url,
-          sort_order: item.sort_order,
-        })) as FlatProduct[];
+        const formattedData = mapProductRowsToViewModels(filteredData as ProductRowFromRpc[]);
 
         setProductsData(formattedData);
         // Do client-side filter nên total_count có thể sai lệch so với Backend (nếu Backend trả full)
@@ -150,7 +139,6 @@ const IndexInner = ({
   } = useProductActions({
     overrides,
     setOverrides,
-    getPassword,
     snapshot: history.snapshot,
     refreshOverrides: async () => {
       await refreshOverrides();
@@ -166,9 +154,9 @@ const IndexInner = ({
   // rồi apply override data lên các item còn lại
   const mergedForView = useMemo(() => {
     return productsData
-      .filter((p) => !overrides[p.no]?.deleted)  // Ẩn ngay sản phẩm khi Admin bấm nút ẩn
+      .filter((p) => !overrides[p.id]?.deleted)  // Ẩn ngay sản phẩm khi Admin bấm nút ẩn
       .map((p) => {
-        const ov = overrides[p.no];
+        const ov = overrides[p.id];
         if (!ov) return p;
         return {
           ...p,
@@ -241,38 +229,38 @@ const IndexInner = ({
           sectionOptions={sectionTitles}
           groupedProducts={grouped}
           onSaved={async (row, insertAfterNo) => {
-            if (editInitial?.no && editInitial.no !== row.no) {
+            if (editInitial?.id && editInitial.id !== row.id) {
               await refreshOverrides();
               await fetchProducts();
               toast.success("Đã sắp xếp lại danh sách");
             } else {
               upsertOverride(row, {
-                snapshotLabel: editInitial?.no
-                  ? `Sửa "${editInitial?.name ?? row.name ?? row.no}"`
-                  : `Thêm "${row.name ?? row.no}"`,
+                snapshotLabel: editInitial?.id
+                  ? `Sửa "${editInitial?.name ?? row.name ?? row.id}"`
+                  : `Thêm "${row.name ?? row.id}"`,
               });
               
               if (insertAfterNo !== undefined && row.section) {
                 // Find current products in this section
                 const sectionGroup = grouped.find(g => g[0] === row.section);
                 if (sectionGroup) {
-                  const items = sectionGroup[1].filter(p => p.no !== row.no);
+                  const items = sectionGroup[1].filter(p => p.id !== row.id);
                   
                   let newOrderedNos: number[] = [];
                   if (insertAfterNo === -1) {
-                    newOrderedNos = [row.no, ...items.map(p => p.no)];
+                    newOrderedNos = [row.id, ...items.map(p => p.id)];
                   } else if (insertAfterNo === -2) {
-                    newOrderedNos = [...items.map(p => p.no), row.no];
+                    newOrderedNos = [...items.map(p => p.id), row.id];
                   } else {
-                    const insertIdx = items.findIndex(p => p.no === insertAfterNo);
+                    const insertIdx = items.findIndex(p => p.id === insertAfterNo);
                     if (insertIdx !== -1) {
                       newOrderedNos = [
-                        ...items.slice(0, insertIdx + 1).map(p => p.no),
-                        row.no,
-                        ...items.slice(insertIdx + 1).map(p => p.no)
+                        ...items.slice(0, insertIdx + 1).map(p => p.id),
+                        row.id,
+                        ...items.slice(insertIdx + 1).map(p => p.id)
                       ];
                     } else {
-                      newOrderedNos = [...items.map(p => p.no), row.no];
+                      newOrderedNos = [...items.map(p => p.id), row.id];
                     }
                   }
                   
@@ -323,10 +311,10 @@ const IndexInner = ({
               overrides={overrides}
               unlocked={unlocked}
               isAdmin={isAdmin}
-              onAdminOptimisticUpdate={(no, patch) => {
-                setOverrides(prev => ({ ...prev, [no]: { ...(prev[no] ?? { no }), ...patch } as OverrideRow }));
+              onAdminOptimisticUpdate={(id, patch) => {
+                setOverrides(prev => ({ ...prev, [id]: { ...(prev[id] ?? { id: id }), ...patch } as OverrideRow }));
                 // Send to DB asynchronously
-                supabase.from("product_overrides").upsert({ no, ...patch }).then(({ error }) => {
+                supabase.from("product_overrides").upsert({ id: id, ...patch }).then(({ error }) => {
                   if (error) toast.error("Lỗi khi cập nhật: " + error.message);
                   else if (Object.keys(patch).some(k => ["name","desc"].includes(k))) toast.success("Đã lưu thay đổi.");
                 });
@@ -409,7 +397,7 @@ const Index = () => {
     }
     if (!data) return;
     const map: Record<number, OverrideRow> = {};
-    for (const r of data) map[r.no] = r;
+    for (const r of data) map[r.id] = r;
     setOverrides(map);
   }, []);
 

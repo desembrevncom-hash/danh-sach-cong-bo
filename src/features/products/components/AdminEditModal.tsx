@@ -4,13 +4,13 @@ import { uploadProductImage } from "@/features/products/utils/upload";
 import { toast } from "sonner";
 import { Image as ImageIcon } from "lucide-react";
 import { sections } from "@/data/desembreProducts";
-import type { FlatProduct } from "@/data/desembreProducts";
+import type { ProductViewModel } from "@/features/products/types";
 import type { ProductOverrideRow } from "@/features/products/types";
 
 type AdminEditModalProps = {
   open: boolean;
   onClose: () => void;
-  product: FlatProduct;
+  product: ProductViewModel;
   override?: ProductOverrideRow;
   onOptimisticUpdate: (no: number, patch: Partial<ProductOverrideRow>) => void;
 };
@@ -81,13 +81,13 @@ export function AdminEditModal({
       };
 
       // 1. Optimistic UI — cập nhật ngay
-      onOptimisticUpdate(product.no, patch);
+      onOptimisticUpdate(product.id, patch);
       onClose();
 
       // 2. Ghi xuống DB
       const { error } = await supabase
         .from("product_overrides")
-        .upsert({ no: product.no, ...patch });
+        .upsert({ no: product.id, ...patch });
 
       if (error) {
         toast.error("Lỗi khi lưu: " + error.message);
@@ -115,7 +115,7 @@ export function AdminEditModal({
         <div className="p-4 md:p-5 border-b border-border flex justify-between items-center shrink-0">
           <div>
             <h3 className="font-bold text-base">Sửa sản phẩm nâng cao</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">#{product.no} · {currentSection}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">#{product.id} · {currentSection}</p>
           </div>
           <button
             type="button"

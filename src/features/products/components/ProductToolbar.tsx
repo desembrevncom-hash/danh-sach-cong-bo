@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
 import { Search, RotateCcw, Lock, LockOpen, Plus, FileDown, FolderPlus, X, Check } from "lucide-react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { ProductPDF } from "@/features/export-pdf/components/ProductPDF";
 import { HistoryPanel } from "@/features/products/components/HistoryPanel";
-import { sections, type FlatProduct } from "@/data/desembreProducts";
+import { sections } from '@/data/desembreProducts';
+import type { ProductViewModel } from '@/features/products/types';
 import type { ProductOverrideRow } from "@/features/products/types";
 
 export type ProductToolbarProps = {
@@ -14,7 +14,7 @@ export type ProductToolbarProps = {
   sectionTitles: string[];
   isFiltered: boolean;
   onReset: () => void;
-  filteredProducts: FlatProduct[];
+  filteredProducts: ProductViewModel[];
   overrides: Record<number, ProductOverrideRow>;
   unlocked: boolean;
   onOpenCreate: () => void;
@@ -230,7 +230,7 @@ export function ProductToolbar({
           <ProductPDF
             products={filteredProducts.map((p) => ({
               ...p,
-              image: overrides[p.no]?.image_url ?? undefined,
+              image: overrides[p.id]?.image_url ?? undefined,
             }))}
           />
         }

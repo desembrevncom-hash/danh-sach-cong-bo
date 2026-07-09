@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
-import { sections, type FlatProduct } from "@/data/desembreProducts";
+import { sections } from '@/data/desembreProducts';
+import type { ProductViewModel } from '@/features/products/types';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,12 +17,12 @@ import type { ProductOverrideRow, ProductActionHandlers } from "@/features/produ
 import { AdminInlineActions } from "@/features/products/components/AdminInlineActions";
 
 export type ProductTableProps = {
-  groupedProducts: [string, FlatProduct[]][];
+  groupedProducts: [string, ProductViewModel[]][];
   overrides: Record<number, ProductOverrideRow>;
   unlocked: boolean;
   actions: ProductActionHandlers;
   isAdmin?: boolean;
-  onAdminOptimisticUpdate?: (no: number, patch: Partial<ProductOverrideRow>) => void;
+  onAdminOptimisticUpdate?: (id: string, patch: Partial<ProductOverrideRow>) => void;
 };
 
 export function ProductTable({
@@ -33,7 +33,7 @@ export function ProductTable({
   isAdmin = false,
   onAdminOptimisticUpdate,
 }: ProductTableProps) {
-  const [productToDelete, setProductToDelete] = useState<FlatProduct | null>(null);
+  const [productToDelete, setProductToDelete] = useState<ProductViewModel | null>(null);
   // Tracking which row is in inline-edit mode
   const [editingNo, setEditingNo] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
@@ -70,7 +70,7 @@ export function ProductTable({
                   seq += 1;
                   const sec = sections.find((s) => s.title === sectionTitle);
                   return (
-                    <tr key={row.no}>
+                    <tr key={row.id}>
                       {idx === 0 && (
                         <td rowSpan={rows.length} className="section-cell">
                           <div className="inline-flex items-center gap-1.5">
@@ -95,19 +95,19 @@ export function ProductTable({
                       )}
                       <td
                         className="text-center font-semibold text-foreground"
-                        title={`ID: ${row.no}`}
+                        title={`ID: ${row.id}`}
                       >
                         {String(seq).padStart(2, "0")}
                       </td>
                       <td className="overflow-visible">
                         <ProductImageCell
-                          productNo={row.no}
-                          src={overrides[row.no]?.image_url ?? undefined}
-                          onChange={(src) => actions.onSetImage(row.no, src)}
+                          productNo={row.id}
+                          src={overrides[row.id]?.image_url ?? undefined}
+                          onChange={(src) => actions.onSetImage(row.id, src)}
                         />
                       </td>
                       <td>
-                        {isAdmin && editingNo === row.no ? (
+                        {isAdmin && editingNo === row.id ? (
                           <div className="flex flex-col gap-1.5 py-1">
                             <input
                               autoFocus
@@ -115,7 +115,7 @@ export function ProductTable({
                               onChange={(e) => setEditName(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
-                                  onAdminOptimisticUpdate?.(row.no, { name: editName.trim(), desc: editDesc.trim() });
+                                  onAdminOptimisticUpdate?.(row.id, { name: editName.trim(), desc: editDesc.trim() });
                                   setEditingNo(null);
                                 }
                                 if (e.key === "Escape") setEditingNo(null);
@@ -133,23 +133,23 @@ export function ProductTable({
                           </div>
                         ) : (
                           <>
-                            <div className="product-name">{overrides[row.no]?.name ?? row.name}</div>
-                            <div className="product-desc">{overrides[row.no]?.desc ?? row.desc}</div>
+                            <div className="product-name">{overrides[row.id]?.name ?? row.name}</div>
+                            <div className="product-desc">{overrides[row.id]?.desc ?? row.desc}</div>
                           </>
                         )}
                       </td>
                       <td className="text-center overflow-visible">
                         <div className="flex flex-col gap-1 items-center justify-center">
                           <ProductLinkCell
-                            productNo={row.no}
+                            productNo={row.id}
                             href={row.link}
-                            onChange={(href) => actions.onSetLink(row.no, href, false)}
+                            onChange={(href) => actions.onSetLink(row.id, href, false)}
                           />
                           {(unlocked || row.link2) && (
                             <ProductLinkCell
-                              productNo={row.no}
+                              productNo={row.id}
                               href={row.link2}
-                              onChange={(href) => actions.onSetLink(row.no, href, true)}
+                              onChange={(href) => actions.onSetLink(row.id, href, true)}
                               label="Link 2"
                               variant="secondary"
                             />
@@ -165,7 +165,7 @@ export function ProductTable({
                                 if (idx > 0) {
                                   const next = [...rows];
                                   [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-                                  actions.onReorderProduct(sectionTitle, next.map(r => r.no));
+                                  actions.onReorderProduct(sectionTitle, next.map(r => r.id));
                                 }
                               }}
                               disabled={idx === 0}
@@ -180,7 +180,7 @@ export function ProductTable({
                                 if (idx < rows.length - 1) {
                                   const next = [...rows];
                                   [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
-                                  actions.onReorderProduct(sectionTitle, next.map(r => r.no));
+                                  actions.onReorderProduct(sectionTitle, next.map(r => r.id));
                                 }
                               }}
                               disabled={idx === rows.length - 1}
@@ -213,7 +213,7 @@ export function ProductTable({
                         <td className="text-center">
                           <AdminInlineActions
                             product={row}
-                            override={overrides[row.no]}
+                            override={overrides[row.id]}
                             onOptimisticUpdate={(no, patch) => {
                               // Nếu đang edit inline thì sync state
                               if (patch.name !== undefined) setEditName(patch.name as string);
@@ -222,16 +222,16 @@ export function ProductTable({
                               onAdminOptimisticUpdate?.(no, patch);
                             }}
                             onStartEdit={() => {
-                              setEditName(overrides[row.no]?.name ?? row.name ?? "");
-                              setEditDesc(overrides[row.no]?.desc ?? row.desc ?? "");
-                              setEditingNo(row.no);
+                              setEditName(overrides[row.id]?.name ?? row.name ?? "");
+                              setEditDesc(overrides[row.id]?.desc ?? row.desc ?? "");
+                              setEditingNo(row.id);
                             }}
                             onSaveEdit={() => {
-                              onAdminOptimisticUpdate?.(row.no, { name: editName.trim(), desc: editDesc.trim() });
+                              onAdminOptimisticUpdate?.(row.id, { name: editName.trim(), desc: editDesc.trim() });
                               setEditingNo(null);
                             }}
                             onCancelEdit={() => setEditingNo(null)}
-                            isEditing={editingNo === row.no}
+                            isEditing={editingNo === row.id}
                           />
                         </td>
                       )}

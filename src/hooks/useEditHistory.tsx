@@ -33,7 +33,6 @@ type Props = {
 const HISTORY_KEY = "desembre-edit-history-v2";
 
 export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
-  const { getPassword } = useEditUnlock();
   const [stack, setStack] = useState<Snapshot[]>(() => {
     if (typeof window === "undefined") return [];
     try {
@@ -68,17 +67,15 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
 
   const restoreSnapshot = async (
     snap: Snapshot,
-    password: string,
   ): Promise<boolean> => {
     if (!snap.prev) {
-      const res = await saveProductOverride({ password, action: "hard_delete", no: snap.no });
+      const res = await saveProductOverride({ action: "hard_delete", productId: snap.no.toString() });
       if (!res.ok) { toast.error(res.error ?? "Hoàn tác thất bại"); return false; }
       applyRestore(snap.no, null);
     } else {
       const p = snap.prev;
       const res = await saveProductOverride({
-        password,
-        no: p.no,
+        productId: p.id,
         image_url: p.image_url,
         link_url: p.link_url,
         section: p.section,
@@ -87,7 +84,7 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
         deleted: p.deleted,
       });
       if (!res.ok || !res.row) { toast.error(res.error ?? "Hoàn tác thất bại"); return false; }
-      applyRestore(p.no, res.row);
+      applyRestore(p.legacyNo ?? 0, res.row);
     }
     return true;
   };
@@ -97,11 +94,9 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
     if (busy) return;
     const last = stack[stack.length - 1];
     if (!last) return;
-    const password = getPassword();
-    if (!password) { toast.error("Cần mở khoá KEY"); return; }
     setBusy(true);
     try {
-      const ok = await restoreSnapshot(last, password);
+      const ok = await restoreSnapshot(last);
       if (!ok) return;
       setStack((s) => {
         const next = s.slice(0, -1);
@@ -112,13 +107,11 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
     } finally {
       setBusy(false);
     }
-  }, [stack, busy, getPassword, applyRestore]);
+  }, [stack, busy, applyRestore]);
 
   // Undo all steps back to (and including) the given index
   const undoTo = useCallback(async (index: number) => {
     if (busy) return;
-    const password = getPassword();
-    if (!password) { toast.error("Cần mở khoá KEY"); return; }
     // Steps to undo: from the end of stack down to `index`
     const stepsToUndo = stack.slice(index).reverse();
     if (stepsToUndo.length === 0) return;
@@ -126,7 +119,7 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
     let undoneCount = 0;
     try {
       for (const snap of stepsToUndo) {
-        const ok = await restoreSnapshot(snap, password);
+        const ok = await restoreSnapshot(snap);
         if (!ok) break;
         undoneCount++;
       }
@@ -139,7 +132,7 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
     } finally {
       setBusy(false);
     }
-  }, [stack, busy, getPassword, applyRestore]);
+  }, [stack, busy, applyRestore]);
 
   const clear = useCallback(() => {
     setStack([]);

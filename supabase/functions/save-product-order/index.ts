@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const EDIT_PASSWORD = Deno.env.get("EDIT_PASSWORD");
+import { requireAdminAccess } from "../_shared/adminAuth.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ALLOWED_ORIGINS_ENV = Deno.env.get("ALLOWED_ORIGINS") || "";
@@ -18,13 +19,6 @@ function getCorsHeaders(req: Request) {
   };
 }
 
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return mismatch === 0;
-}
-
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -35,22 +29,21 @@ Deno.serve(async (req) => {
     });
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json(200, { error: "Method not allowed" });
-  if (!EDIT_PASSWORD) return json(200, { error: "Lỗi hệ thống: Chưa cấu hình EDIT_PASSWORD" });
+  if (req.method !== "POST") return json(400, { success: false, error: "Method not allowed" });
 
-  let body: { password?: unknown; section?: unknown; ordered_nos?: unknown };
+  let body: { section?: unknown; ordered_ids?: unknown };
   try {
     body = await req.json();
   } catch {
-    return json(200, { error: "Yêu cầu không hợp lệ" });
+    return json(400, { success: false, error: "Yêu cầu không hợp lệ" });
   }
 
   // Auth
-  const password = String(body.password ?? "");
-  if (!password || password.length > 256 || !safeEqual(password, EDIT_PASSWORD)) {
-    await new Promise((r) => setTimeout(r, 250));
-    return json(200, { error: "Mật khẩu không hợp lệ" });
+  const authResult = await requireAdminAccess(req);
+  if (!authResult.ok) {
+    return json(authResult.status, { success: false, error: authResult.error });
   }
+  const currentUserId = authResult.userId;
 
   // Validate section
   const section = body.section;
@@ -58,26 +51,26 @@ Deno.serve(async (req) => {
     return json(200, { error: "Dữ liệu không hợp lệ: section phải là chuỗi không rỗng" });
   }
 
-  // Validate ordered_nos
-  const orderedNos = body.ordered_nos;
-  if (!Array.isArray(orderedNos)) {
-    return json(200, { error: "Dữ liệu không hợp lệ: ordered_nos phải là mảng" });
+  // Validate ordered_ids
+  const orderedIds = body.ordered_ids;
+  if (!Array.isArray(orderedIds)) {
+    return json(200, { error: "Dữ liệu không hợp lệ: ordered_ids phải là mảng" });
   }
-  if (orderedNos.length === 0) {
-    return json(200, { error: "Dữ liệu không hợp lệ: ordered_nos không được rỗng" });
+  if (orderedIds.length === 0) {
+    return json(200, { error: "Dữ liệu không hợp lệ: ordered_ids không được rỗng" });
   }
-  if (orderedNos.length > 500) {
-    return json(200, { error: "Dữ liệu không hợp lệ: ordered_nos quá dài (tối đa 500)" });
+  if (orderedIds.length > 500) {
+    return json(200, { error: "Dữ liệu không hợp lệ: ordered_ids quá dài (tối đa 500)" });
   }
-  for (const no of orderedNos) {
-    if (!Number.isInteger(no) || no < 1 || no > 99999) {
-      return json(200, { error: `Dữ liệu không hợp lệ: no=${no} không phải số nguyên hợp lệ` });
+  for (const no of orderedIds) {
+    if (typeof no !== "string" || no.trim() === "") {
+      return json(200, { error: `Dữ liệu không hợp lệ: no=${no} không hợp lệ` });
     }
   }
   // Check duplicates
-  const nosSet = new Set(orderedNos);
-  if (nosSet.size !== orderedNos.length) {
-    return json(200, { error: "Dữ liệu không hợp lệ: ordered_nos có chứa giá trị trùng lặp" });
+  const nosSet = new Set(orderedIds);
+  if (nosSet.size !== orderedIds.length) {
+    return json(200, { error: "Dữ liệu không hợp lệ: ordered_ids có chứa giá trị trùng lặp" });
   }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
@@ -86,21 +79,21 @@ Deno.serve(async (req) => {
   const { data: existingRows, error: fetchError } = await supabase
     .from("product_overrides")
     .select("*")
-    .in("no", orderedNos);
+    .in("id", orderedIds);
 
   if (fetchError) {
     return json(200, { error: `Lỗi Database khi đọc dữ liệu: ${fetchError.message}` });
   }
 
-  // Build a lookup map: no → existing row
+  // Build a lookup map: id → existing row
   const existingMap: Record<number, Record<string, unknown>> = {};
   for (const row of (existingRows ?? [])) {
-    existingMap[row.no] = row;
+    existingMap[row.id] = row;
   }
 
   // Build upsert rows: preserve all existing fields, only update sort_order + section
   const now = new Date().toISOString();
-  const updates = (orderedNos as number[]).map((no, idx) => {
+  const updates = (orderedIds as number[]).map((no, idx) => {
     const existing = existingMap[no];
     if (existing) {
       // Preserve all existing fields, only update sort_order (+ section for safety, keep existing if different)
@@ -139,5 +132,5 @@ Deno.serve(async (req) => {
     });
   }
 
-  return json(200, { ok: true, rows: saved });
+  return json(200, { success: true, rows: saved });
 });

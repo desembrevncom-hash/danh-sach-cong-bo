@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
-import { sections, type FlatProduct } from "@/data/desembreProducts";
+import { sections } from '@/data/desembreProducts';
+import type { ProductViewModel } from '@/features/products/types';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,7 @@ import ProductLinkCell from "@/features/products/components/ProductLinkCell";
 import type { ProductOverrideRow, ProductActionHandlers } from "@/features/products/types";
 
 export type ProductCardListProps = {
-  groupedProducts: [string, FlatProduct[]][];
+  groupedProducts: [string, ProductViewModel[]][];
   overrides: Record<number, ProductOverrideRow>;
   unlocked: boolean;
   actions: ProductActionHandlers;
@@ -28,7 +28,7 @@ export function ProductCardList({
   unlocked,
   actions,
 }: ProductCardListProps) {
-  const [productToDelete, setProductToDelete] = useState<FlatProduct | null>(null);
+  const [productToDelete, setProductToDelete] = useState<ProductViewModel | null>(null);
 
   return (
     <>
@@ -73,7 +73,7 @@ export function ProductCardList({
                 const currentSeq = seq;
                 const isEven = rowIdx % 2 === 1;
                 return (
-                  <div key={row.no}
+                  <div key={row.id}
                     className="border border-border rounded-xl shadow-sm mb-2 overflow-hidden"
                     style={{ background: isEven ? "hsl(var(--row-alt))" : "hsl(var(--card))" }}>
                     <div className="p-3">
@@ -89,7 +89,7 @@ export function ProductCardList({
                                 if (rowIdx > 0) {
                                   const next = [...rows];
                                   [next[rowIdx - 1], next[rowIdx]] = [next[rowIdx], next[rowIdx - 1]];
-                                  actions.onReorderProduct(sectionTitle, next.map(r => r.no));
+                                  actions.onReorderProduct(sectionTitle, next.map(r => r.id));
                                 }
                               }}
                               disabled={rowIdx === 0}
@@ -104,7 +104,7 @@ export function ProductCardList({
                                 if (rowIdx < rows.length - 1) {
                                   const next = [...rows];
                                   [next[rowIdx], next[rowIdx + 1]] = [next[rowIdx + 1], next[rowIdx]];
-                                  actions.onReorderProduct(sectionTitle, next.map(r => r.no));
+                                  actions.onReorderProduct(sectionTitle, next.map(r => r.id));
                                 }
                               }}
                               disabled={rowIdx === rows.length - 1}
@@ -136,9 +136,9 @@ export function ProductCardList({
                       <div className="flex gap-4">
                         <div className="w-28 flex-shrink-0">
                           <ProductImageCell
-                            productNo={row.no}
-                            src={overrides[row.no]?.image_url ?? undefined}
-                            onChange={(src) => actions.onSetImage(row.no, src)}
+                            productNo={row.id}
+                            src={overrides[row.id]?.image_url ?? undefined}
+                            onChange={(src) => actions.onSetImage(row.id, src)}
                             mobile
                           />
                         </div>
@@ -151,16 +151,16 @@ export function ProductCardList({
                           </div>
                           <div className="pt-2 border-t border-border mt-3 flex flex-wrap gap-1.5">
                             <ProductLinkCell
-                              productNo={row.no}
+                              productNo={row.id}
                               href={row.link}
-                              onChange={(href) => actions.onSetLink(row.no, href, false)}
+                              onChange={(href) => actions.onSetLink(row.id, href, false)}
                               mobile
                             />
                             {(unlocked || row.link2) && (
                               <ProductLinkCell
-                                productNo={row.no}
+                                productNo={row.id}
                                 href={row.link2}
-                                onChange={(href) => actions.onSetLink(row.no, href, true)}
+                                onChange={(href) => actions.onSetLink(row.id, href, true)}
                                 label="Link 2"
                                 variant="secondary"
                                 mobile

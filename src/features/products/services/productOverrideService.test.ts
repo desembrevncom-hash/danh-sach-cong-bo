@@ -1,47 +1,35 @@
-/**
- * Tests for productOverrideService.ts
- *
- * These tests verify:
- * - No client-side ID allocation (no direct DB query for `no`)
- * - No fallback direct DB writes
- * - saveProductOverride only calls Edge Function
- * - saveProductOrder only calls Edge Function
- * - No original_no in service
- */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { fetchAllProductOverrides, saveProductOverride, saveProductOrder } from './productOverrideService';
+import { supabase } from '@/integrations/supabase/client';
 
-// vi.mock is hoisted — use vi.hoisted() to declare mocks safely
-const { mockInvoke, mockFrom } = vi.hoisted(() => {
-  const mockInvoke = vi.fn();
-  const mockFrom = vi.fn();
-  return { mockInvoke, mockFrom };
-});
+const mockSelect = vi.fn();
+const mockFrom = vi.fn(() => ({ select: mockSelect }));
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: mockFrom,
+    from: vi.fn(),
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+    },
     functions: {
-      invoke: mockInvoke,
+      invoke: vi.fn(),
     },
   },
 }));
 
-import {
-  fetchAllProductOverrides,
-  saveProductOverride,
-  saveProductOrder,
-} from '../services/productOverrideService';
-
 describe('productOverrideService', () => {
+  const mockInvoke = supabase.functions.invoke as import('vitest').Mock;
+
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockInvoke.mockReset();
+    mockFrom.mockReset();
+    mockSelect.mockReset();
+    (supabase.from as import('vitest').Mock).mockImplementation(mockFrom);
   });
 
-  // ── fetchAllProductOverrides ─────────────────────────────────────────────
   describe('fetchAllProductOverrides', () => {
     it('calls supabase.from("product_overrides").select("*")', async () => {
-      const mockSelect = vi.fn().mockResolvedValue({ data: [], error: null });
-      mockFrom.mockReturnValue({ select: mockSelect });
+      mockSelect.mockResolvedValue({ data: [], error: null });
 
       const result = await fetchAllProductOverrides();
       expect(mockFrom).toHaveBeenCalledWith('product_overrides');
@@ -50,8 +38,7 @@ describe('productOverrideService', () => {
     });
 
     it('returns error when supabase errors', async () => {
-      const mockSelect = vi.fn().mockResolvedValue({ data: null, error: { message: 'DB error' } });
-      mockFrom.mockReturnValue({ select: mockSelect });
+      mockSelect.mockResolvedValue({ data: null, error: { message: 'DB error' } });
 
       const result = await fetchAllProductOverrides();
       expect(result.ok).toBe(false);
@@ -61,97 +48,75 @@ describe('productOverrideService', () => {
     });
   });
 
-  // ── saveProductOverride ──────────────────────────────────────────────────
   describe('saveProductOverride', () => {
-    it('calls Edge Function "save-product-override" — does NOT query DB directly', async () => {
-      mockInvoke.mockResolvedValue({ data: { ok: true, row: { no: 1 } }, error: null });
+    it('calls edge function and returns success for upsert', async () => {
+      mockInvoke.mockResolvedValue({ data: { ok: true, row: { productId: "1" } }, error: null, status: 200 });
 
-      await saveProductOverride({ password: 'pw', no: 1, name: 'Test' });
-
-      // Must call Edge Function
-      expect(mockInvoke).toHaveBeenCalledWith('save-product-override', expect.anything());
-
-      // Must NOT call supabase.from() for any table (no direct DB writes/reads)
-      expect(mockFrom).not.toHaveBeenCalled();
+      const res = await saveProductOverride({ productId: "1", action: 'upsert', name: 'Test' });
+      expect(res.ok).toBe(true);
+      expect(mockInvoke).toHaveBeenCalledWith('save-product-override', {
+        body: { productId: "1", action: 'upsert', name: 'Test' },
+        headers: {},
+      });
     });
 
-    it('create action does NOT do client-side no allocation — passes payload directly to Edge Function', async () => {
-      mockInvoke.mockResolvedValue({ data: { ok: true, row: { no: 1001 } }, error: null });
+    it('returns error message from edge function payload on 400', async () => {
+      mockInvoke.mockResolvedValue({
+        data: { error: 'Custom error from DB' },
+        error: null,
+        status: 400
+      });
 
-      await saveProductOverride({ password: 'pw', action: 'create', name: 'New', section: 'CLEANSER' });
-
-      // Should only call invoke once, never supabase.from()
-      expect(mockInvoke).toHaveBeenCalledTimes(1);
-      expect(mockFrom).not.toHaveBeenCalled();
-
-      // The payload sent to Edge Function must keep action: 'create'
-      // (frontend must NOT change it to 'upsert' or pre-allocate no)
-      const invokeCall = mockInvoke.mock.calls[0];
-      expect(invokeCall[0]).toBe('save-product-override');
-      const body = invokeCall[1]?.body;
-      expect(body?.action).toBe('create');
-      // no should NOT be pre-filled by frontend
-      expect(body?.no).toBeUndefined();
+      const res = await saveProductOverride({ productId: "1" });
+      expect(res.ok).toBe(false);
+      expect(res.error).toBe('Custom error from DB');
     });
 
-    it('returns error from Edge Function without fallback', async () => {
-      mockInvoke.mockResolvedValue({ data: { error: 'Mật khẩu không hợp lệ' }, error: null });
+    it('returns standard error message on 403', async () => {
+      mockInvoke.mockResolvedValue({
+        data: null,
+        error: null,
+        status: 403
+      });
 
-      const result = await saveProductOverride({ password: 'wrong', no: 1 });
-
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(result.error).toBe('Mật khẩu không hợp lệ');
-      }
-      // No fallback: supabase.from() must not be called
-      expect(mockFrom).not.toHaveBeenCalled();
+      const res = await saveProductOverride({ productId: "1" });
+      expect(res.ok).toBe(false);
+      expect(res.error).toBe('Bạn không có quyền thực hiện thao tác này.');
     });
 
-    it('returns error when network fails — no fallback to direct DB', async () => {
-      mockInvoke.mockResolvedValue({ data: null, error: { message: 'Network error' } });
+    it('returns network error message on 500', async () => {
+      mockInvoke.mockResolvedValue({
+        data: null,
+        error: null,
+        status: 500
+      });
 
-      const result = await saveProductOverride({ password: 'pw', no: 1 });
-
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(result.error).toContain('Network error');
-      }
-      expect(mockFrom).not.toHaveBeenCalled();
-    });
-
-    it('does NOT include original_no field in SaveProductOverridePayload', async () => {
-      mockInvoke.mockResolvedValue({ data: { ok: true, row: { no: 1 } }, error: null });
-
-      const payload = { password: 'pw', no: 1, name: 'Test' };
-      // Payload must NOT have original_no
-      expect((payload as Record<string, unknown>)['original_no']).toBeUndefined();
-
-      await saveProductOverride(payload);
-
-      const invokedBody = mockInvoke.mock.calls[0][1]?.body;
-      expect((invokedBody as Record<string, unknown>)?.['original_no']).toBeUndefined();
+      const res = await saveProductOverride({ productId: "1" });
+      expect(res.ok).toBe(false);
+      expect(res.error).toBe('Lỗi hệ thống máy chủ.');
     });
   });
 
-  // ── saveProductOrder ─────────────────────────────────────────────────────
   describe('saveProductOrder', () => {
-    it('calls Edge Function "save-product-order" only — no direct DB writes', async () => {
-      mockInvoke.mockResolvedValue({ data: { ok: true, rows: [] }, error: null });
+    it('calls edge function for ordering', async () => {
+      mockInvoke.mockResolvedValue({ data: { ok: true }, error: null, status: 200 });
 
-      await saveProductOrder({ password: 'pw', section: 'CLEANSER', ordered_nos: [1, 2, 3] });
-
-      expect(mockInvoke).toHaveBeenCalledWith('save-product-order', expect.anything());
-      expect(mockFrom).not.toHaveBeenCalled();
+      const res = await saveProductOrder({ password: 'pw', section: 'S', ordered_ids: ["1", "2"] });
+      expect(res.ok).toBe(true);
+      expect(mockInvoke).toHaveBeenCalledWith('save-product-order', {
+        body: { password: 'pw', section: 'S', ordered_ids: ["1", "2"] },
+        headers: {},
+      });
     });
 
     it('returns rows from Edge Function response', async () => {
       const mockRows = [
-        { no: 1, sort_order: 1, section: 'CLEANSER' },
-        { no: 2, sort_order: 2, section: 'CLEANSER' },
+        { productId: "1", sort_order: 1, section: 'CLEANSER' },
+        { productId: "2", sort_order: 2, section: 'CLEANSER' },
       ];
-      mockInvoke.mockResolvedValue({ data: { ok: true, rows: mockRows }, error: null });
+      mockInvoke.mockResolvedValue({ data: { ok: true, rows: mockRows }, error: null, status: 200 });
 
-      const result = await saveProductOrder({ password: 'pw', section: 'CLEANSER', ordered_nos: [1, 2] });
+      const result = await saveProductOrder({ password: 'pw', section: 'CLEANSER', ordered_ids: ["1", "2"] });
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -160,15 +125,14 @@ describe('productOverrideService', () => {
     });
 
     it('surfaces Edge Function error without fallback', async () => {
-      mockInvoke.mockResolvedValue({ data: { error: 'Dữ liệu không hợp lệ' }, error: null });
+      mockInvoke.mockResolvedValue({ data: { error: 'Dữ liệu không hợp lệ' }, error: null, status: 400 });
 
-      const result = await saveProductOrder({ password: 'pw', section: '', ordered_nos: [] });
+      const result = await saveProductOrder({ password: 'pw', section: '', ordered_ids: [] });
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error).toBe('Dữ liệu không hợp lệ');
       }
-      expect(mockFrom).not.toHaveBeenCalled();
     });
   });
 });

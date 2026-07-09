@@ -2,102 +2,112 @@ import * as React from "react";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const UNLOCK_KEY = "desembre-edit-unlocked-v1";
-const PWD_KEY = "desembre-edit-pwd-v1";
-
-type Ctx = {
-  unlocked: boolean;
-  verifying: boolean;
-  unlock: (password: string) => Promise<{ ok: boolean; error?: string }>;
+export type EditUnlockState = {
+  isUnlocked: boolean;
+  isLoading: boolean;
+  isAdmin: boolean;
+  error: string | null;
   lock: () => void;
-  getPassword: () => string | null;
+  refreshAdminStatus: () => Promise<void>;
+  
+  // Expose these for UI if needed
+  user: unknown | null;
+  role: string | null;
 };
 
-const EditUnlockContext = createContext<Ctx | null>(null);
+const EditUnlockContext = createContext<EditUnlockState | null>(null);
 
 export const EditUnlockProvider = ({ children }: { children: ReactNode }) => {
-  const [unlocked, setUnlocked] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem(UNLOCK_KEY) === "1";
-  });
-  const [verifying, setVerifying] = useState(false);
+  const [manuallyLocked, setManuallyLocked] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Supabase Auth State
+  const [user, setUser] = useState<unknown | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+
+  const fetchRole = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (error) throw error;
+      setRole(data?.role ?? null);
+    } catch (e) {
+      console.error("Failed to fetch role:", e);
+      setRole(null);
+    }
+  }, []);
+
+  const refreshAdminStatus = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      
+      if (session?.user) {
+        setUser(session.user);
+        await fetchRole(session.user.id);
+      } else {
+        setUser(null);
+        setRole(null);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load session");
+      setUser(null);
+      setRole(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchRole]);
 
   useEffect(() => {
-    if (unlocked) {
-      localStorage.setItem(UNLOCK_KEY, "1");
-    } else {
-      localStorage.removeItem(UNLOCK_KEY);
-      localStorage.removeItem(PWD_KEY);
-    }
-  }, [unlocked]);
+    let mounted = true;
 
-  const unlock = useCallback(async (password: string) => {
-    setVerifying(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("verify-edit-key", {
-        body: { password },
-      });
-      if (error) {
-        // Fallback: Check locally using VITE_EDIT_PASSWORD env var
-        const localPwd = import.meta.env.VITE_EDIT_PASSWORD;
-        if (localPwd && password === localPwd) {
-          setUnlocked(true);
-          try {
-            localStorage.setItem(PWD_KEY, password);
-          } catch {
-            // ignore
-          }
-          return { ok: true };
-        }
-        return { ok: false, error: "Sai mật khẩu hoặc Edge Function không phản hồi. Hãy cấu hình VITE_EDIT_PASSWORD trên frontend để dùng chế độ dự phòng." };
+    refreshAdminStatus().then(() => {
+      if (!mounted) return;
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
+      if (session?.user) {
+        setUser(session.user);
+        await fetchRole(session.user.id);
+      } else {
+        setUser(null);
+        setRole(null);
       }
-      if (data?.valid) {
-        setUnlocked(true);
-        try {
-          localStorage.setItem(PWD_KEY, password);
-        } catch {
-          // ignore
-        }
-        return { ok: true };
-      }
-      return { ok: false, error: "Sai mật khẩu" };
-    } catch (e) {
-      // Local fallback in case of exceptions
-      const localPwd = import.meta.env.VITE_EDIT_PASSWORD;
-      if (localPwd && password === localPwd) {
-        setUnlocked(true);
-        try {
-          localStorage.setItem(PWD_KEY, password);
-        } catch {
-          // ignore
-        }
-        return { ok: true };
-      }
-      return { ok: false, error: e instanceof Error ? e.message : "Lỗi không xác định" };
-    } finally {
-      setVerifying(false);
-    }
-  }, []);
+      setManuallyLocked(false); // reset lock state on auth change
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [refreshAdminStatus, fetchRole]);
+
+  const isAdmin = role === 'admin';
+  const isUnlocked = isAdmin && !manuallyLocked;
 
   const lock = useCallback(() => {
-    setUnlocked(false);
-    try {
-      localStorage.removeItem(PWD_KEY);
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const getPassword = useCallback(() => {
-    try {
-      return localStorage.getItem(PWD_KEY);
-    } catch {
-      return null;
-    }
+    setManuallyLocked(true);
   }, []);
 
   return (
-    <EditUnlockContext.Provider value={{ unlocked, verifying, unlock, lock, getPassword }}>
+    <EditUnlockContext.Provider value={{ 
+      isUnlocked,
+      isLoading,
+      isAdmin,
+      error,
+      lock,
+      refreshAdminStatus,
+      user,
+      role
+    }}>
       {children}
     </EditUnlockContext.Provider>
   );

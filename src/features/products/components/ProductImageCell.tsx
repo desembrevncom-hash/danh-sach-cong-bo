@@ -14,7 +14,7 @@ type Props = {
 const MAX_BYTES = 1.5 * 1024 * 1024; // 1.5MB
 
 const ProductImageCell = ({ productNo, src, onChange }: Props) => {
-  const { unlocked, getPassword } = useEditUnlock();
+  const { unlocked } = useEditUnlock();
   const [open, setOpen] = useState(false);
   const [askUnlock, setAskUnlock] = useState(false);
   const [urlInput, setUrlInput] = useState("");
@@ -31,14 +31,13 @@ const ProductImageCell = ({ productNo, src, onChange }: Props) => {
   };
 
   const persist = async (payload: { image_data_url?: string | null; image_url?: string | null }) => {
-    const password = getPassword();
-    if (!password) {
-      toast.error("Cần mở khoá KEY trước khi lưu");
+    if (!unlocked) {
+      toast.error("Tài khoản không có quyền chỉnh sửa");
       setAskUnlock(true);
       return null;
     }
     setSaving(true);
-    const res = await saveProductOverride({ no: productNo, password, ...payload });
+    const res = await saveProductOverride({ no: productNo, ...payload });
     setSaving(false);
     if (!res.ok) {
       toast.error(res.error ?? "Lưu thất bại");

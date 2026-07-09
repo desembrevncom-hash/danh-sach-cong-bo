@@ -1,82 +1,16 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { requireAdminAccess } from "../_shared/adminAuth.ts";
+const fs = require('fs');
+const path = require('path');
 
+const overridePath = 'e:/Downloads/danh-sach-cong-bo-main/danh-sach-cong-bo-main/supabase/functions/save-product-override/index.ts';
+let overrideStr = fs.readFileSync(overridePath, 'utf8');
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const ALLOWED_ORIGINS_ENV = Deno.env.get("ALLOWED_ORIGINS") || "";
-const allowedOrigins = ALLOWED_ORIGINS_ENV.split(",").map(s => s.trim()).filter(Boolean);
+// 1. Remove body.no usage and bulk upsert
+overrideStr = overrideStr.replace(/if \(Array\.isArray\(body\.products\)\) \{[\s\S]*?const action = String\(body\.action \?\? "upsert"\);/, 'const action = String(body.action ?? "upsert");');
 
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get("origin") || "";
-  const isAllowed = allowedOrigins.length === 0 || allowedOrigins.includes(origin);
-  const allowOrigin = isAllowed ? (origin || "*") : (allowedOrigins[0] || "*");
-  
-  return {
-    "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  };
-}
+// 2. Rewrite action logic
+const logicRegex = /if \(action === "hard_delete"\) \{[\s\S]*?return json\(200, \{ success: true, row: saved \}\);/m;
 
-
-// TODO: Milestone 4B - Audit Log & Backup JSON
-// async function uploadAuditLog(action: string, payload: any, result: any, req: Request) {
-//   // Example: Save JSON to admin-audit-logs bucket
-// }
-
-Deno.serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-  
-  const json = (status: number, body: unknown) =>
-    new Response(JSON.stringify(body), {
-      status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json(200, { error: "Method not allowed" });
-
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return json(400, { success: false, error: "Yêu cầu không hợp lệ" });
-  }
-
-
-
-  const authResult = await requireAdminAccess(req);
-  if (!authResult.ok) {
-    return json(authResult.status, { success: false, error: authResult.error });
-  }
-  const currentUserId = authResult.userId;
-
-
-  // --- Validate Payload ---
-        if ("productId" in body && typeof body.productId !== "string") return json(400, { success: false, error: "Dữ liệu không hợp lệ: productId" });
-if ("name" in body && typeof body.name === "string" && body.name.length > 255) return json(400, { success: false, error: "Tên quá dài" });
-  if ("desc" in body && typeof body.desc === "string" && body.desc.length > 2000) return json(400, { success: false, error: "Mô tả quá dài" });
-  if ("section" in body && typeof body.section === "string" && body.section.length > 100) return json(400, { success: false, error: "Section quá dài" });
-  if ("deleted" in body && typeof body.deleted !== "boolean") return json(400, { success: false, error: "Dữ liệu không hợp lệ: deleted" });
-  if ("is_custom" in body && typeof body.is_custom !== "boolean") return json(400, { success: false, error: "Dữ liệu không hợp lệ: is_custom" });
-  if ("link_url" in body && body.link_url !== null && typeof body.link_url !== "string") return json(400, { success: false, error: "Dữ liệu không hợp lệ: link_url" });
-  if ("link_url_2" in body && body.link_url_2 !== null && typeof body.link_url_2 !== "string") return json(400, { success: false, error: "Dữ liệu không hợp lệ: link_url_2" });
-  if ("image_url" in body && body.image_url !== null && typeof body.image_url !== "string") return json(400, { success: false, error: "Dữ liệu không hợp lệ: image_url" });
-
-  const actionStr = String(body.action ?? "upsert");
-  if (!["upsert", "create", "hard_delete"].includes(actionStr) && !Array.isArray(body.products)) {
-    return json(400, { success: false, error: "Hành động không hợp lệ" });
-  }
-  // -------------------------
-
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
-  // Bulk upsert support
-  const action = String(body.action ?? "upsert");
-
-  // Hard delete a custom product (or unset deleted flag — handled via upsert)
-  
+const newLogic = `
   let productId: string;
   let legacy_no: number;
   let brand: string = "desembre"; // default
@@ -125,7 +59,7 @@ if ("name" in body && typeof body.name === "string" && body.name.length > 255) r
 
   if (action === "hard_delete") {
     const { error } = await supabase.from("product_overrides").delete().eq("id", productId);
-    if (error) return json(500, { success: false, error: `Lỗi DB: ${error.message}` });
+    if (error) return json(500, { success: false, error: \`Lỗi DB: \${error.message}\` });
     return json(200, { success: true });
   }
 
@@ -143,19 +77,19 @@ if ("name" in body && typeof body.name === "string" && body.name.length > 255) r
     if (dataUrl === null || dataUrl === "") {
       image_url = null;
     } else if (typeof dataUrl === "string" && dataUrl.startsWith("data:")) {
-      const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+      const match = dataUrl.match(/^data:(image\\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
       if (!match) return json(200, { error: "Ảnh không hợp lệ" });
       const mime = match[1];
       const ext = mime.split("/")[1].split("+")[0].replace("jpeg", "jpg");
       const bytes = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
       if (bytes.length > 2 * 1024 * 1024) return json(200, { error: "Ảnh quá lớn (tối đa 2MB)" });
-      const path = `product-${legacy_no}-${Date.now()}.${ext}`;
+      const path = \`product-\${legacy_no}-\${Date.now()}.\${ext}\`;
       const { error: upErr } = await supabase.storage
         .from("product-images")
         .upload(path, bytes, { contentType: mime, upsert: true });
       if (upErr) {
         console.error("Storage upload error:", upErr);
-        return json(500, { error: `Không thể tải ảnh lên Storage. Chi tiết: ${upErr.message}` });
+        return json(500, { error: \`Không thể tải ảnh lên Storage. Chi tiết: \${upErr.message}\` });
       }
       const { data: pub } = supabase.storage.from("product-images").getPublicUrl(path);
       image_url = pub.publicUrl;
@@ -200,11 +134,89 @@ if ("name" in body && typeof body.name === "string" && body.name.length > 255) r
     .upsert(row, { onConflict: "id" })
     .select()
     .maybeSingle();
-  if (error) return json(500, { success: false, error: `Lỗi DB: ${error.message}` });
+  if (error) return json(500, { success: false, error: \`Lỗi DB: \${error.message}\` });
 
   // Update audit log placeholder (TODO)
   // ...
 
   return json(200, { success: true, row: { ...saved, productId } });
+`;
 
-});
+overrideStr = overrideStr.replace(logicRegex, newLogic);
+fs.writeFileSync(overridePath, overrideStr);
+
+// PATCH save-product-order
+const orderPath = 'e:/Downloads/danh-sach-cong-bo-main/danh-sach-cong-bo-main/supabase/functions/save-product-order/index.ts';
+let orderStr = fs.readFileSync(orderPath, 'utf8');
+
+const orderLogicRegex = /  for \(const no of orderedIds\) \{[\s\S]*?return json\(200, \{ success: true, count: rows\.length, rows \}\);/m;
+
+const newOrderLogic = `
+  for (const id of orderedIds) {
+    if (typeof id !== "string" || id.trim() === "") {
+      return json(200, { error: \`Dữ liệu không hợp lệ: id=\${id} không hợp lệ\` });
+    }
+  }
+  // Check duplicates
+  const idsSet = new Set(orderedIds);
+  if (idsSet.size !== orderedIds.length) {
+    return json(200, { error: "Dữ liệu không hợp lệ: ordered_ids có chứa giá trị trùng lặp" });
+  }
+
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+  // Lookup identities
+  const { data: identities, error: idErr } = await supabase
+    .from("product_identities")
+    .select("id, legacy_no, brand")
+    .in("id", orderedIds);
+
+  if (idErr) return json(500, { success: false, error: \`Lỗi DB lookup identities: \${idErr.message}\` });
+  
+  const idMap = new Map(identities?.map(r => [r.id, r]));
+
+  // Fetch existing overrides to preserve data
+  const { data: existingList } = await supabase
+    .from("product_overrides")
+    .select("*")
+    .in("id", orderedIds);
+
+  const existingMap = new Map(existingList?.map((r) => [r.id, r]));
+
+  const rowsToUpsert = orderedIds.map((id, index) => {
+    const ident = idMap.get(id);
+    if (!ident) throw new Error(\`Không tìm thấy identity cho \${id}\`);
+
+    const existing = existingMap.get(id);
+    return {
+      id: id,
+      no: ident.legacy_no,
+      brand: ident.brand,
+      sort_order: index + 1,
+      section: section,
+      name: existing?.name ?? null,
+      desc: existing?.desc ?? null,
+      image_url: existing?.image_url ?? null,
+      link_url: existing?.link_url ?? null,
+      link_url_2: existing?.link_url_2 ?? null,
+      deleted: existing?.deleted ?? false,
+      is_custom: existing?.is_custom ?? false,
+      updated_at: new Date().toISOString(),
+    };
+  });
+
+  const { data: rows, error } = await supabase
+    .from("product_overrides")
+    .upsert(rowsToUpsert, { onConflict: "id" })
+    .select();
+
+  if (error) {
+    return json(500, { success: false, error: \`Lỗi DB khi lưu order: \${error.message}\` });
+  }
+
+  return json(200, { success: true, count: rows.length, rows: rows.map(r => ({ ...r, productId: r.id })) });
+`;
+
+orderStr = orderStr.replace(orderLogicRegex, newOrderLogic);
+fs.writeFileSync(orderPath, orderStr);
+console.log('done!');

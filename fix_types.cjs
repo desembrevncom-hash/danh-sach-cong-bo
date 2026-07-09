@@ -1,6 +1,8 @@
-import type { BrandId } from "@/config/brands";
+const fs = require('fs');
 
-export type ProductRowFromRpc = {
+let c = fs.readFileSync('src/features/products/types.ts', 'utf8');
+
+c = c.replace(/export type ProductRowFromRpc = \{[\s\S]*?\};\n/, `export type ProductRowFromRpc = {
   id: string;
   legacy_no?: number | null;
   display_no: number;
@@ -15,11 +17,10 @@ export type ProductRowFromRpc = {
   sort_order?: number;
   total_count?: number;
 };
+`);
 
-export type ProductViewModel = {
-  /** The stable identity (UUID) from product_identities.id */
-  id: string;
-  /** The UI presentation sequence number */
+c = c.replace(/export type ProductViewModel = \{[\s\S]*?\};\n/, `export type ProductViewModel = {
+  id: string; // the database identity (from id)
   displayNo: number; // the visual sequence
   brand?: BrandId;
   section: string;
@@ -30,13 +31,9 @@ export type ProductViewModel = {
   link2?: string;
   sortOrder?: number | null;
 };
+`);
 
-export type ProductMutationPayload = {
-  productId: string; // The database identity
-  brand?: BrandId;
-};
-
-export type ProductOverrideRow = {
+c = c.replace(/export type ProductOverrideRow = \{[\s\S]*?\};\n/, `export type ProductOverrideRow = {
   id: string;
   legacyNo?: number;
   image_url: string | null;
@@ -49,10 +46,12 @@ export type ProductOverrideRow = {
   sort_order: number | null;
   link_url_2: string | null;
 };
+`);
 
-export type SaveProductOverridePayload = {
+c = c.replace(/export type SaveProductOverridePayload = \{[\s\S]*?\};\n/, `export type SaveProductOverridePayload = {
   productId?: string;
   legacyNo?: number; // for transition if needed
+  password?: string;
   action?: "upsert" | "create" | "hard_delete";
   image_data_url?: string | null;
   image_url?: string | null;
@@ -65,29 +64,13 @@ export type SaveProductOverridePayload = {
   sort_order?: number | null;
   link_url_2?: string | null;
 };
+`);
 
-export type SaveProductOrderPayload = {
+c = c.replace(/export type SaveProductOrderPayload = \{[\s\S]*?\};\n/, `export type SaveProductOrderPayload = {
+  password?: string;
   section: string;
   ordered_ids: string[];
 };
+`);
 
-export type ProductActionHandlers = {
-  onSetImage: (id: string, src: string | undefined) => Promise<void>;
-  onSetLink: (id: string, href: string | undefined, isLink2?: boolean) => Promise<void>;
-  onEdit: (p: ProductViewModel) => void;
-  onDelete: (p: ProductViewModel) => Promise<void>;
-  onRenameSection: (oldTitle: string, rows: ProductViewModel[]) => Promise<void>;
-  onReorderProduct: (section: string, orderedIds: string[]) => Promise<void>;
-};
-
-/**
- * Initial values passed to ProductEditDialog.
- * `id` is undefined for create mode, defined for edit mode.
- */
-export type ProductDialogInitial = {
-  id?: string;
-  section: string;
-  name: string;
-  desc: string;
-  sort_order?: number | null;
-};
+fs.writeFileSync('src/features/products/types.ts', c);

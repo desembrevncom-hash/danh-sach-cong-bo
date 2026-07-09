@@ -1,12 +1,13 @@
-import { sections, type FlatProduct } from "@/data/desembreProducts";
+import { sections } from '@/data/desembreProducts';
+import type { ProductViewModel } from '@/features/products/types';
 import type { ProductOverrideRow } from "../types";
 
 export function mergeProducts(
-  baseProducts: FlatProduct[],
-  overrides: Record<number, ProductOverrideRow>
-): FlatProduct[] {
+  baseProducts: ProductViewModel[],
+  overrides: Record<string, ProductOverrideRow>
+): ProductViewModel[] {
   // 1. Group base products by section to calculate their default baseline sort order
-  const baseProductsBySection: Record<string, FlatProduct[]> = {};
+  const baseProductsBySection: Record<string, ProductViewModel[]> = {};
   for (const p of baseProducts) {
     if (!baseProductsBySection[p.section]) {
       baseProductsBySection[p.section] = [];
@@ -14,15 +15,15 @@ export function mergeProducts(
     baseProductsBySection[p.section].push(p);
   }
 
-  const list: FlatProduct[] = [];
+  const list: ProductViewModel[] = [];
   
   for (const p of baseProducts) {
-    const o = overrides[p.no];
+    const o = overrides[p.id];
     if (o?.deleted) continue;
 
     // Default index is its 1-indexed order within its own section group
     const sectionList = baseProductsBySection[p.section] || [];
-    const defaultIdx = sectionList.findIndex((item) => item.no === p.no);
+    const defaultIdx = sectionList.findIndex((item) => item.id === p.id);
     const defaultSort = defaultIdx !== -1 ? defaultIdx + 1 : 999;
 
     list.push({
@@ -42,7 +43,8 @@ export function mergeProducts(
     if (!o.is_custom || o.deleted) continue;
     const sec = sections.find((s) => s.title === (o.section ?? ""));
     list.push({
-      no: o.no,
+      id: String(o.no),
+      displayNo: o.no,
       name: o.name ?? "(Chưa có tên)",
       desc: o.desc ?? "",
       section: o.section ?? "OTHER",
@@ -74,10 +76,10 @@ export function mergeProducts(
 }
 
 export function filterProducts(
-  products: FlatProduct[],
+  products: ProductViewModel[],
   query: string,
   section: string
-): FlatProduct[] {
+): ProductViewModel[] {
   const q = query.trim().toLowerCase();
   return products.filter((p) => {
     const matchesSection = section === "ALL" || p.section === section;
@@ -88,9 +90,9 @@ export function filterProducts(
 }
 
 export function groupProductsBySection(
-  products: FlatProduct[]
-): [string, FlatProduct[]][] {
-  const map = new Map<string, FlatProduct[]>();
+  products: ProductViewModel[]
+): [string, ProductViewModel[]][] {
+  const map = new Map<string, ProductViewModel[]>();
   for (const p of products) {
     const arr = map.get(p.section) ?? [];
     arr.push(p);

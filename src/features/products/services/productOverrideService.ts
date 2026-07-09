@@ -15,9 +15,29 @@ export async function fetchAllProductOverrides() {
  * No fallback: if the Edge Function fails, we surface the error.
  */
 export async function saveProductOverride(payload: SaveProductOverridePayload) {
-  const { data, error } = await supabase.functions.invoke("save-product-override", {
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers: Record<string, string> = {};
+  if (session?.access_token) {
+    headers["Authorization"] = `Bearer ${session.access_token}`;
+  }
+
+  const { data, error, status } = await supabase.functions.invoke("save-product-override", {
     body: payload,
+    headers,
   });
+
+  if (status === 401) {
+    return { ok: false as const, error: "Phiên đăng nhập hết hạn hoặc bạn cần đăng nhập Admin." };
+  }
+  if (status === 403) {
+    return { ok: false as const, error: "Bạn không có quyền thực hiện thao tác này." };
+  }
+  if (status === 400) {
+    return { ok: false as const, error: data?.error || "Dữ liệu không hợp lệ." };
+  }
+  if (status === 500) {
+    return { ok: false as const, error: "Lỗi hệ thống máy chủ." };
+  }
 
   if (error) {
     return { ok: false as const, error: error.message ?? "Lỗi mạng khi gọi Edge Function" };
@@ -29,9 +49,29 @@ export async function saveProductOverride(payload: SaveProductOverridePayload) {
 }
 
 export async function saveProductOrder(payload: SaveProductOrderPayload) {
-  const { data, error } = await supabase.functions.invoke("save-product-order", {
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers: Record<string, string> = {};
+  if (session?.access_token) {
+    headers["Authorization"] = `Bearer ${session.access_token}`;
+  }
+
+  const { data, error, status } = await supabase.functions.invoke("save-product-order", {
     body: payload,
+    headers,
   });
+
+  if (status === 401) {
+    return { ok: false as const, error: "Phiên đăng nhập hết hạn hoặc bạn cần đăng nhập Admin." };
+  }
+  if (status === 403) {
+    return { ok: false as const, error: "Bạn không có quyền thực hiện thao tác này." };
+  }
+  if (status === 400) {
+    return { ok: false as const, error: data?.error || "Dữ liệu không hợp lệ." };
+  }
+  if (status === 500) {
+    return { ok: false as const, error: "Lỗi hệ thống máy chủ." };
+  }
 
   if (error) {
     return { ok: false as const, error: error.message ?? "Lỗi mạng khi gọi Edge Function" };
