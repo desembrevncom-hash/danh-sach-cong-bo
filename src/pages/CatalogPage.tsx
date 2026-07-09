@@ -77,18 +77,21 @@ const IndexInner = ({
         console.error("RPC error:", error.code, error.message, error.details, error.hint);
         toast.error(`Lỗi tải dữ liệu: ${error.message}`);
       } else if (data) {
+        console.log("Dữ liệu từ RPC:", data);
+        
         interface RpcProductItem {
           no: number;
           id_alias?: number;
-          section: string;
           name: string;
           desc: string;
+          image_url?: string;
           link_url?: string;
           link_url_2?: string;
-          image_url?: string;
+          section: string;
+          brand?: string;
+          is_custom?: boolean;
           sort_order?: number;
           total_count?: number;
-          brand?: string;
         }
 
         const formattedData = data.map((item: RpcProductItem) => ({
