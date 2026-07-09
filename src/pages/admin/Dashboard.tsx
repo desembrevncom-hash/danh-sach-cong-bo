@@ -14,6 +14,7 @@ type AdminProduct = {
   link_url?: string;
   link_url_2?: string;
   image_url?: string;
+  deleted?: boolean;
 };
 
 export default function Dashboard() {
@@ -21,6 +22,7 @@ export default function Dashboard() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [filterTab, setFilterTab] = useState<"ALL" | "ACTIVE" | "DELETED">("ALL");
   
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -59,33 +61,35 @@ export default function Dashboard() {
   // 2. Lấy danh sách sản phẩm
   const fetchProducts = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase.rpc("search_products_catalog", {
-      search_term: null,
-      cat_id:      null,
-      page_num:    1,
-      page_size:   500,   // Giới hạn an toàn cho Dashboard quản trị
-    });
+    // Admin lấy trực tiếp từ bảng product_overrides để quản lý toàn bộ bản ghi (cả ẩn và hiện)
+    const { data, error } = await supabase
+      .from("product_overrides")
+      .select("*")
+      .order("updated_at", { ascending: false });
 
     if (error) {
       toast.error("Lỗi lấy dữ liệu: " + error.message);
     } else if (data) {
-      interface RpcItem {
+      interface RawRow {
         no: number;
-        section: string;
-        name: string;
-        desc: string;
-        link_url?: string;
-        link_url_2?: string;
-        image_url?: string;
+        section: string | null;
+        name: string | null;
+        desc: string | null;
+        link_url: string | null;
+        link_url_2: string | null;
+        image_url: string | null;
+        deleted: boolean;
       }
-      setProducts(data.map((item: RpcItem) => ({
+      // Map về AdminProduct, giữ nguyên thuộc tính deleted
+      setProducts(data.map((item: RawRow) => ({
         no: item.no,
-        section: item.section,
-        name: item.name,
-        desc: item.desc,
-        link_url: item.link_url,
-        link_url_2: item.link_url_2,
-        image_url: item.image_url,
+        section: item.section || "Khác",
+        name: item.name || "",
+        desc: item.desc || "",
+        link_url: item.link_url || undefined,
+        link_url_2: item.link_url_2 || undefined,
+        image_url: item.image_url || undefined,
+        deleted: item.deleted
       })));
     }
     setIsLoading(false);
@@ -125,14 +129,31 @@ export default function Dashboard() {
     
     // Tạm thời hiển thị loading bằng toast promise
     toast.promise(
-      supabase.from("product_overrides").upsert({ no, deleted: true }),
+      supabase.from("product_overrides").update({ deleted: true }).eq("no", no),
       {
-        loading: 'Đang xóa...',
+        loading: 'Đang ẩn...',
         success: () => {
-          fetchProducts();
-          return 'Đã xóa sản phẩm thành công!';
+          // Optimistic update
+          setProducts(prev => prev.map(p => p.no === no ? { ...p, deleted: true } : p));
+          return 'Đã ẩn sản phẩm thành công!';
         },
-        error: 'Xóa thất bại!'
+        error: 'Ẩn thất bại!'
+      }
+    );
+  };
+
+  // Khôi phục (Restore)
+  const handleRestore = async (no: number, name: string) => {
+    toast.promise(
+      supabase.from("product_overrides").update({ deleted: false }).eq("no", no),
+      {
+        loading: 'Đang khôi phục...',
+        success: () => {
+          // Optimistic update
+          setProducts(prev => prev.map(p => p.no === no ? { ...p, deleted: false } : p));
+          return 'Đã khôi phục sản phẩm thành công!';
+        },
+        error: 'Khôi phục thất bại!'
       }
     );
   };
@@ -248,6 +269,28 @@ export default function Dashboard() {
           </button>
         </div>
 
+        {/* Tab Bộ lọc trạng thái */}
+        <div className="flex gap-2 mb-4 bg-card w-fit p-1 rounded-lg border border-border shadow-sm">
+          <button 
+            onClick={() => setFilterTab("ALL")} 
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterTab === "ALL" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}
+          >
+            Tất cả
+          </button>
+          <button 
+            onClick={() => setFilterTab("ACTIVE")} 
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterTab === "ACTIVE" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}
+          >
+            Đang hiển thị
+          </button>
+          <button 
+            onClick={() => setFilterTab("DELETED")} 
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterTab === "DELETED" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}
+          >
+            Đã ẩn
+          </button>
+        </div>
+
         {/* Bảng danh sách */}
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
           {isLoading ? (
@@ -264,8 +307,12 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {products.map((p) => (
-                    <tr key={p.no} className="hover:bg-muted/30 transition-colors">
+                  {products.filter(p => {
+                    if (filterTab === "ACTIVE") return !p.deleted;
+                    if (filterTab === "DELETED") return p.deleted;
+                    return true;
+                  }).map((p) => (
+                    <tr key={p.no} className={`hover:bg-muted/30 transition-colors ${p.deleted ? "opacity-50 grayscale-[50%]" : ""}`}>
                       <td className="px-4 py-3 w-16">
                         {p.image_url ? (
                           <img src={p.image_url} alt={p.name} className="w-10 h-10 object-cover rounded-md border border-border" />
@@ -274,7 +321,7 @@ export default function Dashboard() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-foreground line-clamp-1">{p.name || `Sản phẩm #${p.no}`}</div>
+                        <div className="font-medium text-foreground line-clamp-1">{p.name || `Sản phẩm #${p.no}`} {p.deleted && <span className="ml-2 text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full uppercase">Đã ẩn</span>}</div>
                         <div className="text-muted-foreground text-xs line-clamp-1 mt-0.5">{p.desc}</div>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
@@ -284,9 +331,15 @@ export default function Dashboard() {
                         <button onClick={() => openEditForm(p)} className="p-2 text-primary hover:bg-primary/10 rounded-md transition-colors" title="Sửa">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDelete(p.no, p.name)} className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors" title="Xóa">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {p.deleted ? (
+                          <button onClick={() => handleRestore(p.no, p.name)} className="p-2 text-emerald-600 hover:bg-emerald-600/10 rounded-md transition-colors" title="Khôi phục">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                          </button>
+                        ) : (
+                          <button onClick={() => handleDelete(p.no, p.name)} className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors" title="Ẩn">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
