@@ -60,11 +60,16 @@ const IndexInner = ({
       const pageNum    = Math.max(1, Math.floor(currentPage));    // integer
       const pageSize   = 20;                                       // integer
 
+      // Determine brand from hostname (e.g., dermagarden.com -> dermagarden, otherwise desembre)
+      const currentHost = window.location.hostname.toLowerCase();
+      const brandId = currentHost.includes("dermagarden") ? "dermagarden" : "desembre";
+
       const { data, error } = await supabase.rpc("search_products_catalog", {
         search_term: searchTerm,
         cat_id:      catId,
         page_num:    pageNum,
         page_size:   pageSize,
+        brand_id:    brandId,
       });
 
       if (error) {

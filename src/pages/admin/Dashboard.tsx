@@ -15,6 +15,7 @@ type AdminProduct = {
   link_url_2?: string;
   image_url?: string;
   deleted?: boolean;
+  brand?: string;
 };
 
 export default function Dashboard() {
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [filterTab, setFilterTab] = useState<"ALL" | "ACTIVE" | "DELETED">("ALL");
+  const [selectedBrand, setSelectedBrand] = useState<string>("desembre");
   
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -33,6 +35,7 @@ export default function Dashboard() {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [section, setSection] = useState(sections[0].title);
+  const [formBrand, setFormBrand] = useState("desembre");
   const [linkUrl, setLinkUrl] = useState("");
   const [linkUrl2, setLinkUrl2] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -45,7 +48,6 @@ export default function Dashboard() {
         navigate("/admin/login");
       } else {
         setSessionLoading(false);
-        fetchProducts();
       }
     });
 
@@ -58,6 +60,12 @@ export default function Dashboard() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  useEffect(() => {
+    if (!sessionLoading) {
+      fetchProducts();
+    }
+  }, [sessionLoading, selectedBrand]);
+
   // 2. Lấy danh sách sản phẩm
   const fetchProducts = async () => {
     setIsLoading(true);
@@ -65,6 +73,7 @@ export default function Dashboard() {
     const { data, error } = await supabase
       .from("product_overrides")
       .select("*")
+      .eq("brand", selectedBrand)
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -79,6 +88,7 @@ export default function Dashboard() {
         link_url_2: string | null;
         image_url: string | null;
         deleted: boolean;
+        brand: string | null;
       }
       // Map về AdminProduct, giữ nguyên thuộc tính deleted
       setProducts(data.map((item: RawRow) => ({
@@ -89,7 +99,8 @@ export default function Dashboard() {
         link_url: item.link_url || undefined,
         link_url_2: item.link_url_2 || undefined,
         image_url: item.image_url || undefined,
-        deleted: item.deleted
+        deleted: item.deleted,
+        brand: item.brand || "desembre"
       })));
     }
     setIsLoading(false);
@@ -104,6 +115,7 @@ export default function Dashboard() {
     setName("");
     setDesc("");
     setSection(sections[0].title);
+    setFormBrand(selectedBrand);
     setLinkUrl("");
     setLinkUrl2("");
     setImageUrl("");
@@ -116,6 +128,7 @@ export default function Dashboard() {
     setName(p.name || "");
     setDesc(p.desc || "");
     setSection(p.section || sections[0].title);
+    setFormBrand(p.brand || "desembre");
     setLinkUrl(p.link_url || "");
     setLinkUrl2(p.link_url_2 || "");
     setImageUrl(p.image_url || "");
@@ -214,6 +227,7 @@ export default function Dashboard() {
         name,
         desc,
         section,
+        brand: formBrand,
         link_url: linkUrl || null,
         link_url_2: linkUrl2 || null,
         image_url: finalImageUrl || null,
@@ -262,12 +276,25 @@ export default function Dashboard() {
       </header>
 
       <main className="container mx-auto p-4 md:p-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <h2 className="text-xl font-semibold">Danh sách Sản phẩm</h2>
-          <button onClick={openAddForm} className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 hover:opacity-90 shadow-sm transition-all active:scale-95">
-            <Plus className="w-4 h-4" />
-            Thêm mới
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Thương hiệu:</span>
+              <select 
+                value={selectedBrand} 
+                onChange={(e) => setSelectedBrand(e.target.value)}
+                className="h-9 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm font-medium"
+              >
+                <option value="desembre">Desembre</option>
+                <option value="dermagarden">Dermagarden</option>
+              </select>
+            </div>
+            <button onClick={openAddForm} className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 hover:opacity-90 shadow-sm transition-all active:scale-95 h-9">
+              <Plus className="w-4 h-4" />
+              Thêm mới
+            </button>
+          </div>
         </div>
 
         {/* Tab Bộ lọc trạng thái */}
@@ -370,11 +397,20 @@ export default function Dashboard() {
                 <input required value={name} onChange={e=>setName(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm" placeholder="Nhập tên sản phẩm..." />
               </div>
               
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Nhóm sản phẩm <span className="text-destructive">*</span></label>
-                <select required value={section} onChange={e=>setSection(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm">
-                  {sections.map(s => <option key={s.title} value={s.title}>{s.title}</option>)}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Nhóm sản phẩm <span className="text-destructive">*</span></label>
+                  <select required value={section} onChange={e=>setSection(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm">
+                    {sections.map(s => <option key={s.title} value={s.title}>{s.title}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Thương hiệu <span className="text-destructive">*</span></label>
+                  <select required value={formBrand} onChange={e=>setFormBrand(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm">
+                    <option value="desembre">Desembre</option>
+                    <option value="dermagarden">Dermagarden</option>
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-1.5">
