@@ -43,8 +43,8 @@ const IndexInner = ({
   const [query, setQuery] = useState("");
   const [section, setSection] = useState<string>(ALL);
   
-  // Lấy thương hiệu từ URL
-  const activeBrand = window.location.pathname.includes("dermagarden") ? "dermagarden" : "desembre";
+  // 1. Bỏ toàn bộ state trung gian gây nhiễu: Chỉ sử dụng activeBrand được tính toán trực tiếp từ URL path:
+  const activeBrand = window.location.pathname.split("/").pop() === "dermagarden" ? "dermagarden" : "desembre";
 
   // Pagination & Data states
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,10 +55,10 @@ const IndexInner = ({
 
   const debouncedQuery = useDebounce(query, 300);
 
-  // Fetch RPC Data
+  // 3. Sửa hàm fetch:
   const fetchProducts = useCallback(async (brandToFetch: string) => {
     setIsLoading(true);
-    console.log(`Fetching brand: ${brandToFetch}`);
+    console.log("Đang fetch cho brand:", brandToFetch);
     try {
       const searchTerm = debouncedQuery?.trim() || null;
       const catId      = (section && section !== ALL) ? section : null;
