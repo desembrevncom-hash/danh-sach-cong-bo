@@ -20,6 +20,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useAdminSession } from "@/hooks/useAdminSession";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { resolveBrandId } from "@/config/brands";
 
 const ALL = "ALL";
 
@@ -43,8 +44,7 @@ const IndexInner = ({
   const [query, setQuery] = useState("");
   const [section, setSection] = useState<string>(ALL);
   
-  // 1. Bỏ toàn bộ state trung gian gây nhiễu: Chỉ sử dụng activeBrand được tính toán trực tiếp từ URL path:
-  const activeBrand = window.location.pathname.split("/").pop() === "dermagarden" ? "dermagarden" : "desembre";
+  const activeBrand = resolveBrandId(brandId);
 
   // Pagination & Data states
   const [currentPage, setCurrentPage] = useState(1);
@@ -56,12 +56,8 @@ const IndexInner = ({
   const debouncedQuery = useDebounce(query, 300);
 
   // 3. Sửa hàm fetch:
-  const fetchProducts = useCallback(async (brandToFetch: string) => {
-    // 3. Loại bỏ mọi yếu tố gây sai lệch (Race condition guard)
-    if (brandToFetch !== activeBrand) return;
-
+  const fetchProducts = useCallback(async () => {
     setIsLoading(true);
-    console.log("Đang fetch cho brand:", brandToFetch);
     try {
       const searchTerm = debouncedQuery?.trim() || null;
       const catId      = (section && section !== ALL) ? section : null;
@@ -73,15 +69,13 @@ const IndexInner = ({
         cat_id:      catId,
         page_num:    pageNum,
         page_size:   pageSize,
-        brand_id:    brandToFetch,
+        brand_id:    activeBrand,
       });
 
       if (error) {
         console.error("RPC error:", error.code, error.message, error.details, error.hint);
         toast.error(`Lỗi tải dữ liệu: ${error.message}`);
       } else if (data) {
-        console.log("Dữ liệu từ RPC (raw):", data);
-        
         interface RpcProductItem {
           no: number;
           id_alias?: number;
@@ -101,12 +95,11 @@ const IndexInner = ({
         // Lưu ý: data trả về có thể là RpcProductItem[]
         const rawData = data as RpcProductItem[];
         const filteredData = rawData.filter((item) => (item.brand || "desembre") === activeBrand);
-        
-        console.log("Dữ liệu sau khi Client-side Hard-Filter:", filteredData);
 
         const formattedData = filteredData.map((item: RpcProductItem) => ({
           // SỬA LỖI NGHIÊM TRỌNG Ở ĐÂY: item.no do RPC trả về chỉ là số thứ tự (1, 2, 3...). 
           // Cần dùng item.id_alias làm khóa chính để khớp đúng với bảng product_overrides!
+          // TODO Round 2: Replace no/id_alias fallback with explicit ProductRowFromRpc and ProductViewModel.
           no: item.id_alias ?? item.no,
           section: item.section,
           name: item.name,
@@ -135,11 +128,11 @@ const IndexInner = ({
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedQuery, section, currentPage]); // Remove activeBrand from deps so it doesn't auto-recreate for brand
+  }, [debouncedQuery, section, currentPage, activeBrand]);
 
   useEffect(() => {
-    fetchProducts(activeBrand);
-  }, [fetchProducts, activeBrand]);
+    fetchProducts();
+  }, [fetchProducts]);
 
   // UI Tự động cập nhật: Thêm useEffect để khi activeBrand thay đổi, tự động reset page_num = 1
   useEffect(() => {
