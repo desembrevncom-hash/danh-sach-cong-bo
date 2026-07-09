@@ -137,21 +137,25 @@ const IndexInner = ({
   // However, local overrides still work for immediate feedback if `groupedProducts` merges it.
   // Actually, since we render `productsData` directly, we might need `productsData` to be merged with `overrides` locally for instant UX,
   // or just refetch. Since RPC is fast, let's just use `productsData` but apply overrides manually on top for instant UI.
+  // Optimistic UI: filter ra sản phẩm đã bị ẩn (deleted = true trong overrides)
+  // rồi apply override data lên các item còn lại
   const mergedForView = useMemo(() => {
-    return productsData.map((p) => {
-      const ov = overrides[p.no];
-      if (!ov || ov.deleted) return p;
-      return {
-        ...p,
-        name: ov.name ?? p.name,
-        desc: ov.desc ?? p.desc,
-        section: ov.section ?? p.section,
-        link: ov.link_url !== undefined ? (ov.link_url ?? undefined) : p.link,
-        link2: ov.link_url_2 !== undefined ? (ov.link_url_2 ?? undefined) : p.link2,
-        image: ov.image_url !== undefined ? (ov.image_url ?? undefined) : p.image,
-        sort_order: ov.sort_order ?? p.sort_order,
-      };
-    });
+    return productsData
+      .filter((p) => !overrides[p.no]?.deleted)  // Ẩn ngay sản phẩm khi Admin bấm nút ẩn
+      .map((p) => {
+        const ov = overrides[p.no];
+        if (!ov) return p;
+        return {
+          ...p,
+          name: ov.name ?? p.name,
+          desc: ov.desc ?? p.desc,
+          section: ov.section ?? p.section,
+          link: ov.link_url !== undefined ? (ov.link_url ?? undefined) : p.link,
+          link2: ov.link_url_2 !== undefined ? (ov.link_url_2 ?? undefined) : p.link2,
+          image: ov.image_url !== undefined ? (ov.image_url ?? undefined) : p.image,
+          sort_order: ov.sort_order ?? p.sort_order,
+        };
+      });
   }, [productsData, overrides]);
 
   const grouped = useMemo(() => groupProductsBySection(mergedForView), [mergedForView]);

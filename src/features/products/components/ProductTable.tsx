@@ -93,7 +93,10 @@ export function ProductTable({
                           )}
                         </td>
                       )}
-                      <td className="text-center font-semibold text-foreground">
+                      <td
+                        className="text-center font-semibold text-foreground"
+                        title={`ID: ${row.no}`}
+                      >
                         {String(seq).padStart(2, "0")}
                       </td>
                       <td className="overflow-visible">
