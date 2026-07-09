@@ -42,7 +42,11 @@ const IndexInner = ({
   const [askUnlock, setAskUnlock] = useState(false);
   const [query, setQuery] = useState("");
   const [section, setSection] = useState<string>(ALL);
-  const activeBrand = brandId?.toLowerCase() === "dermagarden" ? "dermagarden" : "desembre";
+  
+  // Lấy thương hiệu từ URL: Sử dụng useParams() hoặc window.location.pathname
+  const path = window.location.pathname.toLowerCase();
+  const isDermagarden = (brandId?.toLowerCase() === "dermagarden") || path.includes("/dermagarden");
+  const currentBrand = isDermagarden ? "dermagarden" : "desembre";
 
   // Pagination & Data states
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,7 +72,7 @@ const IndexInner = ({
         cat_id:      catId,
         page_num:    pageNum,
         page_size:   pageSize,
-        brand_id:    activeBrand,
+        brand_id:    currentBrand,
       });
 
       if (error) {
@@ -101,9 +105,9 @@ const IndexInner = ({
         })) as FlatProduct[];
 
         setProductsData(formattedData);
-        if (data.length > 0 && typeof data[0].total_count === "number") {
-          setTotalCount(data[0].total_count);
-          setTotalPages(Math.max(1, Math.ceil(data[0].total_count / 20)));
+        if (data.length > 0) {
+          setTotalCount(data[0].total_count ?? 0);
+          setTotalPages(Math.max(1, Math.ceil((data[0].total_count ?? 0) / pageSize)));
         } else if (data.length === 0) {
           setTotalCount(0);
           setTotalPages(1);
@@ -115,16 +119,16 @@ const IndexInner = ({
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedQuery, section, currentPage, activeBrand]);
+  }, [debouncedQuery, section, currentPage, currentBrand]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
-  // Reset page when search or section changes
+  // UI Tự động cập nhật: Thêm useEffect để khi currentBrand thay đổi, tự động reset page_num = 1
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedQuery, section]);
+  }, [debouncedQuery, section, currentBrand]);
 
   // ── Product action handlers (tách ra khỏi page) ──────────────────────────
   const {
@@ -200,7 +204,7 @@ const IndexInner = ({
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <CatalogHeader brand={activeBrand} />
+      <CatalogHeader brand={currentBrand} />
 
       <section className="container mx-auto px-3 md:px-6 pt-3 md:pt-8 sticky top-0 z-50 bg-background/80 backdrop-blur-sm pb-2">
         <ProductToolbar
