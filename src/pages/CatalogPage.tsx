@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
+import { useParams, Navigate } from "react-router-dom";
 import { sections, flatProducts, type FlatProduct } from "@/data/desembreProducts";
 import UnlockDialog from "@/features/edit-unlock/components/UnlockDialog";
 import ProductEditDialog from "@/features/products/components/ProductEditDialog";
@@ -36,10 +37,12 @@ const IndexInner = ({
   const { unlocked, lock, getPassword } = useEditUnlock();
   const history = useEditHistory();
   const { isAdmin } = useAdminSession();
+  const { brandId } = useParams();
 
   const [askUnlock, setAskUnlock] = useState(false);
   const [query, setQuery] = useState("");
   const [section, setSection] = useState<string>(ALL);
+  const activeBrand = brandId?.toLowerCase() === "dermagarden" ? "dermagarden" : "desembre";
 
   // Pagination & Data states
   const [currentPage, setCurrentPage] = useState(1);
@@ -60,16 +63,12 @@ const IndexInner = ({
       const pageNum    = Math.max(1, Math.floor(currentPage));    // integer
       const pageSize   = 20;                                       // integer
 
-      // Determine brand from hostname (e.g., dermagarden.com -> dermagarden, otherwise desembre)
-      const currentHost = window.location.hostname.toLowerCase();
-      const brandId = currentHost.includes("dermagarden") ? "dermagarden" : "desembre";
-
       const { data, error } = await supabase.rpc("search_products_catalog", {
         search_term: searchTerm,
         cat_id:      catId,
         page_num:    pageNum,
         page_size:   pageSize,
-        brand_id:    brandId,
+        brand_id:    activeBrand,
       });
 
       if (error) {
@@ -114,7 +113,7 @@ const IndexInner = ({
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedQuery, section, currentPage]);
+  }, [debouncedQuery, section, currentPage, activeBrand]);
 
   useEffect(() => {
     fetchProducts();
@@ -199,7 +198,7 @@ const IndexInner = ({
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <CatalogHeader />
+      <CatalogHeader brand={activeBrand} />
 
       <section className="container mx-auto px-3 md:px-6 pt-3 md:pt-8 sticky top-0 z-50 bg-background/80 backdrop-blur-sm pb-2">
         <ProductToolbar
