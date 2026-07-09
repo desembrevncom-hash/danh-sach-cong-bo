@@ -14,12 +14,15 @@ import {
 import ProductImageCell from "@/features/products/components/ProductImageCell";
 import ProductLinkCell from "@/features/products/components/ProductLinkCell";
 import type { ProductOverrideRow, ProductActionHandlers } from "@/features/products/types";
+import { AdminInlineActions } from "@/features/products/components/AdminInlineActions";
 
 export type ProductTableProps = {
   groupedProducts: [string, FlatProduct[]][];
   overrides: Record<number, ProductOverrideRow>;
   unlocked: boolean;
   actions: ProductActionHandlers;
+  isAdmin?: boolean;
+  onAdminOptimisticUpdate?: (no: number, patch: Partial<ProductOverrideRow>) => void;
 };
 
 export function ProductTable({
@@ -27,8 +30,14 @@ export function ProductTable({
   overrides,
   unlocked,
   actions,
+  isAdmin = false,
+  onAdminOptimisticUpdate,
 }: ProductTableProps) {
   const [productToDelete, setProductToDelete] = useState<FlatProduct | null>(null);
+  // Tracking which row is in inline-edit mode
+  const [editingNo, setEditingNo] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
 
   return (
     <>
@@ -43,6 +52,7 @@ export function ProductTable({
               <th>Product</th>
               <th style={{ width: "120px" }}>Công bố</th>
               {unlocked && <th style={{ width: "90px" }}>Thao tác</th>}
+              {isAdmin && !unlocked && <th style={{ width: "70px" }}>⚙</th>}
             </tr>
           </thead>
           <tbody>
@@ -94,8 +104,36 @@ export function ProductTable({
                         />
                       </td>
                       <td>
-                        <div className="product-name">{row.name}</div>
-                        <div className="product-desc">{row.desc}</div>
+                        {isAdmin && editingNo === row.no ? (
+                          <div className="flex flex-col gap-1.5 py-1">
+                            <input
+                              autoFocus
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  onAdminOptimisticUpdate?.(row.no, { name: editName.trim(), desc: editDesc.trim() });
+                                  setEditingNo(null);
+                                }
+                                if (e.key === "Escape") setEditingNo(null);
+                              }}
+                              className="w-full px-2 py-1 text-sm font-medium border border-primary/50 rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                              placeholder="Tên sản phẩm..."
+                            />
+                            <textarea
+                              value={editDesc}
+                              onChange={(e) => setEditDesc(e.target.value)}
+                              className="w-full px-2 py-1 text-xs text-muted-foreground border border-border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none"
+                              rows={2}
+                              placeholder="Mô tả..."
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <div className="product-name">{overrides[row.no]?.name ?? row.name}</div>
+                            <div className="product-desc">{overrides[row.no]?.desc ?? row.desc}</div>
+                          </>
+                        )}
                       </td>
                       <td className="text-center overflow-visible">
                         <div className="flex flex-col gap-1 items-center justify-center">
@@ -165,6 +203,33 @@ export function ProductTable({
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
+                        </td>
+                      )}
+                      {/* Cột Admin Inline Actions — chỉ hiện khi isAdmin và KHÔNG ở chế độ unlock KEY cũ */}
+                      {isAdmin && !unlocked && (
+                        <td className="text-center">
+                          <AdminInlineActions
+                            product={row}
+                            override={overrides[row.no]}
+                            onOptimisticUpdate={(no, patch) => {
+                              // Nếu đang edit inline thì sync state
+                              if (patch.name !== undefined) setEditName(patch.name as string);
+                              if (patch.desc !== undefined) setEditDesc(patch.desc as string);
+                              if (patch.name !== undefined || patch.desc !== undefined) setEditingNo(null);
+                              onAdminOptimisticUpdate?.(no, patch);
+                            }}
+                            onStartEdit={() => {
+                              setEditName(overrides[row.no]?.name ?? row.name ?? "");
+                              setEditDesc(overrides[row.no]?.desc ?? row.desc ?? "");
+                              setEditingNo(row.no);
+                            }}
+                            onSaveEdit={() => {
+                              onAdminOptimisticUpdate?.(row.no, { name: editName.trim(), desc: editDesc.trim() });
+                              setEditingNo(null);
+                            }}
+                            onCancelEdit={() => setEditingNo(null)}
+                            isEditing={editingNo === row.no}
+                          />
                         </td>
                       )}
                     </tr>

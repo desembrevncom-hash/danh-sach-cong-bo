@@ -16,6 +16,7 @@ import { ProductCardList } from "@/features/products/components/ProductCardList"
 import { ProductSkeleton } from "@/features/products/components/ProductSkeleton";
 import { useProductActions } from "@/features/products/hooks/useProductActions";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAdminSession } from "@/hooks/useAdminSession";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -34,6 +35,7 @@ const IndexInner = ({
 }) => {
   const { unlocked, lock, getPassword } = useEditUnlock();
   const history = useEditHistory();
+  const { isAdmin } = useAdminSession();
 
   const [askUnlock, setAskUnlock] = useState(false);
   const [query, setQuery] = useState("");
@@ -279,6 +281,15 @@ const IndexInner = ({
               groupedProducts={grouped}
               overrides={overrides}
               unlocked={unlocked}
+              isAdmin={isAdmin}
+              onAdminOptimisticUpdate={(no, patch) => {
+                setOverrides(prev => ({ ...prev, [no]: { ...(prev[no] ?? { no }), ...patch } as OverrideRow }));
+                // Send to DB asynchronously
+                supabase.from("product_overrides").upsert({ no, ...patch }).then(({ error }) => {
+                  if (error) toast.error("Lỗi khi cập nhật: " + error.message);
+                  else if (Object.keys(patch).some(k => ["name","desc"].includes(k))) toast.success("Đã lưu thay đổi.");
+                });
+              }}
               actions={{
                 ...actions,
                 onSetImage: async (no, src) => { await actions.onSetImage(no, src); fetchProducts(); },
