@@ -43,10 +43,8 @@ const IndexInner = ({
   const [query, setQuery] = useState("");
   const [section, setSection] = useState<string>(ALL);
   
-  // Lấy thương hiệu từ URL: Sử dụng useParams() hoặc window.location.pathname
-  const path = window.location.pathname.toLowerCase();
-  const isDermagarden = (brandId?.toLowerCase() === "dermagarden") || path.includes("/dermagarden");
-  const currentBrand = isDermagarden ? "dermagarden" : "desembre";
+  // Xác định thương hiệu: Tạo một biến activeBrand bằng cách lấy giá trị từ URL path
+  const activeBrand = window.location.pathname.includes("dermagarden") ? "dermagarden" : "desembre";
 
   // Pagination & Data states
   const [currentPage, setCurrentPage] = useState(1);
@@ -72,7 +70,7 @@ const IndexInner = ({
         cat_id:      catId,
         page_num:    pageNum,
         page_size:   pageSize,
-        brand_id:    currentBrand,
+        brand_id:    activeBrand,
       });
 
       if (error) {
@@ -119,16 +117,16 @@ const IndexInner = ({
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedQuery, section, currentPage, currentBrand]);
+  }, [debouncedQuery, section, currentPage, activeBrand]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
-  // UI Tự động cập nhật: Thêm useEffect để khi currentBrand thay đổi, tự động reset page_num = 1
+  // UI Tự động cập nhật: Thêm useEffect để khi activeBrand thay đổi, tự động reset page_num = 1
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedQuery, section, currentBrand]);
+  }, [debouncedQuery, section, activeBrand]);
 
   // ── Product action handlers (tách ra khỏi page) ──────────────────────────
   const {
@@ -204,7 +202,7 @@ const IndexInner = ({
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <CatalogHeader brand={currentBrand} />
+      <CatalogHeader brand={activeBrand} />
 
       <section className="container mx-auto px-3 md:px-6 pt-3 md:pt-8 sticky top-0 z-50 bg-background/80 backdrop-blur-sm pb-2">
         <ProductToolbar
