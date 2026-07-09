@@ -43,7 +43,7 @@ const IndexInner = ({
   const [query, setQuery] = useState("");
   const [section, setSection] = useState<string>(ALL);
   
-  // Xác định thương hiệu: Tạo một biến activeBrand bằng cách lấy giá trị từ URL path
+  // Lấy thương hiệu từ URL
   const activeBrand = window.location.pathname.includes("dermagarden") ? "dermagarden" : "desembre";
 
   // Pagination & Data states
@@ -56,21 +56,21 @@ const IndexInner = ({
   const debouncedQuery = useDebounce(query, 300);
 
   // Fetch RPC Data
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async (brandToFetch: string) => {
     setIsLoading(true);
+    console.log(`Fetching brand: ${brandToFetch}`);
     try {
-      // Ép kiểu tham số chặt chẽ để tránh 400 Bad Request
-      const searchTerm = debouncedQuery?.trim() || null;          // string | null
-      const catId      = (section && section !== ALL) ? section : null; // string | null
-      const pageNum    = Math.max(1, Math.floor(currentPage));    // integer
-      const pageSize   = 20;                                       // integer
+      const searchTerm = debouncedQuery?.trim() || null;
+      const catId      = (section && section !== ALL) ? section : null;
+      const pageNum    = Math.max(1, Math.floor(currentPage));
+      const pageSize   = 20;
 
       const { data, error } = await supabase.rpc("search_products_catalog", {
         search_term: searchTerm,
         cat_id:      catId,
         page_num:    pageNum,
         page_size:   pageSize,
-        brand_id:    activeBrand,
+        brand_id:    brandToFetch,
       });
 
       if (error) {
@@ -120,11 +120,11 @@ const IndexInner = ({
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedQuery, section, currentPage, activeBrand]);
+  }, [debouncedQuery, section, currentPage]); // Remove activeBrand from deps so it doesn't auto-recreate for brand
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchProducts(activeBrand);
+  }, [fetchProducts, activeBrand]);
 
   // UI Tự động cập nhật: Thêm useEffect để khi activeBrand thay đổi, tự động reset page_num = 1
   useEffect(() => {
