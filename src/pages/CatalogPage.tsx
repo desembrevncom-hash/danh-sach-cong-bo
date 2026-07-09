@@ -156,11 +156,21 @@ const IndexInner = ({
 
   const grouped = useMemo(() => groupProductsBySection(mergedForView), [mergedForView]);
 
+  // Nhóm tuỳ chỉnh do Admin thêm mới trong phiên làm việc
+  const [customSections, setCustomSections] = useState<string[]>([]);
+
   const sectionTitles = useMemo(() => {
     const set = new Set<string>(sections.map((s) => s.title));
     for (const o of Object.values(overrides)) if (o.section) set.add(o.section);
+    for (const cs of customSections) set.add(cs);
     return Array.from(set);
-  }, [overrides]);
+  }, [overrides, customSections]);
+
+  const handleAddSection = (name: string) => {
+    if (!sectionTitles.includes(name)) {
+      setCustomSections((prev) => [...prev, name]);
+    }
+  };
 
   const isFiltered = query !== "" || section !== ALL;
 
@@ -185,11 +195,13 @@ const IndexInner = ({
           sectionTitles={sectionTitles}
           isFiltered={isFiltered}
           onReset={reset}
-          filteredProducts={mergedForView} // For PDF export maybe?
+          filteredProducts={mergedForView}
           overrides={overrides}
           unlocked={unlocked}
           onOpenCreate={() => openCreate(section === ALL ? "" : section)}
           onToggleLock={() => (unlocked ? lock() : setAskUnlock(true))}
+          isAdmin={isAdmin}
+          onAddSection={handleAddSection}
         />
 
         <UnlockDialog open={askUnlock} onOpenChange={setAskUnlock} />

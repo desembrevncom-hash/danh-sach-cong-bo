@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Search, RotateCcw, Lock, LockOpen, Plus, FileDown } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, RotateCcw, Lock, LockOpen, Plus, FileDown, FolderPlus, X, Check } from "lucide-react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { ProductPDF } from "@/features/export-pdf/components/ProductPDF";
 import { HistoryPanel } from "@/features/products/components/HistoryPanel";
@@ -19,6 +19,10 @@ export type ProductToolbarProps = {
   unlocked: boolean;
   onOpenCreate: () => void;
   onToggleLock: () => void;
+  /** Khi Admin đăng nhập qua Supabase Auth */
+  isAdmin?: boolean;
+  /** Callback khi Admin xác nhận thêm nhóm mới */
+  onAddSection?: (name: string) => void;
 };
 
 const ALL = "ALL";
@@ -39,8 +43,69 @@ function AnimatedDots() {
       className="inline-block w-[18px] text-left"
       aria-hidden="true"
     >
-      {".".repeat(count)}
+      {"." .repeat(count)}
     </span>
+  );
+}
+
+/** Mini modal nhỏ gọn để nhập tên nhóm mới — render inline không overlay toàn màn hình */
+function AddSectionPopover({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Focus input ngay khi mở
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, []);
+
+  const handleConfirm = () => {
+    const trimmed = value.trim().toUpperCase();
+    if (!trimmed) return;
+    onConfirm(trimmed);
+    setValue("");
+  };
+
+  return (
+    <div className="absolute top-full left-0 mt-1.5 z-50 bg-card border border-border rounded-lg shadow-xl p-3 w-72 animate-in fade-in zoom-in-95 duration-150">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tên nhóm sản phẩm mới</p>
+      <div className="flex gap-2">
+        <input
+          ref={inputRef}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleConfirm();
+            if (e.key === "Escape") onCancel();
+          }}
+          placeholder="VD: MẶT NẠ SỢI SINH HỌC"
+          className="flex-1 h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+        />
+        <button
+          type="button"
+          onClick={handleConfirm}
+          disabled={!value.trim()}
+          title="Xác nhận"
+          className="w-9 h-9 rounded-md bg-primary text-primary-foreground inline-flex items-center justify-center hover:opacity-90 disabled:opacity-40 transition-opacity"
+        >
+          <Check className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          title="Hủy"
+          className="w-9 h-9 rounded-md border border-border hover:bg-muted/50 inline-flex items-center justify-center text-muted-foreground transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <p className="text-[11px] text-muted-foreground mt-2">Nhấn Enter để xác nhận hoặc Esc để hủy</p>
+    </div>
   );
 }
 
@@ -57,11 +122,34 @@ export function ProductToolbar({
   unlocked,
   onOpenCreate,
   onToggleLock,
+  isAdmin = false,
+  onAddSection,
 }: ProductToolbarProps) {
-  
+  const [showAddSection, setShowAddSection] = useState(false);
+  const addSectionRef = useRef<HTMLDivElement>(null);
+
+  // Đóng popover khi click bên ngoài
+  useEffect(() => {
+    if (!showAddSection) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addSectionRef.current && !addSectionRef.current.contains(e.target as Node)) {
+        setShowAddSection(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showAddSection]);
+
   const handleReset = () => {
     onSearchChange("");
     onReset();
+  };
+
+  const handleConfirmAddSection = (name: string) => {
+    onAddSection?.(name);
+    setShowAddSection(false);
+    // Tự động chọn nhóm mới vừa tạo trong dropdown
+    setSection(name);
   };
 
   return (
@@ -77,22 +165,51 @@ export function ProductToolbar({
         />
       </div>
 
-      <select
-        value={section}
-        onChange={(e) => setSection(e.target.value)}
-        className="h-11 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition md:w-64"
-      >
-        <option value={ALL}>Tất cả nhóm sản phẩm</option>
-        {sectionTitles.map((s) => {
-          const meta = sections.find((x) => x.title === s);
-          return (
-            <option key={s} value={s}>
-              {s}
-              {meta?.vi ? ` — ${meta.vi}` : ""}
-            </option>
-          );
-        })}
-      </select>
+      {/* Dropdown chọn nhóm + nút Thêm nhóm (Admin) */}
+      <div className="flex gap-1.5 items-center">
+        <select
+          value={section}
+          onChange={(e) => setSection(e.target.value)}
+          className="h-11 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition md:w-56"
+        >
+          <option value={ALL}>Tất cả nhóm sản phẩm</option>
+          {sectionTitles.map((s) => {
+            const meta = sections.find((x) => x.title === s);
+            return (
+              <option key={s} value={s}>
+                {s}
+                {meta?.vi ? ` — ${meta.vi}` : ""}
+              </option>
+            );
+          })}
+        </select>
+
+        {/* Nút (+) Thêm nhóm — chỉ hiện khi isAdmin */}
+        {isAdmin && (
+          <div className="relative" ref={addSectionRef}>
+            <button
+              type="button"
+              onClick={() => setShowAddSection((v) => !v)}
+              title="Thêm nhóm sản phẩm mới"
+              className={`h-11 px-3 rounded-md border text-sm font-medium inline-flex items-center justify-center gap-1.5 transition-all duration-150 active:scale-95 ${
+                showAddSection
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border bg-card text-muted-foreground hover:text-primary hover:border-primary hover:bg-primary/5"
+              }`}
+            >
+              <FolderPlus className="w-4 h-4" />
+              <span className="hidden sm:inline text-xs">Thêm nhóm</span>
+            </button>
+
+            {showAddSection && (
+              <AddSectionPopover
+                onConfirm={handleConfirmAddSection}
+                onCancel={() => setShowAddSection(false)}
+              />
+            )}
+          </div>
+        )}
+      </div>
 
       <button
         type="button"
