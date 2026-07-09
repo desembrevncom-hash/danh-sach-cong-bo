@@ -105,7 +105,9 @@ const IndexInner = ({
         console.log("Dữ liệu sau khi Client-side Hard-Filter:", filteredData);
 
         const formattedData = filteredData.map((item: RpcProductItem) => ({
-          no: item.no,
+          // SỬA LỖI NGHIÊM TRỌNG Ở ĐÂY: item.no do RPC trả về chỉ là số thứ tự (1, 2, 3...). 
+          // Cần dùng item.id_alias làm khóa chính để khớp đúng với bảng product_overrides!
+          no: item.id_alias ?? item.no,
           section: item.section,
           name: item.name,
           desc: item.desc,
