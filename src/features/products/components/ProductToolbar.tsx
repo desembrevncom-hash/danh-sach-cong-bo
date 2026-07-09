@@ -8,7 +8,7 @@ import type { ProductOverrideRow } from "@/features/products/types";
 
 export type ProductToolbarProps = {
   query: string;
-  setQuery: (q: string) => void;
+  onSearchChange: (value: string) => void;
   section: string;
   setSection: (s: string) => void;
   sectionTitles: string[];
@@ -46,7 +46,7 @@ function AnimatedDots() {
 
 export function ProductToolbar({
   query,
-  setQuery,
+  onSearchChange,
   section,
   setSection,
   sectionTitles,
@@ -58,6 +58,12 @@ export function ProductToolbar({
   onOpenCreate,
   onToggleLock,
 }: ProductToolbarProps) {
+  
+  const handleReset = () => {
+    onSearchChange("");
+    onReset();
+  };
+
   return (
     <div className="bg-card border border-border rounded-lg p-3 md:p-5 shadow-md flex flex-col md:flex-row gap-2 md:gap-3 md:items-center">
       <div className="relative flex-1">
@@ -65,7 +71,7 @@ export function ProductToolbar({
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Tìm theo tên hoặc mô tả sản phẩm..."
           className="w-full h-11 pl-10 pr-3 rounded-md border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-shadow duration-200 focus:shadow-sm"
         />
@@ -90,7 +96,7 @@ export function ProductToolbar({
 
       <button
         type="button"
-        onClick={onReset}
+        onClick={handleReset}
         disabled={!isFiltered}
         className={`h-11 px-5 rounded-md text-sm font-semibold tracking-wide inline-flex items-center justify-center gap-2 transition-transform duration-150 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] md:hover:-translate-y-px ${
           isFiltered

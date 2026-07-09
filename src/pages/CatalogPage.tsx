@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { sections, flatProducts } from "@/data/desembreProducts";
+import { useCallback, useEffect, useState, useMemo } from "react";
+import { sections, flatProducts, type FlatProduct } from "@/data/desembreProducts";
 import UnlockDialog from "@/features/edit-unlock/components/UnlockDialog";
 import ProductEditDialog from "@/features/products/components/ProductEditDialog";
 import { useEditUnlock } from "@/features/edit-unlock/hooks/useEditUnlock";
@@ -7,14 +7,17 @@ import { fetchAllProductOverrides } from "@/features/products/services/productOv
 import type { ProductOverrideRow as OverrideRow } from "@/features/products/types";
 import { EditHistoryProvider, useEditHistory } from "@/hooks/useEditHistory";
 import { toast } from "sonner";
-import { mergeProducts, filterProducts, groupProductsBySection } from "@/features/products/utils/productTransforms";
+import { groupProductsBySection } from "@/features/products/utils/productTransforms";
 import { CatalogHeader } from "@/features/products/components/CatalogHeader";
 import { CatalogFooter } from "@/features/products/components/CatalogFooter";
 import { ProductToolbar } from "@/features/products/components/ProductToolbar";
 import { ProductTable } from "@/features/products/components/ProductTable";
 import { ProductCardList } from "@/features/products/components/ProductCardList";
+import { ProductSkeleton } from "@/features/products/components/ProductSkeleton";
 import { useProductActions } from "@/features/products/hooks/useProductActions";
-import { useMemo } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
+import { supabase } from "@/integrations/supabase/client";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const ALL = "ALL";
 
@@ -36,6 +39,79 @@ const IndexInner = ({
   const [query, setQuery] = useState("");
   const [section, setSection] = useState<string>(ALL);
 
+  // Pagination & Data states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [productsData, setProductsData] = useState<FlatProduct[]>([]);
+
+  const debouncedQuery = useDebounce(query, 300);
+
+  // Fetch RPC Data
+  const fetchProducts = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("search_products_catalog", {
+        search_term: debouncedQuery || null,
+        cat_id: section === ALL ? null : section,
+        page_num: currentPage,
+        page_size: 20,
+      });
+
+      if (error) {
+        console.error("Error fetching products from RPC:", error);
+        toast.error("Lỗi khi tải dữ liệu sản phẩm.");
+      } else if (data) {
+        interface RpcProductItem {
+          no: number;
+          section: string;
+          name: string;
+          desc: string;
+          link_url?: string;
+          link_url_2?: string;
+          image_url?: string;
+          sort_order?: number;
+          total_count?: number;
+        }
+        
+        const formattedData = data.map((item: RpcProductItem) => ({
+          no: item.no,
+          section: item.section,
+          name: item.name,
+          desc: item.desc,
+          link: item.link_url,
+          link2: item.link_url_2,
+          image: item.image_url,
+          sort_order: item.sort_order,
+        })) as FlatProduct[];
+
+        setProductsData(formattedData);
+        if (data.length > 0 && typeof data[0].total_count === "number") {
+          setTotalCount(data[0].total_count);
+          setTotalPages(Math.max(1, Math.ceil(data[0].total_count / 20)));
+        } else if (data.length === 0) {
+          setTotalCount(0);
+          setTotalPages(1);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Lỗi mạng khi tải dữ liệu sản phẩm.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [debouncedQuery, section, currentPage]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Reset page when search or section changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedQuery, section]);
+
   // ── Product action handlers (tách ra khỏi page) ──────────────────────────
   const {
     upsertOverride,
@@ -49,14 +125,34 @@ const IndexInner = ({
     setOverrides,
     getPassword,
     snapshot: history.snapshot,
-    refreshOverrides,
+    refreshOverrides: async () => {
+      await refreshOverrides();
+      await fetchProducts(); // Refetch catalog after override refresh
+    },
   });
 
-  // ── Derived data ─────────────────────────────────────────────────────────
+  // Modify upsertOverride locally in this component to trigger refetch for optimistic UI to be fully synced
+  // However, local overrides still work for immediate feedback if `groupedProducts` merges it.
+  // Actually, since we render `productsData` directly, we might need `productsData` to be merged with `overrides` locally for instant UX,
+  // or just refetch. Since RPC is fast, let's just use `productsData` but apply overrides manually on top for instant UI.
+  const mergedForView = useMemo(() => {
+    return productsData.map((p) => {
+      const ov = overrides[p.no];
+      if (!ov || ov.deleted) return p;
+      return {
+        ...p,
+        name: ov.name ?? p.name,
+        desc: ov.desc ?? p.desc,
+        section: ov.section ?? p.section,
+        link: ov.link_url !== undefined ? (ov.link_url ?? undefined) : p.link,
+        link2: ov.link_url_2 !== undefined ? (ov.link_url_2 ?? undefined) : p.link2,
+        image: ov.image_url !== undefined ? (ov.image_url ?? undefined) : p.image,
+        sort_order: ov.sort_order ?? p.sort_order,
+      };
+    });
+  }, [productsData, overrides]);
 
-  const merged = useMemo(() => mergeProducts(flatProducts, overrides), [overrides]);
-  const filtered = useMemo(() => filterProducts(merged, query, section), [merged, query, section]);
-  const grouped = useMemo(() => groupProductsBySection(filtered), [filtered]);
+  const grouped = useMemo(() => groupProductsBySection(mergedForView), [mergedForView]);
 
   const sectionTitles = useMemo(() => {
     const set = new Set<string>(sections.map((s) => s.title));
@@ -69,6 +165,7 @@ const IndexInner = ({
   const reset = () => {
     setQuery("");
     setSection(ALL);
+    setCurrentPage(1);
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -80,13 +177,13 @@ const IndexInner = ({
       <section className="container mx-auto px-3 md:px-6 pt-3 md:pt-8 sticky top-0 z-50 bg-background/80 backdrop-blur-sm pb-2">
         <ProductToolbar
           query={query}
-          setQuery={setQuery}
+          onSearchChange={setQuery}
           section={section}
           setSection={setSection}
           sectionTitles={sectionTitles}
           isFiltered={isFiltered}
           onReset={reset}
-          filteredProducts={filtered}
+          filteredProducts={mergedForView} // For PDF export maybe?
           overrides={overrides}
           unlocked={unlocked}
           onOpenCreate={() => openCreate(section === ALL ? "" : section)}
@@ -100,9 +197,10 @@ const IndexInner = ({
           initial={editInitial}
           sectionOptions={sectionTitles}
           groupedProducts={grouped}
-          onSaved={(row, insertAfterNo) => {
+          onSaved={async (row, insertAfterNo) => {
             if (editInitial?.no && editInitial.no !== row.no) {
-              refreshOverrides();
+              await refreshOverrides();
+              await fetchProducts();
               toast.success("Đã sắp xếp lại danh sách");
             } else {
               upsertOverride(row, {
@@ -140,29 +238,104 @@ const IndexInner = ({
                     actions.onReorderProduct(row.section!, newOrderedNos);
                   }, 100);
                 }
+              } else {
+                // We just did upsert, refetch RPC to be sure after a short delay
+                setTimeout(fetchProducts, 300);
               }
             }
           }}
         />
 
-        <p className="text-xs text-muted-foreground mt-2 px-1">
-          Hiển thị <span className="font-semibold text-foreground">{filtered.length}</span> / {merged.length} sản phẩm
-        </p>
+        <div className="flex items-center justify-between mt-2 px-1">
+          <p className="text-xs text-muted-foreground">
+            Hiển thị <span className="font-semibold text-foreground">{mergedForView.length}</span> sản phẩm / Tổng số <span className="font-semibold text-foreground">{totalCount}</span>
+          </p>
+        </div>
       </section>
 
       <main className="container mx-auto px-4 md:px-6 pt-2 pb-6 md:py-6 flex-1 w-full">
-        <ProductTable
-          groupedProducts={grouped}
-          overrides={overrides}
-          unlocked={unlocked}
-          actions={actions}
-        />
-        <ProductCardList
-          groupedProducts={grouped}
-          overrides={overrides}
-          unlocked={unlocked}
-          actions={actions}
-        />
+        {isLoading ? (
+          <ProductSkeleton />
+        ) : mergedForView.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-card border border-border rounded-lg shadow-sm text-center px-4">
+            <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mb-4">
+              <span className="text-3xl">🔍</span>
+            </div>
+            <h3 className="text-lg font-bold text-foreground mb-2">Không tìm thấy sản phẩm</h3>
+            <p className="text-muted-foreground text-sm max-w-sm mb-6">
+              Không có sản phẩm nào khớp với từ khóa hoặc bộ lọc của bạn. Vui lòng thử lại với tiêu chí khác.
+            </p>
+            <button
+              type="button"
+              onClick={reset}
+              className="px-6 py-2.5 bg-primary text-primary-foreground font-semibold rounded-md hover:opacity-90 transition-opacity shadow-sm"
+            >
+              Xóa bộ lọc
+            </button>
+          </div>
+        ) : (
+          <>
+            <ProductTable
+              groupedProducts={grouped}
+              overrides={overrides}
+              unlocked={unlocked}
+              actions={{
+                ...actions,
+                onSetImage: async (no, src) => { await actions.onSetImage(no, src); fetchProducts(); },
+                onSetLink: async (no, href, isLink2) => { await actions.onSetLink(no, href, isLink2); fetchProducts(); },
+                onDelete: async (p) => { await actions.onDelete(p); fetchProducts(); },
+                onRenameSection: async (oldTitle, rows) => { await actions.onRenameSection(oldTitle, rows); fetchProducts(); },
+                onReorderProduct: async (section, orderedNos) => { await actions.onReorderProduct(section, orderedNos); fetchProducts(); }
+              }}
+            />
+            <ProductCardList
+              groupedProducts={grouped}
+              overrides={overrides}
+              unlocked={unlocked}
+              actions={{
+                ...actions,
+                onSetImage: async (no, src) => { await actions.onSetImage(no, src); fetchProducts(); },
+                onSetLink: async (no, href, isLink2) => { await actions.onSetLink(no, href, isLink2); fetchProducts(); },
+                onDelete: async (p) => { await actions.onDelete(p); fetchProducts(); },
+                onRenameSection: async (oldTitle, rows) => { await actions.onRenameSection(oldTitle, rows); fetchProducts(); },
+                onReorderProduct: async (section, orderedNos) => { await actions.onReorderProduct(section, orderedNos); fetchProducts(); }
+              }}
+            />
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-4 pb-8">
+                <button
+                  type="button"
+                  disabled={currentPage <= 1 || isLoading}
+                  onClick={() => {
+                    setCurrentPage(p => Math.max(1, p - 1));
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 border border-border rounded-md bg-card hover:bg-muted/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Trang trước
+                </button>
+                <div className="text-sm font-medium px-2">
+                  Trang <span className="font-bold text-primary">{currentPage}</span> / {totalPages}
+                </div>
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages || isLoading}
+                  onClick={() => {
+                    setCurrentPage(p => Math.min(totalPages, p + 1));
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 border border-border rounded-md bg-card hover:bg-muted/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                >
+                  Trang sau
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </main>
 
       <CatalogFooter />
