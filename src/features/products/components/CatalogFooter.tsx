@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export function CatalogFooter() {
   return (
     <footer className="footer-gradient mt-10">
@@ -13,6 +15,17 @@ export function CatalogFooter() {
             PRODUCTS 2026
           </p>
         </div>
+      </div>
+      {/* Liên kết Admin ẩn — chỉ hiện khi hover */}
+      <div className="text-center pb-3">
+        <Link
+          to="/admin/login"
+          className="text-[10px] text-primary-foreground/20 hover:text-primary-foreground/60 transition-colors duration-300 select-none"
+          title="Quản trị viên"
+          aria-label="Đăng nhập quản trị"
+        >
+          ⚙
+        </Link>
       </div>
     </footer>
   );

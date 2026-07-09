@@ -139,29 +139,21 @@ export function ProductToolbar({
             Thêm sản phẩm
           </button>
           <HistoryPanel />
+          {/* Nút khoá — chỉ hiện khi Admin đang ở chế độ chỉnh sửa */}
+          <button
+            type="button"
+            onClick={onToggleLock}
+            title="Đang ở chế độ chỉnh sửa sản phẩm"
+            aria-label="Đang ở chế độ chỉnh sửa sản phẩm"
+            className="h-11 px-4 rounded-md text-sm font-semibold tracking-wide inline-flex items-center justify-center gap-2 transition-all duration-200 border active:scale-[0.98] md:hover:-translate-y-px bg-[#1f2b27] text-white border-[#c5a86b] hover:bg-[#26362f] shadow-sm"
+          >
+            <LockOpen className="w-4 h-4 text-[#c5a86b]" />
+            <span className="flex items-center">
+              Đang chỉnh sửa<AnimatedDots />
+            </span>
+          </button>
         </>
       )}
-
-      <button
-        type="button"
-        onClick={onToggleLock}
-        title={unlocked ? "Đang ở chế độ chỉnh sửa sản phẩm" : undefined}
-        aria-label={unlocked ? "Đang ở chế độ chỉnh sửa sản phẩm" : undefined}
-        className={`h-11 px-4 rounded-md text-sm font-semibold tracking-wide inline-flex items-center justify-center gap-2 transition-all duration-200 border active:scale-[0.98] md:hover:-translate-y-px ${
-          unlocked
-            ? "bg-[#1f2b27] text-white border-[#c5a86b] hover:bg-[#26362f] shadow-sm"
-            : "bg-card text-foreground border-border hover:bg-muted/50"
-        }`}
-      >
-        {unlocked ? <LockOpen className="w-4 h-4 text-[#c5a86b]" /> : <Lock className="w-4 h-4" />}
-        {unlocked ? (
-          <span className="flex items-center">
-            Đang chỉnh sửa<AnimatedDots />
-          </span>
-        ) : (
-          "Mở khóa KEY"
-        )}
-      </button>
     </div>
   );
 }
