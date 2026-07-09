@@ -57,6 +57,9 @@ const IndexInner = ({
 
   // 3. Sửa hàm fetch:
   const fetchProducts = useCallback(async (brandToFetch: string) => {
+    // 3. Loại bỏ mọi yếu tố gây sai lệch (Race condition guard)
+    if (brandToFetch !== activeBrand) return;
+
     setIsLoading(true);
     console.log("Đang fetch cho brand:", brandToFetch);
     try {
@@ -77,7 +80,7 @@ const IndexInner = ({
         console.error("RPC error:", error.code, error.message, error.details, error.hint);
         toast.error(`Lỗi tải dữ liệu: ${error.message}`);
       } else if (data) {
-        console.log("Dữ liệu từ RPC:", data);
+        console.log("Dữ liệu từ RPC (raw):", data);
         
         interface RpcProductItem {
           no: number;
@@ -94,7 +97,14 @@ const IndexInner = ({
           total_count?: number;
         }
 
-        const formattedData = data.map((item: RpcProductItem) => ({
+        // 1 & 2. Ép buộc lọc mảng dữ liệu ngay lập tức (Client-side Hard-Filter)
+        // Lưu ý: data trả về có thể là RpcProductItem[]
+        const rawData = data as RpcProductItem[];
+        const filteredData = rawData.filter((item) => (item.brand || "desembre") === activeBrand);
+        
+        console.log("Dữ liệu sau khi Client-side Hard-Filter:", filteredData);
+
+        const formattedData = filteredData.map((item: RpcProductItem) => ({
           no: item.no,
           section: item.section,
           name: item.name,
@@ -106,10 +116,13 @@ const IndexInner = ({
         })) as FlatProduct[];
 
         setProductsData(formattedData);
-        if (data.length > 0) {
-          setTotalCount(data[0].total_count ?? 0);
-          setTotalPages(Math.max(1, Math.ceil((data[0].total_count ?? 0) / pageSize)));
-        } else if (data.length === 0) {
+        // Do client-side filter nên total_count có thể sai lệch so với Backend (nếu Backend trả full)
+        // Ta tạm thời dùng filterData.length nếu pagination backend bị vô hiệu hóa, 
+        // nhưng tốt nhất vẫn tôn trọng total_count nếu có (hoặc đếm thủ công nếu cần)
+        if (filteredData.length > 0) {
+          setTotalCount(filteredData[0].total_count ?? filteredData.length);
+          setTotalPages(Math.max(1, Math.ceil((filteredData[0].total_count ?? filteredData.length) / pageSize)));
+        } else {
           setTotalCount(0);
           setTotalPages(1);
         }
