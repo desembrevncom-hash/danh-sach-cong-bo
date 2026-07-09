@@ -54,16 +54,22 @@ const IndexInner = ({
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
     try {
+      // Ép kiểu tham số chặt chẽ để tránh 400 Bad Request
+      const searchTerm = debouncedQuery?.trim() || null;          // string | null
+      const catId      = (section && section !== ALL) ? section : null; // string | null
+      const pageNum    = Math.max(1, Math.floor(currentPage));    // integer
+      const pageSize   = 20;                                       // integer
+
       const { data, error } = await supabase.rpc("search_products_catalog", {
-        search_term: debouncedQuery || null,
-        cat_id: section === ALL ? null : section,
-        page_num: currentPage,
-        page_size: 20,
+        search_term: searchTerm,
+        cat_id:      catId,
+        page_num:    pageNum,
+        page_size:   pageSize,
       });
 
       if (error) {
-        console.error("Error fetching products from RPC:", error);
-        toast.error("Lỗi khi tải dữ liệu sản phẩm.");
+        console.error("RPC error:", error.code, error.message, error.details, error.hint);
+        toast.error(`Lỗi tải dữ liệu: ${error.message}`);
       } else if (data) {
         interface RpcProductItem {
           no: number;
@@ -76,7 +82,7 @@ const IndexInner = ({
           sort_order?: number;
           total_count?: number;
         }
-        
+
         const formattedData = data.map((item: RpcProductItem) => ({
           no: item.no,
           section: item.section,
@@ -98,7 +104,7 @@ const IndexInner = ({
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error("fetchProducts exception:", err);
       toast.error("Lỗi mạng khi tải dữ liệu sản phẩm.");
     } finally {
       setIsLoading(false);

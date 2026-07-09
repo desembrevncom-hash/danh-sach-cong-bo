@@ -59,12 +59,11 @@ export default function Dashboard() {
   // 2. Lấy danh sách sản phẩm
   const fetchProducts = async () => {
     setIsLoading(true);
-    // Dùng RPC để lấy tất cả sản phẩm (ví dụ limit lớn 1000 để quản lý)
     const { data, error } = await supabase.rpc("search_products_catalog", {
       search_term: null,
-      cat_id: null,
-      page_num: 1,
-      page_size: 1000
+      cat_id:      null,
+      page_num:    1,
+      page_size:   500,   // Giới hạn an toàn cho Dashboard quản trị
     });
 
     if (error) {
