@@ -77,6 +77,7 @@ const IndexInner = ({
       } else if (data) {
         interface RpcProductItem {
           no: number;
+          id_alias?: number;
           section: string;
           name: string;
           desc: string;
