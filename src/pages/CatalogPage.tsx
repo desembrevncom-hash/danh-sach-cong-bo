@@ -24,6 +24,7 @@ import { useAdminSession } from "@/hooks/useAdminSession";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { resolveBrandId, ALL_SECTION_VALUE, getBrandSectionOptions, formatSectionLabel, type SectionOption } from "@/config/brands";
+import { SeoHead } from "@/features/seo/components/SeoHead";
 
 // ─── Inner component (has access to EditHistoryContext) ───────────────────────
 
@@ -291,6 +292,8 @@ const IndexInner = ({
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SeoHead routePath={`/${activeBrand}`} />
+      
       <CatalogHeader brand={activeBrand} />
 
       <section className="container mx-auto px-3 md:px-6 pt-3 md:pt-8 sticky top-0 z-50 bg-background/80 backdrop-blur-sm pb-2">

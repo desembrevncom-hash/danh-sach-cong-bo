@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
+import { SeoHead } from "@/features/seo/components/SeoHead";
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SeoHead routePath="/" />
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-6 py-6 text-center">
           <h1 className="text-xl md:text-2xl font-semibold tracking-wider uppercase text-primary">

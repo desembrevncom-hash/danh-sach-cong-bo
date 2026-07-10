@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { SeoHead } from "@/features/seo/components/SeoHead";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -108,6 +109,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <SeoHead robots="noindex,nofollow" />
       <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-lg p-8">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold text-foreground">Quản trị viên</h1>

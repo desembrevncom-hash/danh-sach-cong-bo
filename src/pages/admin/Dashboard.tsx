@@ -12,6 +12,8 @@ import { sortProductRows } from "@/features/products/utils/productDisplayOrder";
 import { saveProductOverride } from "@/features/products/services/productOverrideService";
 import type { SectionOption } from "@/config/brands";
 import { resolveBrandId, type BrandId } from "@/config/brands";
+import { SeoHead } from "@/features/seo/components/SeoHead";
+import { SeoManagementTab } from "@/features/seo/components/SeoManagementTab";
 
 type AdminProduct = {
   id: string;
@@ -40,7 +42,7 @@ export default function Dashboard() {
   const [filterTab, setFilterTab] = useState<"ALL" | "ACTIVE" | "DELETED">("ALL");
   const [selectedBrand, setSelectedBrand] = useState<string>("desembre");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeMainTab, setActiveMainTab] = useState<"products" | "sections">("products");
+  const [activeMainTab, setActiveMainTab] = useState<"products" | "sections" | "seo">("products");
   const [sectionOptions, setSectionOptions] = useState<SectionOption[]>([]);
   
   // Form states
@@ -412,6 +414,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-muted/20 pb-12">
+      <SeoHead robots="noindex,nofollow" />
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-10 px-4 md:px-6 h-16 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
@@ -450,9 +453,21 @@ export default function Dashboard() {
           >
             Nhóm sản phẩm
           </button>
+          <button
+            onClick={() => setActiveMainTab("seo")}
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+              activeMainTab === "seo"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            }`}
+          >
+            SEO
+          </button>
         </div>
 
-        {activeMainTab === "sections" ? (
+        {activeMainTab === "seo" ? (
+          <SeoManagementTab />
+        ) : activeMainTab === "sections" ? (
           <SectionManagementTab activeBrand={resolveBrandId(selectedBrand)} />
         ) : (
           <div className="space-y-6 animate-in fade-in duration-300">
