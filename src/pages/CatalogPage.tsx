@@ -257,14 +257,9 @@ const IndexInner = ({
       }
     }
 
-    for (const o of Object.values(overrides)) {
-      if (o.section && !existingValues.has(o.section)) {
-        options.push({ value: o.section, label: o.section });
-        existingValues.add(o.section);
-      }
-    }
+
     return options;
-  }, [baseSectionOptions, customSections, overrides]);
+  }, [baseSectionOptions, customSections]);
 
   const handleAddSection = (name: string) => {
     if (!sectionOptions.find(o => o.value === name)) {
