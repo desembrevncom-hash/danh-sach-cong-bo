@@ -56,20 +56,31 @@ export default function Dashboard() {
       }
 
       // Check role
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("user_id", session.user.id)
-        .single();
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
 
-      if (profile?.role !== "admin") {
-        toast.error("Bạn không có quyền truy cập trang này.");
-        // We could redirect or just show an error state. For now, redirect.
+        if (profileError) {
+          console.error("[Dashboard] Failed to fetch role", profileError);
+          toast.error("Không thể xác minh quyền admin.");
+          navigate("/admin/login");
+          return;
+        }
+
+        if (profile?.role !== "admin") {
+          toast.error("Bạn không có quyền truy cập trang này.");
+          navigate("/admin/login");
+          return;
+        }
+
+        setSessionLoading(false);
+      } catch (err) {
+        console.error("[Dashboard] Unexpected error", err);
         navigate("/admin/login");
-        return;
       }
-
-      setSessionLoading(false);
     }
 
     checkAuth();
