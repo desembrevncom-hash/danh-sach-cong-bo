@@ -374,7 +374,9 @@ export default function Dashboard() {
       return true;
     });
 
-    const sectionSortOrderMap = new Map(sectionOptions.map(s => [s.value.toUpperCase(), s.sort_order]));
+    // Use the index of the section in the sectionOptions array as the definitive sorting rank.
+    // This ensures that even if multiple sections have sort_order = 0, products are still grouped by section.
+    const sectionSortOrderMap = new Map(sectionOptions.map((s, idx) => [s.value.toUpperCase(), idx]));
 
     return filtered.sort((a, b) => {
       const aSecSort = sectionSortOrderMap.get(a.section.toUpperCase()) ?? 999999;

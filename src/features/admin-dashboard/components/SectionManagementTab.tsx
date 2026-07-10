@@ -137,20 +137,27 @@ export function SectionManagementTab({ activeBrand }: { activeBrand: BrandId }) 
   };
 
   const toggleActive = async (sec: SectionRow) => {
-    if (sec.id.startsWith("fallback-")) {
-      toast.error("Vui lòng chỉnh sửa nhóm này một lần để lưu vào cơ sở dữ liệu trước khi đổi trạng thái.");
-      return;
-    }
-    if (sec.active && sec.total_count && sec.total_count > 0) {
-      if (!window.confirm(`Nhóm này đang có ${sec.total_count} sản phẩm. Bạn có chắc muốn ẩn nhóm này khỏi trang public?`)) {
-        return;
-      }
-    }
-    
     try {
-      const { error } = await supabase.from("catalog_sections").update({ active: !sec.active }).eq("id", sec.id);
-      if (error) throw error;
-      setSections(prev => prev.map(s => s.id === sec.id ? { ...s, active: !sec.active } : s));
+      if (sec.id.startsWith("fallback-")) {
+        const { error } = await supabase.from("catalog_sections").insert({
+          brand: sec.brand,
+          value: sec.value,
+          label: sec.label,
+          sort_order: sec.sort_order,
+          active: !sec.active
+        });
+        if (error) throw error;
+        fetchSections(); // Reload to get real UUID
+      } else {
+        if (sec.active && sec.total_count && sec.total_count > 0) {
+          if (!window.confirm(`Nhóm này đang có ${sec.total_count} sản phẩm. Bạn có chắc muốn ẩn nhóm này khỏi trang public?`)) {
+            return;
+          }
+        }
+        const { error } = await supabase.from("catalog_sections").update({ active: !sec.active }).eq("id", sec.id);
+        if (error) throw error;
+        setSections(prev => prev.map(s => s.id === sec.id ? { ...s, active: !sec.active } : s));
+      }
       toast.success(sec.active ? "Đã ẩn nhóm" : "Đã hiện nhóm");
     } catch (err: unknown) {
       toast.error("Lỗi: " + (err as Error).message);
@@ -199,17 +206,24 @@ export function SectionManagementTab({ activeBrand }: { activeBrand: BrandId }) 
     
     // Gửi update lên DB
     try {
-      const updates = newSections.filter(s => !s.id.startsWith("fallback-")).map(s => ({
-        id: s.id,
-        brand: s.brand,
-        value: s.value,
-        label: s.label,
-        sort_order: s.sort_order
-      }));
+      const updates = newSections.map(s => {
+        const payload: any = {
+          brand: s.brand,
+          value: s.value,
+          label: s.label,
+          sort_order: s.sort_order,
+          active: s.active
+        };
+        if (!s.id.startsWith("fallback-")) {
+          payload.id = s.id;
+        }
+        return payload;
+      });
       
-      const { error } = await supabase.from("catalog_sections").upsert(updates);
+      const { error } = await supabase.from("catalog_sections").upsert(updates, { onConflict: "brand,value" });
       if (error) throw error;
       toast.success("Đã cập nhật thứ tự");
+      fetchSections(); // Reload to get real UUIDs for new ones
     } catch (err: unknown) {
       toast.error("Lỗi cập nhật thứ tự: " + (err as Error).message);
       fetchSections(); // rollback on error
