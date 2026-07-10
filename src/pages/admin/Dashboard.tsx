@@ -101,8 +101,8 @@ export default function Dashboard() {
 
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || (event !== 'INITIAL_SESSION' && !session)) {
         navigate("/admin/login");
       }
     });
