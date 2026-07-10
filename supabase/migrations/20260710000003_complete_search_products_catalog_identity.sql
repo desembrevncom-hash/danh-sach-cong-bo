@@ -50,8 +50,10 @@ BEGIN
             p.section, 
             p.brand, 
             p.is_custom, 
-            p.sort_order
+            p.sort_order,
+            cs.sort_order as section_sort_order
         FROM "product_overrides" p
+        LEFT JOIN "catalog_sections" cs ON p.section = cs.value AND p.brand = cs.brand
         WHERE (p.deleted IS NOT TRUE)
         AND (p.brand = brand_id)
         AND (cat_id IS NULL OR cat_id = '' OR p.section = cat_id)
@@ -63,7 +65,7 @@ BEGIN
     SELECT 
         pi.id::text as id,
         fd.legacy_no::bigint as legacy_no,
-        (ROW_NUMBER() OVER (ORDER BY fd.sort_order ASC, fd.legacy_no ASC))::bigint as display_no,
+        (ROW_NUMBER() OVER (ORDER BY fd.section_sort_order ASC NULLS LAST, fd.sort_order ASC, fd.legacy_no ASC))::bigint as display_no,
         fd.brand,
         fd.section,
         fd.name,
@@ -79,6 +81,7 @@ BEGIN
       ON pi.brand = fd.brand
      AND pi.legacy_no = fd.legacy_no::bigint
     CROSS JOIN count_total ct
+    ORDER BY fd.section_sort_order ASC NULLS LAST, fd.sort_order ASC, fd.legacy_no ASC
     LIMIT page_size OFFSET (GREATEST(page_num, 1) - 1) * page_size;
 END;
 $function$;

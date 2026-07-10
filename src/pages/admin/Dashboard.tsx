@@ -205,30 +205,38 @@ export default function Dashboard() {
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Bạn có chắc muốn ẩn sản phẩm "${name}"?`)) return;
     try {
-      const { error } = await supabase.from("product_overrides").update({ deleted: true }).eq("id", id);
-      if (error) throw error;
+      const res = await saveProductOverride({
+        action: "upsert",
+        productId: id,
+        deleted: true
+      });
+      if (!res.ok) throw new Error(res.error);
       
       // Optimistic update
       setProducts(prev => prev.map(p => p.id === id ? { ...p, deleted: true } : p));
       toast.success('Đã ẩn sản phẩm thành công!');
-    } catch (err) {
+    } catch (err: any) {
       console.error("Lỗi khi ẩn sản phẩm:", err);
-      toast.error('Ẩn thất bại!');
+      toast.error('Ẩn thất bại! ' + (err.message || ''));
     }
   };
 
   // Khôi phục (Restore)
   const handleRestore = async (id: string, name: string) => {
     try {
-      const { error } = await supabase.from("product_overrides").update({ deleted: false }).eq("id", id);
-      if (error) throw error;
+      const res = await saveProductOverride({
+        action: "upsert",
+        productId: id,
+        deleted: false
+      });
+      if (!res.ok) throw new Error(res.error);
       
       // Optimistic update
       setProducts(prev => prev.map(p => p.id === id ? { ...p, deleted: false } : p));
       toast.success('Đã khôi phục sản phẩm thành công!');
-    } catch (err) {
+    } catch (err: any) {
       console.error("Lỗi khi khôi phục sản phẩm:", err);
-      toast.error('Khôi phục thất bại!');
+      toast.error('Khôi phục thất bại! ' + (err.message || ''));
     }
   };
 
@@ -311,9 +319,9 @@ export default function Dashboard() {
         section: finalSection,
         name: name.trim(),
         desc: desc.trim(),
-        imageUrl: finalImageUrl || undefined,
-        linkUrl: linkUrl || undefined,
-        linkUrl2: linkUrl2 || undefined,
+        image_url: finalImageUrl || undefined,
+        link_url: linkUrl || undefined,
+        link_url_2: linkUrl2 || undefined,
       });
 
       if (!res.ok) throw new Error(res.error);
