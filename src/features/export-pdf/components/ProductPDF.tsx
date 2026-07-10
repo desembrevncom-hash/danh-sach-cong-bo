@@ -96,17 +96,18 @@ const styles = StyleSheet.create({
   }
 });
 
-interface Product {
+export interface ProductPDFRow {
   id: string;
-  displayNo?: number;
+  displayIndex: number;
   section: string;
   name: string;
   desc: string;
   image?: string;
   link?: string;
+  link2?: string;
 }
 
-export const ProductPDF = ({ products }: { products: Product[] }) => (
+export const ProductPDF = ({ products }: { products: ProductPDFRow[] }) => (
   <Document>
     <Page size="A4" style={styles.page}>
       {/* Header */}
@@ -134,7 +135,7 @@ export const ProductPDF = ({ products }: { products: Product[] }) => (
               <Text style={styles.sectionText}>{p.section}</Text>
             </View>
             <View style={styles.colNo}>
-              <Text style={styles.noText}>{String(p.displayNo ?? idx + 1).padStart(2, '0')}</Text>
+              <Text style={styles.noText}>{String(p.displayIndex).padStart(2, '0')}</Text>
             </View>
             <View style={styles.colImage}>
               {p.image ? (

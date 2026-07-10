@@ -15,10 +15,11 @@ import {
 import ProductImageCell from "@/features/products/components/ProductImageCell";
 import ProductLinkCell from "@/features/products/components/ProductLinkCell";
 import type { ProductOverrideRow, ProductActionHandlers } from "@/features/products/types";
+import type { ProductDisplayRow } from "@/features/products/utils/productDisplayRows";
 import { AdminInlineActions } from "@/features/products/components/AdminInlineActions";
 
 export type ProductTableProps = {
-  groupedProducts: [string, ProductViewModel[]][];
+  groupedProducts: [string, ProductDisplayRow[]][];
   overrides: Record<number, ProductOverrideRow>;
   unlocked: boolean;
   actions: ProductActionHandlers;
@@ -65,10 +66,8 @@ export function ProductTable({
               </tr>
             )}
             {(() => {
-              let seq = 0;
               return groupedProducts.map(([sectionTitle, rows]) =>
                 rows.map((row, idx) => {
-                  seq += 1;
                   const sec = sections.find((s) => s.title === sectionTitle);
                   return (
                     <tr key={row.id}>
@@ -98,7 +97,7 @@ export function ProductTable({
                         className="text-center font-semibold text-foreground"
                         title={`ID: ${row.id}`}
                       >
-                        {String(seq).padStart(2, "0")}
+                        {String(row.displayIndex).padStart(2, "0")}
                       </td>
                       <td className="overflow-visible">
                         <ProductImageCell

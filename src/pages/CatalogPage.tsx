@@ -11,6 +11,7 @@ import type { ProductOverrideRow as OverrideRow } from "@/features/products/type
 import { EditHistoryProvider, useEditHistory } from "@/hooks/useEditHistory";
 import { toast } from "sonner";
 import { groupProductsBySection } from "@/features/products/utils/productTransforms";
+import { buildProductDisplayRows, type ProductDisplayRow } from "@/features/products/utils/productDisplayRows";
 import { CatalogHeader } from "@/features/products/components/CatalogHeader";
 import { CatalogFooter } from "@/features/products/components/CatalogFooter";
 import { ProductToolbar } from "@/features/products/components/ProductToolbar";
@@ -209,7 +210,16 @@ const IndexInner = ({
       });
   }, [productsData, overrides]);
 
-  const grouped = useMemo(() => groupProductsBySection(mergedForView), [mergedForView]);
+  const displayRows = useMemo(() => buildProductDisplayRows(mergedForView), [mergedForView]);
+  const grouped = useMemo(() => {
+    const map = new Map<string, ProductDisplayRow[]>();
+    for (const r of displayRows) {
+      const arr = map.get(r.section) ?? [];
+      arr.push(r);
+      map.set(r.section, arr);
+    }
+    return Array.from(map.entries());
+  }, [displayRows]);
 
   // Nhóm tuỳ chỉnh do Admin thêm mới trong phiên làm việc
   const [customSections, setCustomSections] = useState<string[]>([]);
@@ -250,7 +260,7 @@ const IndexInner = ({
           sectionTitles={sectionTitles}
           isFiltered={isFiltered}
           onReset={reset}
-          filteredProducts={mergedForView}
+          filteredProducts={displayRows}
           overrides={overrides}
           unlocked={unlocked}
           onOpenCreate={() => openCreate(section === ALL ? "" : section)}

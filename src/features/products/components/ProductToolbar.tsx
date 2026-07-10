@@ -6,6 +6,7 @@ import { HistoryPanel } from "@/features/products/components/HistoryPanel";
 import { sections } from '@/data/desembreProducts';
 import type { ProductViewModel } from '@/features/products/types';
 import type { ProductOverrideRow } from "@/features/products/types";
+import type { ProductDisplayRow } from "@/features/products/utils/productDisplayRows";
 
 export type ProductToolbarProps = {
   query: string;
@@ -15,7 +16,7 @@ export type ProductToolbarProps = {
   sectionTitles: string[];
   isFiltered: boolean;
   onReset: () => void;
-  filteredProducts: ProductViewModel[];
+  filteredProducts: ProductDisplayRow[];
   overrides: Record<number, ProductOverrideRow>;
   unlocked: boolean;
   onOpenCreate: () => void;

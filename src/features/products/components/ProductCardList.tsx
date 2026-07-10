@@ -15,9 +15,10 @@ import {
 import ProductImageCell from "@/features/products/components/ProductImageCell";
 import ProductLinkCell from "@/features/products/components/ProductLinkCell";
 import type { ProductOverrideRow, ProductActionHandlers } from "@/features/products/types";
+import type { ProductDisplayRow } from "@/features/products/utils/productDisplayRows";
 
 export type ProductCardListProps = {
-  groupedProducts: [string, ProductViewModel[]][];
+  groupedProducts: [string, ProductDisplayRow[]][];
   overrides: Record<number, ProductOverrideRow>;
   unlocked: boolean;
   actions: ProductActionHandlers;
@@ -39,9 +40,7 @@ export function ProductCardList({
           Không tìm thấy sản phẩm phù hợp.
         </div>
       )}
-      {(() => {
-        let seq = 0;
-        return groupedProducts.map(([sectionTitle, rows]) => {
+      {groupedProducts.map(([sectionTitle, rows]) => {
           const sec = sections.find((s) => s.title === sectionTitle);
           return (
             <div key={sectionTitle}>
@@ -70,8 +69,6 @@ export function ProductCardList({
 
               {/* Product Cards */}
               {rows.map((row, rowIdx) => {
-                seq += 1;
-                const currentSeq = seq;
                 const isEven = rowIdx % 2 === 1;
                 return (
                   <div key={row.id}
@@ -80,7 +77,7 @@ export function ProductCardList({
                     <div className="p-3">
                       <div className="flex justify-between items-start mb-2">
                         <div className="text-xs font-bold bg-foreground text-background px-2 py-0.5 rounded-md self-start">
-                          #{String(currentSeq).padStart(2, "0")}
+                          #{String(row.displayIndex).padStart(2, "0")}
                         </div>
                         {unlocked && (
                           <div className="flex items-center gap-1.5">
@@ -176,8 +173,7 @@ export function ProductCardList({
               })}
             </div>
           );
-        });
-      })()}
+        })}
     </div>
 
       <AlertDialog open={!!productToDelete} onOpenChange={(open) => !open && setProductToDelete(null)}>
