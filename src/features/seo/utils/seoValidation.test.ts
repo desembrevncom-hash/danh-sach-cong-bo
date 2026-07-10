@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateSeoCanonicalUrl, validateSeoImageUrl, validateSeoSchemaJson, validateSeoRobots } from './seoValidation';
+import { validateSeoCanonicalUrl, validateSeoImageUrl, validateSeoSchemaJson, validateSeoRobots, validateAssetUrl } from './seoValidation';
 
 describe('seoValidation', () => {
   describe('validateSeoCanonicalUrl', () => {
@@ -58,6 +58,30 @@ describe('seoValidation', () => {
     it('should return error for invalid combinations', () => {
       expect(validateSeoRobots('index, noindex')).toBe('Robots không hợp lệ. Chỉ chấp nhận: index,follow | noindex,nofollow | noindex,follow');
       expect(validateSeoRobots('follow')).toBe('Robots không hợp lệ. Chỉ chấp nhận: index,follow | noindex,nofollow | noindex,follow');
+    });
+  });
+
+  describe('validateAssetUrl', () => {
+    it('should return null for empty values', () => {
+      expect(validateAssetUrl(null)).toBeNull();
+      expect(validateAssetUrl('')).toBeNull();
+    });
+
+    it('should reject data URLs', () => {
+      expect(validateAssetUrl('data:image/png;base64,iVBORw0KGgo')).toBe('Không hỗ trợ data URI. Vui lòng dùng đường dẫn thực.');
+    });
+
+    it('should reject blob URLs', () => {
+      expect(validateAssetUrl('blob:http://localhost:3000/1234')).toBe('Không hỗ trợ blob URI. Vui lòng dùng đường dẫn thực.');
+    });
+
+    it('should accept valid URLs and relative paths', () => {
+      expect(validateAssetUrl('https://example.com/icon.png')).toBeNull();
+      expect(validateAssetUrl('/icon.png')).toBeNull();
+    });
+
+    it('should reject invalid URLs', () => {
+      expect(validateAssetUrl('not a url')).toBe('Đường dẫn không hợp lệ');
     });
   });
 });

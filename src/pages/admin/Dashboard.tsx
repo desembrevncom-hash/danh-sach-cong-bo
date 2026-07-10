@@ -14,6 +14,7 @@ import type { SectionOption } from "@/config/brands";
 import { resolveBrandId, type BrandId } from "@/config/brands";
 import { SeoHead } from "@/features/seo/components/SeoHead";
 import { SeoManagementTab } from "@/features/seo/components/SeoManagementTab";
+import { MediaLibraryTab } from '@/features/media/components/MediaLibraryTab';
 
 type AdminProduct = {
   id: string;
@@ -42,7 +43,7 @@ export default function Dashboard() {
   const [filterTab, setFilterTab] = useState<"ALL" | "ACTIVE" | "DELETED">("ALL");
   const [selectedBrand, setSelectedBrand] = useState<string>("desembre");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeMainTab, setActiveMainTab] = useState<"products" | "sections" | "seo">("products");
+  const [activeMainTab, setActiveMainTab] = useState<"products" | "sections" | "seo" | "media">("products");
   const [sectionOptions, setSectionOptions] = useState<SectionOption[]>([]);
   
   // Form states
@@ -463,9 +464,21 @@ export default function Dashboard() {
           >
             SEO
           </button>
+          <button
+            onClick={() => setActiveMainTab("media")}
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+              activeMainTab === "media"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            }`}
+          >
+            Thư viện ảnh
+          </button>
         </div>
 
-        {activeMainTab === "seo" ? (
+        {activeMainTab === "media" ? (
+          <MediaLibraryTab />
+        ) : activeMainTab === "seo" ? (
           <SeoManagementTab />
         ) : activeMainTab === "sections" ? (
           <SectionManagementTab activeBrand={resolveBrandId(selectedBrand)} />
