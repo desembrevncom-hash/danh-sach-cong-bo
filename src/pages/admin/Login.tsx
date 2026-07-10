@@ -27,7 +27,7 @@ export default function Login() {
 
       const userId = data.user?.id;
       if (!userId) {
-        await supabase.auth.signOut();
+        supabase.auth.signOut();
         setError("Không xác định được tài khoản đăng nhập.");
         return;
       }
@@ -40,13 +40,13 @@ export default function Login() {
 
       if (profileError) {
         console.error("[admin-login] Failed to fetch role", profileError);
-        await supabase.auth.signOut();
+        supabase.auth.signOut();
         setError("Không thể xác minh quyền admin. Vui lòng kiểm tra profile role.");
         return;
       }
 
       if (!profile || profile.role !== "admin") {
-        await supabase.auth.signOut();
+        supabase.auth.signOut();
         setError("Bạn không có quyền truy cập trang này.");
         return;
       }
@@ -54,7 +54,7 @@ export default function Login() {
       navigate("/admin/dashboard", { replace: true });
     } catch (err) {
       console.error("[admin-login] Unexpected error", err);
-      await supabase.auth.signOut();
+      supabase.auth.signOut();
       setError("Đăng nhập thất bại. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
