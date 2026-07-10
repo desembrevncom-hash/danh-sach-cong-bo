@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -9,16 +9,52 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  // Kiểm tra nếu đã login thì chuyển hướng luôn
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        // Kiểm tra quyền admin
+        supabase.from("profiles").select("role").eq("user_id", session.user.id).maybeSingle()
+          .then(({ data: profile }) => {
+            if (profile?.role === "admin") {
+              navigate("/admin/dashboard", { replace: true });
+            } else {
+              supabase.auth.signOut();
+            }
+          });
+      }
+    });
+  }, [navigate]);
+
+  const handleClearCache = () => {
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // Bọc signInWithPassword trong 1 Promise.race để chống treo vĩnh viễn
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 15000));
+      
+      const { data, error: signInError } = await Promise.race([
+        supabase.auth.signInWithPassword({
+          email,
+          password,
+        }),
+        timeoutPromise
+      ]) as any;
 
       if (signInError) {
         setError("Email hoặc mật khẩu không đúng.");
@@ -52,10 +88,14 @@ export default function Login() {
       }
 
       navigate("/admin/dashboard", { replace: true });
-    } catch (err) {
+    } catch (err: any) {
       console.error("[admin-login] Unexpected error", err);
-      supabase.auth.signOut();
-      setError("Đăng nhập thất bại. Vui lòng thử lại.");
+      if (err?.message === "TIMEOUT") {
+        setError("Kết nối máy chủ quá hạn. Trình duyệt của bạn có thể đang bị kẹt bộ nhớ. Vui lòng bấm nút 'Xóa bộ nhớ đệm' bên dưới.");
+      } else {
+        setError("Đăng nhập thất bại. Vui lòng thử lại.");
+      }
+      supabase.auth.signOut().catch(() => {});
     } finally {
       setIsLoading(false);
     }
@@ -125,6 +165,16 @@ export default function Login() {
             {error === "Invalid login credentials" 
               ? "Email hoặc mật khẩu không chính xác." 
               : error}
+            
+            {error.includes("kẹt bộ nhớ") && (
+              <button 
+                type="button"
+                onClick={handleClearCache}
+                className="mt-3 block w-full px-4 py-2 bg-destructive text-destructive-foreground rounded-md text-sm font-semibold hover:bg-destructive/90 transition-colors"
+              >
+                Xóa bộ nhớ đệm & Tải lại trang
+              </button>
+            )}
           </div>
         )}
       </div>
