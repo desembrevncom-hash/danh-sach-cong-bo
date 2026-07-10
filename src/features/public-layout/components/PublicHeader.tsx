@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
+import { fetchSiteSettings } from "@/features/seo/services/siteSettingsService";
 
 type BrandLogoNavItemProps = {
   to: string;
@@ -9,6 +10,11 @@ type BrandLogoNavItemProps = {
 
 function BrandLogoNavItem({ to, label, imageSrc }: BrandLogoNavItemProps) {
   const [imgError, setImgError] = useState(false);
+  
+  // Reset error when imageSrc changes
+  useEffect(() => {
+    setImgError(false);
+  }, [imageSrc]);
   
   return (
     <NavLink
@@ -29,7 +35,10 @@ function BrandLogoNavItem({ to, label, imageSrc }: BrandLogoNavItemProps) {
               src={imageSrc}
               alt={label}
               className="h-auto w-auto object-contain max-h-[24px] max-w-[88px] sm:max-h-[34px] sm:max-w-[132px] transition-transform duration-300 ease-out"
-              onError={() => setImgError(true)}
+              onError={(e) => {
+                (e.target as HTMLImageElement).onerror = null;
+                setImgError(true);
+              }}
             />
           ) : (
             <span className="text-[10px] sm:text-xs tracking-[0.16em] sm:tracking-[0.28em] font-semibold uppercase text-foreground text-center whitespace-nowrap overflow-visible">
@@ -48,25 +57,44 @@ function BrandLogoNavItem({ to, label, imageSrc }: BrandLogoNavItemProps) {
 }
 
 export function PublicHeader() {
+  const [logos, setLogos] = useState({
+    desembre: "/images/logo-desembre.png",
+    hyunjin: "/images/logo-hyunjin.png",
+    dermagarden: "/images/logo-dermagarden.png"
+  });
+
+  useEffect(() => {
+    let mounted = true;
+    fetchSiteSettings().then(res => {
+      if (!mounted || !res.ok || !res.data) return;
+      setLogos({
+        desembre: res.data.headerLogoDesembreUrl || "/images/logo-desembre.png",
+        hyunjin: res.data.headerLogoHyunjinUrl || "/images/logo-hyunjin.png",
+        dermagarden: res.data.headerLogoDermagardenUrl || "/images/logo-dermagarden.png",
+      });
+    }).catch(console.error);
+    return () => { mounted = false; };
+  }, []);
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-black/5 bg-[#f8f5ef]/85 dark:bg-background/90 backdrop-blur-md shadow-sm">
       <div className="mx-auto grid h-[60px] sm:h-[72px] max-w-5xl grid-cols-3 items-center px-2 sm:px-6">
         <BrandLogoNavItem
           to="/desembre"
           label="Xem danh mục Desembre"
-          imageSrc="/images/logo-desembre.png"
+          imageSrc={logos.desembre}
         />
         
         <BrandLogoNavItem
           to="/"
           label="Về trang chủ HYUNJIN"
-          imageSrc="/images/logo-hyunjin.png"
+          imageSrc={logos.hyunjin}
         />
         
         <BrandLogoNavItem
           to="/dermagarden"
           label="Xem danh mục Dermagarden"
-          imageSrc="/images/logo-dermagarden.png"
+          imageSrc={logos.dermagarden}
         />
       </div>
     </header>

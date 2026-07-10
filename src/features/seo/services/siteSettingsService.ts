@@ -8,9 +8,12 @@ export type SiteSettings = {
   webAppIcon192Url: string | null;
   webAppIcon512Url: string | null;
   defaultOgImageUrl: string | null;
+  headerLogoDesembreUrl?: string | null;
+  headerLogoHyunjinUrl?: string | null;
+  headerLogoDermagardenUrl?: string | null;
 };
 
-type SiteSettingsRow = {
+export type SiteSettingsRow = {
   id: string;
   site_name: string;
   favicon_url: string | null;
@@ -18,10 +21,13 @@ type SiteSettingsRow = {
   web_app_icon_192_url: string | null;
   web_app_icon_512_url: string | null;
   default_og_image_url: string | null;
+  header_logo_desembre_url?: string | null;
+  header_logo_hyunjin_url?: string | null;
+  header_logo_dermagarden_url?: string | null;
 };
 
 // Map DB snake_case to camelCase
-function mapSiteSettings(row: SiteSettingsRow): SiteSettings {
+export function mapSiteSettings(row: SiteSettingsRow): SiteSettings {
   return {
     id: row.id,
     siteName: row.site_name,
@@ -30,6 +36,9 @@ function mapSiteSettings(row: SiteSettingsRow): SiteSettings {
     webAppIcon192Url: row.web_app_icon_192_url,
     webAppIcon512Url: row.web_app_icon_512_url,
     defaultOgImageUrl: row.default_og_image_url,
+    headerLogoDesembreUrl: row.header_logo_desembre_url,
+    headerLogoHyunjinUrl: row.header_logo_hyunjin_url,
+    headerLogoDermagardenUrl: row.header_logo_dermagarden_url,
   };
 }
 
@@ -51,7 +60,10 @@ export async function fetchSiteSettings(): Promise<{ ok: boolean; data?: SiteSet
           apple_touch_icon_url: null,
           web_app_icon_192_url: null,
           web_app_icon_512_url: null,
-          default_og_image_url: null
+          default_og_image_url: null,
+          header_logo_desembre_url: null,
+          header_logo_hyunjin_url: null,
+          header_logo_dermagarden_url: null
         }) };
       }
       return { ok: false, error: error.message };

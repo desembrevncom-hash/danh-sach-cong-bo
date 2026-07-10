@@ -15,6 +15,7 @@ import { resolveBrandId, type BrandId } from "@/config/brands";
 import { SeoHead } from "@/features/seo/components/SeoHead";
 import { SeoManagementTab } from "@/features/seo/components/SeoManagementTab";
 import { MediaLibraryTab } from '@/features/media/components/MediaLibraryTab';
+import { DesignManagerTab } from "@/features/design-manager/components/DesignManagerTab";
 import { withTimeout, getErrorMessage } from "@/lib/asyncState";
 import { DashboardErrorState } from "@/components/ui/dashboard-error";
 
@@ -46,7 +47,7 @@ export default function Dashboard() {
   const [filterTab, setFilterTab] = useState<"ALL" | "ACTIVE" | "DELETED">("ALL");
   const [selectedBrand, setSelectedBrand] = useState<string>("desembre");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeMainTab, setActiveMainTab] = useState<"products" | "sections" | "seo" | "media">("products");
+  const [activeMainTab, setActiveMainTab] = useState<"products" | "sections" | "seo" | "media" | "design">("products");
   const [sectionOptions, setSectionOptions] = useState<SectionOption[]>([]);
   
   // Form states
@@ -493,9 +494,21 @@ export default function Dashboard() {
           >
             Thư viện ảnh
           </button>
+          <button
+            onClick={() => setActiveMainTab("design")}
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+              activeMainTab === "design"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            }`}
+          >
+            Thiết kế
+          </button>
         </div>
 
-        {activeMainTab === "media" ? (
+        {activeMainTab === "design" ? (
+          <DesignManagerTab />
+        ) : activeMainTab === "media" ? (
           <MediaLibraryTab />
         ) : activeMainTab === "seo" ? (
           <SeoManagementTab />
