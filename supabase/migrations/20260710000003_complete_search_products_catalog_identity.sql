@@ -41,7 +41,7 @@ BEGIN
     RETURN QUERY
     WITH filtered_data AS (
         SELECT 
-            p.no as legacy_no, 
+            p.id,
             p.name, 
             p."desc", 
             p.image_url, 
@@ -51,9 +51,11 @@ BEGIN
             p.brand, 
             p.is_custom, 
             p.sort_order,
-            cs.sort_order as section_sort_order
+            cs.sort_order as section_sort_order,
+            pi.legacy_no
         FROM "product_overrides" p
         LEFT JOIN "catalog_sections" cs ON p.section = cs.value AND p.brand = cs.brand
+        JOIN "product_identities" pi ON pi.id = p.id
         WHERE (p.deleted IS NOT TRUE)
         AND (p.brand = brand_id)
         AND (cat_id IS NULL OR cat_id = '' OR p.section = cat_id)
@@ -63,7 +65,7 @@ BEGIN
         SELECT COUNT(*) AS total FROM filtered_data
     )
     SELECT 
-        pi.id::text as id,
+        fd.id::text as id,
         fd.legacy_no::bigint as legacy_no,
         (ROW_NUMBER() OVER (ORDER BY fd.section_sort_order ASC NULLS LAST, fd.sort_order ASC, fd.legacy_no ASC))::bigint as display_no,
         fd.brand,
@@ -77,9 +79,6 @@ BEGIN
         fd.sort_order,
         ct.total as total_count
     FROM filtered_data fd
-    JOIN public.product_identities pi
-      ON pi.brand = fd.brand
-     AND pi.legacy_no = fd.legacy_no::bigint
     CROSS JOIN count_total ct
     ORDER BY fd.section_sort_order ASC NULLS LAST, fd.sort_order ASC, fd.legacy_no ASC
     LIMIT page_size OFFSET (GREATEST(page_num, 1) - 1) * page_size;
