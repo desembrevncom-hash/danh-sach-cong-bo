@@ -137,7 +137,7 @@ export default function Dashboard() {
     const { data, error } = productsRes;
     const { data: secData } = sectionsRes;
 
-    if (secData) {
+    if (secData && secData.length > 0) {
       setSectionOptions(secData as SectionOption[]);
     } else {
       setSectionOptions(fallbackSections.map((s, i) => ({ value: s.title, label: s.title, sort_order: i * 10 })));
@@ -374,11 +374,11 @@ export default function Dashboard() {
       return true;
     });
 
-    const sectionSortOrderMap = new Map(sectionOptions.map(s => [s.value, s.sort_order]));
+    const sectionSortOrderMap = new Map(sectionOptions.map(s => [s.value.toUpperCase(), s.sort_order]));
 
     return filtered.sort((a, b) => {
-      const aSecSort = sectionSortOrderMap.get(a.section) ?? 999999;
-      const bSecSort = sectionSortOrderMap.get(b.section) ?? 999999;
+      const aSecSort = sectionSortOrderMap.get(a.section.toUpperCase()) ?? 999999;
+      const bSecSort = sectionSortOrderMap.get(b.section.toUpperCase()) ?? 999999;
       
       if (aSecSort !== bSecSort) {
         return aSecSort - bSecSort;
