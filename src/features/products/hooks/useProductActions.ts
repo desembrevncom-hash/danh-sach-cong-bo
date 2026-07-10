@@ -1,3 +1,4 @@
+import React, { useState, useCallback } from 'react';
 import { toast } from "sonner";
 import { type ProductViewModel } from "@/features/products/types";
 import { saveProductOverride, saveProductOrder } from "@/features/products/services/productOverrideService";
@@ -10,9 +11,9 @@ import type { ProductDialogInitial } from "@/features/products/types";
 
 // Dependencies injected from parent so the hook stays pure and testable
 export type UseProductActionsOptions = {
-  overrides: Record<number, OverrideRow>;
-  setOverrides: React.Dispatch<React.SetStateAction<Record<number, OverrideRow>>>;
-  snapshot: (no: number, prev: OverrideRow | undefined, label: string) => void;
+  overrides: Record<string, OverrideRow>;
+  setOverrides: React.Dispatch<React.SetStateAction<Record<string, OverrideRow>>>;
+  snapshot: (id: string, prev: OverrideRow | undefined, label: string) => void;
   refreshOverrides: () => Promise<void>;
 };
 
@@ -42,9 +43,9 @@ export function useProductActions({
   const upsertOverride = useCallback(
     (row: OverrideRow, options?: { snapshotLabel?: string }) => {
       if (options?.snapshotLabel) {
-        snapshot(row.no, overrides[row.no], options.snapshotLabel);
+        snapshot(row.id, overrides[row.id], options.snapshotLabel);
       }
-      setOverrides((prev) => ({ ...prev, [row.no]: row }));
+      setOverrides((prev) => ({ ...prev, [row.id]: row }));
     },
     [overrides, setOverrides, snapshot],
   );
@@ -57,7 +58,7 @@ export function useProductActions({
   }, []);
 
   const openEdit = useCallback((p: ProductViewModel) => {
-    setEditInitial({ no: p.id, section: p.section, name: p.name, desc: p.desc });
+    setEditInitial({ id: p.id, section: p.section, name: p.name, desc: p.desc });
     setEditOpen(true);
   }, []);
 
@@ -153,7 +154,7 @@ export function useProductActions({
         setOverrides((prev) => {
           const next = { ...prev };
           res.rows!.forEach((row) => {
-            next[row.no] = row;
+            next[row.id] = row;
           });
           return next;
         });

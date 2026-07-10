@@ -111,7 +111,10 @@ if ("name" in body && typeof body.name === "string" && body.name.length > 255) r
       return json(400, { success: false, error: "Thiếu productId" });
     }
 
-    // Lookup legacy_no
+    // COMPATIBILITY BOUNDARY (Round 6)
+    // Lookup legacy_no from product_identities.
+    // In the future (Round 7), product_overrides.no will be dropped,
+    // and we will mutate product_overrides using productId directly.
     const { data: idRow, error: idErr } = await supabase
       .from("product_identities")
       .select("legacy_no, brand")
@@ -182,7 +185,8 @@ if ("name" in body && typeof body.name === "string" && body.name.length > 255) r
 
   const row: Record<string, unknown> = {
     id: productId,
-    no: legacy_no,
+    // Round 7B-1: no longer writing `no` to product_overrides.
+    // legacy_no lives in product_identities; product_overrides uses id as PK.
     brand,
     image_url: image_url === undefined ? existing?.image_url ?? null : image_url,
     link_url: link_url === undefined ? existing?.link_url ?? null : link_url,

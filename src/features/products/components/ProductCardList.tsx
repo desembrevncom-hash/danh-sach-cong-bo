@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { sections } from '@/data/desembreProducts';
 import type { ProductViewModel } from '@/features/products/types';
@@ -137,7 +138,7 @@ export function ProductCardList({
                         <div className="w-28 flex-shrink-0">
                           <ProductImageCell
                             productNo={row.id}
-                            src={overrides[row.id]?.image_url ?? undefined}
+                            src={row.image ?? overrides[row.id]?.image_url ?? undefined}
                             onChange={(src) => actions.onSetImage(row.id, src)}
                             mobile
                           />

@@ -5,7 +5,7 @@ import { useEditUnlock } from "@/features/edit-unlock/hooks/useEditUnlock";
 import { toast } from "sonner";
 
 export type Snapshot = {
-  no: number;
+  id: string;
   prev: OverrideRow | null; // null = row didn't exist
   label: string;
   timestamp: number;
@@ -15,7 +15,7 @@ type Ctx = {
   canUndo: boolean;
   count: number;
   stack: Snapshot[];
-  snapshot: (no: number, prev: OverrideRow | undefined | null, label: string) => void;
+  snapshot: (id: string, prev: OverrideRow | undefined | null, label: string) => void;
   undo: () => Promise<void>;
   undoTo: (index: number) => Promise<void>;
   clear: () => void;
@@ -27,7 +27,7 @@ const MAX_HISTORY = 20;
 
 type Props = {
   children: ReactNode;
-  applyRestore: (no: number, row: OverrideRow | null) => void;
+  applyRestore: (id: string, row: OverrideRow | null) => void;
 };
 
 const HISTORY_KEY = "desembre-edit-history-v2";
@@ -43,7 +43,8 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
     }
     return [];
   });
-  const [busy, setBusy] = useState(false);
+
+  const { isAdmin } = useEditUnlock();
 
   const persist = (s: Snapshot[]) => {
     try {
@@ -54,9 +55,9 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
   };
 
   const snapshot = useCallback(
-    (no: number, prev: OverrideRow | undefined | null, label: string) => {
+    (id: string, prev: OverrideRow | undefined | null, label: string) => {
       setStack((s) => {
-        const next = [...s, { no, prev: prev ?? null, label, timestamp: Date.now() }];
+        const next = [...s, { id, prev: prev ?? null, label, timestamp: Date.now() }];
         if (next.length > MAX_HISTORY) next.shift();
         persist(next);
         return next;
@@ -65,13 +66,13 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
     [],
   );
 
-  const restoreSnapshot = async (
+  const restoreSnapshot = useCallback(async (
     snap: Snapshot,
   ): Promise<boolean> => {
     if (!snap.prev) {
-      const res = await saveProductOverride({ action: "hard_delete", productId: snap.no.toString() });
+      const res = await saveProductOverride({ action: "hard_delete", productId: snap.id });
       if (!res.ok) { toast.error(res.error ?? "Hoàn tác thất bại"); return false; }
-      applyRestore(snap.no, null);
+      applyRestore(snap.id, null);
     } else {
       const p = snap.prev;
       const res = await saveProductOverride({
@@ -83,72 +84,83 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
         desc: p.desc,
         deleted: p.deleted,
       });
-      if (!res.ok || !res.row) { toast.error(res.error ?? "Hoàn tác thất bại"); return false; }
-      applyRestore(p.legacyNo ?? 0, res.row);
+      if (!res.ok) { toast.error(res.error ?? "Hoàn tác thất bại"); return false; }
+      applyRestore(snap.id, p);
     }
     return true;
-  };
+  }, [applyRestore]);
 
-  // Undo the last 1 step
   const undo = useCallback(async () => {
-    if (busy) return;
+    if (stack.length === 0 || !isAdmin) return;
     const last = stack[stack.length - 1];
-    if (!last) return;
-    setBusy(true);
-    try {
-      const ok = await restoreSnapshot(last);
-      if (!ok) return;
+    
+    // Disable interaction while restoring
+    toast.loading("Đang hoàn tác...", { id: "undo" });
+    const success = await restoreSnapshot(last);
+    
+    if (success) {
+      toast.success(`Đã hoàn tác: ${last.label}`, { id: "undo" });
       setStack((s) => {
         const next = s.slice(0, -1);
         persist(next);
         return next;
       });
-      toast.success(`Đã hoàn tác: ${last.label}`);
-    } finally {
-      setBusy(false);
+    } else {
+      toast.dismiss("undo");
     }
-  }, [stack, busy, applyRestore]);
+  }, [stack, isAdmin, restoreSnapshot]);
 
-  // Undo all steps back to (and including) the given index
   const undoTo = useCallback(async (index: number) => {
-    if (busy) return;
-    // Steps to undo: from the end of stack down to `index`
-    const stepsToUndo = stack.slice(index).reverse();
-    if (stepsToUndo.length === 0) return;
-    setBusy(true);
-    let undoneCount = 0;
-    try {
-      for (const snap of stepsToUndo) {
-        const ok = await restoreSnapshot(snap);
-        if (!ok) break;
-        undoneCount++;
+    if (index < 0 || index >= stack.length || !isAdmin) return;
+    
+    toast.loading("Đang khôi phục...", { id: "undoto" });
+    const toRestore = stack.slice(index).reverse();
+    
+    // Restore sequentially from newest to the target index
+    let allSuccess = true;
+    for (const snap of toRestore) {
+      const success = await restoreSnapshot(snap);
+      if (!success) {
+        allSuccess = false;
+        break;
       }
+    }
+    
+    if (allSuccess) {
+      toast.success("Đã khôi phục trạng thái cũ", { id: "undoto" });
       setStack((s) => {
         const next = s.slice(0, index);
         persist(next);
         return next;
       });
-      toast.success(`Đã hoàn tác ${undoneCount} bước — quay về trạng thái: "${stack[index]?.label ?? "ban đầu"}"`);
-    } finally {
-      setBusy(false);
+    } else {
+      toast.dismiss("undoto");
     }
-  }, [stack, busy, applyRestore]);
+  }, [stack, isAdmin, restoreSnapshot]);
 
   const clear = useCallback(() => {
     setStack([]);
-    try { localStorage.removeItem(HISTORY_KEY); } catch { /* ignore */ }
+    persist([]);
   }, []);
 
   return (
     <HistoryContext.Provider
-      value={{ canUndo: stack.length > 0 && !busy, count: stack.length, stack, snapshot, undo, undoTo, clear }}
+      value={{
+        canUndo: stack.length > 0 && isAdmin,
+        count: stack.length,
+        stack,
+        snapshot,
+        undo,
+        undoTo,
+        clear,
+      }}
     >
       {children}
     </HistoryContext.Provider>
   );
 };
 
-export const useEditHistory = () => {
+export function useEditHistory() {
   const ctx = useContext(HistoryContext);
   if (!ctx) throw new Error("useEditHistory must be used within EditHistoryProvider");
   return ctx;

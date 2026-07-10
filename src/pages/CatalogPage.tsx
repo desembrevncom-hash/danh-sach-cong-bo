@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Navigate } from "react-router-dom";
 import { sections, flatProducts } from '@/data/desembreProducts';
 import type { ProductViewModel, ProductRowFromRpc } from '@/features/products/types';
@@ -56,6 +57,17 @@ const IndexInner = ({
 
   const debouncedQuery = useDebounce(query, 300);
 
+  function withTimeout<T>(promise: Promise<T>, timeoutMs = 15000): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        window.setTimeout(() => {
+          reject(new Error(`Request timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      }),
+    ]);
+  }
+
   // 3. Sửa hàm fetch:
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
@@ -65,56 +77,82 @@ const IndexInner = ({
       const pageNum    = Math.max(1, Math.floor(currentPage));
       const pageSize   = 20;
 
-      const { data, error } = await supabase.rpc("search_products_catalog", {
-        search_term: searchTerm,
-        cat_id:      catId,
-        page_num:    pageNum,
-        page_size:   pageSize,
-        brand_id:    activeBrand,
-      });
+      console.log("[fetchProducts:start]", { activeBrand, searchTerm, catId, pageNum, pageSize });
 
-      if (error) {
-        console.error("RPC error:", error.code, error.message, error.details, error.hint);
-        toast.error(`Lỗi tải dữ liệu: ${error.message}`);
-      } else if (data) {
-        interface RpcProductItem {
-          no: number;
-          id_alias?: number;
-          name: string;
-          desc: string;
-          image_url?: string;
-          link_url?: string;
-          link_url_2?: string;
-          section: string;
-          brand?: string;
-          is_custom?: boolean;
-          sort_order?: number;
-          total_count?: number;
-        }
+      // Use raw fetch directly — supabase.rpc() times out due to sb_publishable_ key
+      // format incompatibility with the current supabase-js client.
+      const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL as string;
+      const supabaseKey  =
+        (import.meta.env.VITE_SUPABASE_ANON_KEY as string) ||
+        (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string);
 
-        // 1 & 2. Ép buộc lọc mảng dữ liệu ngay lập tức (Client-side Hard-Filter)
-        // Lưu ý: data trả về có thể là RpcProductItem[]
-        const rawData = data as RpcProductItem[];
-        const filteredData = rawData.filter((item) => (item.brand || "desembre") === activeBrand);
+      const res = await withTimeout(
+        fetch(`${supabaseUrl}/rest/v1/rpc/search_products_catalog`, {
+          method: "POST",
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            search_term: searchTerm,
+            cat_id:      catId,
+            brand_id:    activeBrand,
+            page_num:    pageNum,
+            page_size:   pageSize,
+          }),
+        }),
+        15000
+      );
 
-        const formattedData = mapProductRowsToViewModels(filteredData as ProductRowFromRpc[]);
+      console.log("[fetchProducts:http_status]", res.status);
 
-        setProductsData(formattedData);
-        // Do client-side filter nên total_count có thể sai lệch so với Backend (nếu Backend trả full)
-        // Ta tạm thời dùng filterData.length nếu pagination backend bị vô hiệu hóa, 
-        // nhưng tốt nhất vẫn tôn trọng total_count nếu có (hoặc đếm thủ công nếu cần)
-        if (filteredData.length > 0) {
-          setTotalCount(filteredData[0].total_count ?? filteredData.length);
-          setTotalPages(Math.max(1, Math.ceil((filteredData[0].total_count ?? filteredData.length) / pageSize)));
-        } else {
-          setTotalCount(0);
-          setTotalPages(1);
-        }
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("[fetchProducts:error] HTTP", res.status, errText);
+        toast.error(`Lỗi tải dữ liệu: HTTP ${res.status}`);
+        setProductsData([]);
+        setTotalCount(0);
+        return;
+      }
+
+      const data = await res.json() as Array<{
+        id: string;
+        legacy_no?: number | null;
+        display_no: number;
+        name: string;
+        desc: string;
+        image_url?: string;
+        link_url?: string;
+        link_url_2?: string;
+        section: string;
+        brand?: string;
+        is_custom?: boolean;
+        sort_order?: number;
+        total_count?: number;
+      }>;
+
+      console.log("[fetchProducts:rpc_result]", { rowsCount: data?.length, firstRow: data?.[0] });
+
+      const filteredData = data.filter((item) => (item.brand || "desembre") === activeBrand);
+      const formattedData = mapProductRowsToViewModels(filteredData as ProductRowFromRpc[]);
+      console.log("[fetchProducts:mapped]", { mappedCount: formattedData.length, firstMapped: formattedData[0] });
+
+      setProductsData(formattedData);
+      if (filteredData.length > 0) {
+        setTotalCount(filteredData[0].total_count ?? filteredData.length);
+        setTotalPages(Math.max(1, Math.ceil((filteredData[0].total_count ?? filteredData.length) / pageSize)));
+      } else {
+        setTotalCount(0);
+        setTotalPages(1);
       }
     } catch (err) {
-      console.error("fetchProducts exception:", err);
-      toast.error("Lỗi mạng khi tải dữ liệu sản phẩm.");
+      console.error("[Catalog fetch:error] fetchProducts exception:", err);
+      toast.error("Lỗi hệ thống khi tải dữ liệu sản phẩm.");
+      setProductsData([]);
+      setTotalCount(0);
     } finally {
+      console.log("[fetchProducts:finally] setIsLoading(false)");
       setIsLoading(false);
     }
   }, [debouncedQuery, section, currentPage, activeBrand]);

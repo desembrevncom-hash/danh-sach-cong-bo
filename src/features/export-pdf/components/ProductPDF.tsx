@@ -97,7 +97,8 @@ const styles = StyleSheet.create({
 });
 
 interface Product {
-  no: number;
+  id: string;
+  displayNo?: number;
   section: string;
   name: string;
   desc: string;
@@ -127,13 +128,13 @@ export const ProductPDF = ({ products }: { products: Product[] }) => (
           <Text style={styles.colLink}>CÔNG BỐ</Text>
         </View>
 
-        {products.map((p) => (
-          <View style={styles.tableRow} key={p.no} wrap={false}>
+        {products.map((p, idx) => (
+          <View style={styles.tableRow} key={p.id} wrap={false}>
             <View style={styles.colSection}>
               <Text style={styles.sectionText}>{p.section}</Text>
             </View>
             <View style={styles.colNo}>
-              <Text style={styles.noText}>{String(p.no).padStart(2, '0')}</Text>
+              <Text style={styles.noText}>{String(p.displayNo ?? idx + 1).padStart(2, '0')}</Text>
             </View>
             <View style={styles.colImage}>
               {p.image ? (

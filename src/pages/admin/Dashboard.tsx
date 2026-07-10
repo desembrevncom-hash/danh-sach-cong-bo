@@ -7,7 +7,8 @@ import { Plus, Edit2, Trash2, LogOut, Image as ImageIcon } from "lucide-react";
 import { sections } from "@/data/desembreProducts";
 
 type AdminProduct = {
-  no: number;
+  id: string;
+  legacyNo?: number;
   section: string;
   name: string;
   desc: string;
@@ -29,7 +30,7 @@ export default function Dashboard() {
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [editingNo, setEditingNo] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   // Form fields
   const [name, setName] = useState("");
@@ -105,7 +106,8 @@ export default function Dashboard() {
       toast.error("Lỗi lấy dữ liệu: " + error.message);
     } else if (data) {
       interface RawRow {
-        no: number;
+        id: string;
+        no?: number;
         section: string | null;
         name: string | null;
         desc: string | null;
@@ -117,7 +119,8 @@ export default function Dashboard() {
       }
       // Map về AdminProduct, giữ nguyên thuộc tính deleted
       setProducts(data.map((item: RawRow) => ({
-        no: item.no,
+        id: item.id || String(item.no || Date.now()),
+        legacyNo: item.no,
         section: item.section || "Khác",
         name: item.name || "",
         desc: item.desc || "",
@@ -136,7 +139,7 @@ export default function Dashboard() {
   };
 
   const openAddForm = () => {
-    setEditingNo(null);
+    setEditingId(null);
     setName("");
     setDesc("");
     setSection(sections[0].title);
@@ -149,7 +152,7 @@ export default function Dashboard() {
   };
 
   const openEditForm = (p: AdminProduct) => {
-    setEditingNo(p.no);
+    setEditingId(p.id);
     setName(p.name || "");
     setDesc(p.desc || "");
     setSection(p.section || sections[0].title);
@@ -162,14 +165,14 @@ export default function Dashboard() {
   };
 
   // 3. Xóa mềm (Soft Delete)
-  const handleDelete = async (no: number, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Bạn có chắc muốn xóa/ẩn sản phẩm "${name}"?`)) return;
     try {
-      const { error } = await supabase.from("product_overrides").update({ deleted: true }).eq("no", no);
+      const { error } = await supabase.from("product_overrides").update({ deleted: true }).eq("id", id);
       if (error) throw error;
       
       // Optimistic update
-      setProducts(prev => prev.map(p => p.no === no ? { ...p, deleted: true } : p));
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, deleted: true } : p));
       toast.success('Đã ẩn sản phẩm thành công!');
     } catch (err) {
       console.error("Lỗi khi ẩn sản phẩm:", err);
@@ -178,18 +181,18 @@ export default function Dashboard() {
   };
 
   // Khôi phục (Restore)
-  const handleRestore = async (no: number, name: string) => {
+  const handleRestore = async (id: string, name: string) => {
     try {
-      const { error } = await supabase.from("product_overrides").update({ deleted: false }).eq("no", no);
+      const { error } = await supabase.from("product_overrides").update({ deleted: false }).eq("id", id);
       if (error) throw error;
       
       // Optimistic update
-      setProducts(prev => prev.map(p => p.no === no ? { ...p, deleted: false } : p));
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, deleted: false } : p));
       
       if (typeof toast !== 'undefined' && toast.success) {
         toast.success('Đã khôi phục sản phẩm thành công!');
       } else {
-        console.log("Đã khôi phục thành công sản phẩm số: " + no);
+        console.log("Đã khôi phục thành công sản phẩm: " + name);
       }
     } catch (err) {
       console.error("Lỗi khi khôi phục sản phẩm:", err);
@@ -259,12 +262,11 @@ export default function Dashboard() {
         deleted: false
       };
 
-      // Nếu tạo mới, chúng ta cần tìm một số `no` mới (tạm thời auto-increment hoặc timestamp nếu backend cho phép)
-      // Theo logic cũ, no là primary key. Nếu editingNo = null (thêm mới), ta tạo ID dựa vào Date.now() 
-      if (editingNo === null) {
-        payload.no = parseInt(Date.now().toString().slice(-8)); // ID ngẫu nhiên không trùng
+      // Sinh UUID mới nếu là tạo mới (Round 4 identity)
+      if (editingId === null) {
+        payload.id = crypto.randomUUID(); 
       } else {
-        payload.no = editingNo;
+        payload.id = editingId;
       }
 
       const { error } = await supabase.from("product_overrides").upsert(payload);
@@ -365,7 +367,7 @@ export default function Dashboard() {
                     if (filterTab === "DELETED") return p.deleted;
                     return true;
                   }).map((p) => (
-                    <tr key={p.no} className={`hover:bg-muted/30 transition-colors ${p.deleted ? "opacity-50 grayscale-[50%]" : ""}`}>
+                    <tr key={p.id} className={`hover:bg-muted/30 transition-colors ${p.deleted ? "opacity-50 grayscale-[50%]" : ""}`}>
                       <td className="px-4 py-3 w-16">
                         {p.image_url ? (
                           <img src={p.image_url} alt={p.name} className="w-10 h-10 object-cover rounded-md border border-border" />
@@ -374,7 +376,7 @@ export default function Dashboard() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-foreground line-clamp-1">{p.name || `Sản phẩm #${p.no}`} {p.deleted && <span className="ml-2 text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full uppercase">Đã ẩn</span>}</div>
+                        <div className="font-medium text-foreground line-clamp-1">{p.name || `Sản phẩm #${p.legacyNo ?? 'Mới'}`} {p.deleted && <span className="ml-2 text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full uppercase">Đã ẩn</span>}</div>
                         <div className="text-muted-foreground text-xs line-clamp-1 mt-0.5">{p.desc}</div>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
@@ -385,11 +387,11 @@ export default function Dashboard() {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         {p.deleted ? (
-                          <button onClick={() => handleRestore(p.no, p.name)} className="p-2 text-emerald-600 hover:bg-emerald-600/10 rounded-md transition-colors" title="Khôi phục">
+                          <button onClick={() => handleRestore(p.id, p.name)} className="p-2 text-emerald-600 hover:bg-emerald-600/10 rounded-md transition-colors" title="Khôi phục">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                           </button>
                         ) : (
-                          <button onClick={() => handleDelete(p.no, p.name)} className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors" title="Ẩn">
+                          <button onClick={() => handleDelete(p.id, p.name)} className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors" title="Ẩn">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         )}

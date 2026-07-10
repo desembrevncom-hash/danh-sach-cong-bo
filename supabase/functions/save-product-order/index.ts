@@ -85,45 +85,66 @@ Deno.serve(async (req) => {
     return json(200, { error: `Lỗi Database khi đọc dữ liệu: ${fetchError.message}` });
   }
 
+  // Fetch product identities for legacy_no mapping
+  const { data: identityRows, error: idError } = await supabase
+    .from("product_identities")
+    .select("id, legacy_no, brand")
+    .in("id", orderedIds);
+
+  if (idError) {
+    return json(200, { error: `Lỗi Database khi đọc identity: ${idError.message}` });
+  }
+
+  const identityMap: Record<string, Record<string, unknown>> = {};
+  for (const row of (identityRows ?? [])) {
+    identityMap[row.id as string] = row;
+  }
+
   // Build a lookup map: id → existing row
-  const existingMap: Record<number, Record<string, unknown>> = {};
+  const existingMap: Record<string, Record<string, unknown>> = {};
   for (const row of (existingRows ?? [])) {
-    existingMap[row.id] = row;
+    existingMap[row.id as string] = row;
   }
 
   // Build upsert rows: preserve all existing fields, only update sort_order + section
   const now = new Date().toISOString();
-  const updates = (orderedIds as number[]).map((no, idx) => {
-    const existing = existingMap[no];
+  
+  const updates = [];
+  for (let idx = 0; idx < orderedIds.length; idx++) {
+    const id = orderedIds[idx] as string;
+    const existing = existingMap[id];
+    
     if (existing) {
       // Preserve all existing fields, only update sort_order (+ section for safety, keep existing if different)
-      return {
+      updates.push({
         ...existing,
-        no,
         sort_order: idx + 1,
-        section: existing.section ?? section, // keep existing section if already set
-        updated_at: now,
-      };
+        section: section,
+        changed_by: currentUserId,
+        updated_at: now
+      });
     } else {
-      // Base product with no override row yet — create a safe minimal row
-      return {
-        no,
+      const identity = identityMap[id];
+      if (!identity) {
+         return json(400, { success: false, error: `Invalid product identity: ${id}` });
+      }
+
+      // Round 7B-1: no longer writing `no` to product_overrides.
+      // product_overrides uses id as PK; legacy_no lives in product_identities.
+      updates.push({
+        id: id,
+        brand: identity.brand,
         section: section,
         sort_order: idx + 1,
-        name: null,
-        desc: null,
-        image_url: null,
-        link_url: null,
-        deleted: false,
-        is_custom: false,
-        updated_at: now,
-      };
+        changed_by: currentUserId,
+        updated_at: now
+      });
     }
-  });
+  }
 
   const { data: saved, error } = await supabase
     .from("product_overrides")
-    .upsert(updates, { onConflict: "no" })
+    .upsert(updates, { onConflict: "id" })
     .select();
 
   if (error) {

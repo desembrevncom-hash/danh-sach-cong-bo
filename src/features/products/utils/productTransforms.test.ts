@@ -13,13 +13,14 @@ describe('productTransforms', () => {
   // ── createDefaultOverride ────────────────────────────────────────────────
   describe('createDefaultOverride', () => {
     it('includes sort_order: null', () => {
-      const row = createDefaultOverride(42);
+      const row = createDefaultOverride('42', 42);
       expect(row.sort_order).toBeNull();
-      expect(row.no).toBe(42);
+      expect(row.legacyNo).toBe(42);
+      expect(row.id).toBe('42');
     });
 
     it('does NOT include original_no', () => {
-      const row = createDefaultOverride(1) as Record<string, unknown>;
+      const row = createDefaultOverride('1', 1) as Record<string, unknown>;
       expect('original_no' in row).toBe(false);
     });
   });
@@ -28,7 +29,7 @@ describe('productTransforms', () => {
   describe('mergeProducts', () => {
     it('1. Product có override deleted = true thì không xuất hiện', () => {
       const overrides: Record<string, ProductOverrideRow> = {
-        2: { ...createDefaultOverride(2), deleted: true }
+        '2': { ...createDefaultOverride('2', 2), deleted: true }
       };
       const result = mergeProducts(baseProducts, overrides);
       expect(result).toHaveLength(2);
@@ -38,8 +39,8 @@ describe('productTransforms', () => {
 
     it('2. Override name, desc, section, link_url ghi đè đúng product gốc', () => {
       const overrides: Record<string, ProductOverrideRow> = {
-        1: {
-          ...createDefaultOverride(1),
+        '1': {
+          ...createDefaultOverride('1', 1),
           name: 'New Name',
           desc: 'New Desc',
           section: 'New Section',
@@ -58,8 +59,8 @@ describe('productTransforms', () => {
 
     it('3. Product custom có is_custom = true được thêm vào danh sách', () => {
       const overrides: Record<string, ProductOverrideRow> = {
-        1001: {
-          ...createDefaultOverride(1001),
+        '1001': {
+          ...createDefaultOverride('1001', 1001),
           is_custom: true,
           name: 'Custom Product',
           section: 'Section Custom'
@@ -76,7 +77,7 @@ describe('productTransforms', () => {
     it('7. Không mutate input ban đầu', () => {
       const originalCopy = JSON.parse(JSON.stringify(baseProducts));
       const overrides: Record<string, ProductOverrideRow> = {
-        1: { ...createDefaultOverride(1), name: 'Mutated?' }
+        '1': { ...createDefaultOverride('1', 1), name: 'Mutated?' }
       };
 
       mergeProducts(baseProducts, overrides);
@@ -85,8 +86,8 @@ describe('productTransforms', () => {
 
     it('8. Sửa tên base product không tạo duplicate (chỉ cập nhật tại chỗ)', () => {
       const overrides: Record<string, ProductOverrideRow> = {
-        1: {
-          ...createDefaultOverride(1),
+        '1': {
+          ...createDefaultOverride('1', 1),
           name: 'Tên Đã Sửa',
         }
       };
@@ -98,7 +99,7 @@ describe('productTransforms', () => {
 
     it('9. Sửa tên sản phẩm không làm mất link/image đã cấu hình trước đó', () => {
       const initialOverride: ProductOverrideRow = {
-        ...createDefaultOverride(1),
+        ...createDefaultOverride('1', 1),
         image_url: 'https://images.com/pic.png',
         link_url: 'https://links.com/abc',
       };
@@ -117,7 +118,7 @@ describe('productTransforms', () => {
 
     it('10. Sửa section không làm mất ảnh/link của sản phẩm', () => {
       const initialOverride: ProductOverrideRow = {
-        ...createDefaultOverride(1),
+        ...createDefaultOverride('1', 1),
         image_url: 'https://images.com/pic.png',
         link_url: 'https://links.com/abc',
       };
@@ -136,8 +137,8 @@ describe('productTransforms', () => {
 
     it('11. Thêm custom product không bị duplicate', () => {
       const overrides: Record<string, ProductOverrideRow> = {
-        1001: {
-          ...createDefaultOverride(1001),
+        '1001': {
+          ...createDefaultOverride('1001', 1001),
           is_custom: true,
           name: 'Custom Product 1',
           section: 'Section Custom'
@@ -152,8 +153,8 @@ describe('productTransforms', () => {
 
     it('12. Xoá custom product xoá đúng row khỏi danh sách', () => {
       const overrides: Record<string, ProductOverrideRow> = {
-        1001: {
-          ...createDefaultOverride(1001),
+        '1001': {
+          ...createDefaultOverride('1001', 1001),
           is_custom: true,
           name: 'Custom Product 1',
           section: 'Section Custom'
@@ -173,8 +174,8 @@ describe('productTransforms', () => {
 
     it('13. No là immutable, không đổi được ID sản phẩm', () => {
       const overrides: Record<string, ProductOverrideRow> = {
-        1: {
-          ...createDefaultOverride(1),
+        '1': {
+          ...createDefaultOverride('1', 1),
           name: 'Sửa base 1',
         }
       };
@@ -187,8 +188,8 @@ describe('productTransforms', () => {
     it('sort_order: sản phẩm có sort_order được sort đúng thứ tự tăng dần trong section', () => {
       // Đặt product B (no=2) lên trước product A (no=1) bằng sort_order
       const overrides: Record<string, ProductOverrideRow> = {
-        1: { ...createDefaultOverride(1), sort_order: 2 },
-        2: { ...createDefaultOverride(2), sort_order: 1 },
+        '1': { ...createDefaultOverride('1', 1), sort_order: 2 },
+        '2': { ...createDefaultOverride('2', 2), sort_order: 1 },
       };
       const result = mergeProducts(baseProducts, overrides);
       // Lọc Section 1
@@ -207,8 +208,8 @@ describe('productTransforms', () => {
 
     it('sort_order: custom product có sort_order null dùng fallback 999', () => {
       const overrides: Record<string, ProductOverrideRow> = {
-        1001: {
-          ...createDefaultOverride(1001),
+        '1001': {
+          ...createDefaultOverride('1001', 1001),
           is_custom: true,
           name: 'Custom',
           section: 'Section 1',
@@ -225,7 +226,7 @@ describe('productTransforms', () => {
 
     it('sort_order: merge bảo toàn sort_order từ override', () => {
       const overrides: Record<string, ProductOverrideRow> = {
-        3: { ...createDefaultOverride(3), sort_order: 5 }
+        '3': { ...createDefaultOverride('3', 3), sort_order: 5 }
       };
       const result = mergeProducts(baseProducts, overrides);
       const p3 = result.find(p => p.id === '3');
@@ -236,14 +237,14 @@ describe('productTransforms', () => {
       // Nếu có base product no=2 bị deleted, và custom no=2 (edge case)
       // thực tế no >= 1000 với custom, nhưng kiểm tra không duplicate trong mọi trường hợp
       const overrides: Record<string, ProductOverrideRow> = {
-        2: { ...createDefaultOverride(2), deleted: true },
-        1001: { ...createDefaultOverride(1001), is_custom: true, name: 'C', section: 'Section 1' },
+        '2': { ...createDefaultOverride('2', 2), deleted: true },
+        '1001': { ...createDefaultOverride('1001', 1001), is_custom: true, name: 'C', section: 'Section 1' },
       };
       const result = mergeProducts(baseProducts, overrides);
       // no=2 bị xóa, no=1001 được thêm → tổng = 3 (1, 3, 1001)
       expect(result).toHaveLength(3);
       const nos = result.map(p => p.id);
-      expect(nos).not.toContain(2);
+      expect(nos).not.toContain('2');
       expect(nos).toContain('1001');
       // Không có duplicate
       expect(new Set(nos).size).toBe(nos.length);
@@ -312,15 +313,15 @@ describe('productTransforms', () => {
   // ── original_no must NOT exist ───────────────────────────────────────────
   describe('original_no không tồn tại', () => {
     it('ProductOverrideRow không có field original_no', () => {
-      const row = createDefaultOverride(1) as Record<string, unknown>;
+      const row = createDefaultOverride('1', 1) as Record<string, unknown>;
       expect('original_no' in row).toBe(false);
     });
 
     it('mergeProducts không dùng original_no để sort', () => {
       // Kết quả merge chỉ dùng sort_order và no, không bao giờ dùng original_no
       const overrides: Record<string, ProductOverrideRow> = {
-        1: { ...createDefaultOverride(1), sort_order: 3 },
-        2: { ...createDefaultOverride(2), sort_order: 1 },
+        '1': { ...createDefaultOverride('1', 1), sort_order: 3 },
+        '2': { ...createDefaultOverride('2', 2), sort_order: 1 },
       };
       const result = mergeProducts(baseProducts, overrides);
       for (const p of result) {
@@ -332,14 +333,14 @@ describe('productTransforms', () => {
   // ── link_url_2 and link2 support ─────────────────────────────────────────
   describe('hỗ trợ link_url_2 và link2', () => {
     it('createDefaultOverride trả về link_url_2: null', () => {
-      const row = createDefaultOverride(1);
+      const row = createDefaultOverride('1', 1);
       expect(row.link_url_2).toBeNull();
     });
 
     it('mergeProducts map link_url_2 thành link2 đúng cho base product', () => {
       const overrides: Record<string, ProductOverrideRow> = {
-        1: {
-          ...createDefaultOverride(1),
+        '1': {
+          ...createDefaultOverride('1', 1),
           link_url_2: 'http://test-link-2'
         }
       };
@@ -350,8 +351,8 @@ describe('productTransforms', () => {
 
     it('mergeProducts map link_url_2 thành link2 đúng cho custom product', () => {
       const overrides: Record<string, ProductOverrideRow> = {
-        1005: {
-          ...createDefaultOverride(1005),
+        '1005': {
+          ...createDefaultOverride('1005', 1005),
           is_custom: true,
           name: 'Custom Prod',
           section: 'Sec Custom',

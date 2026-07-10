@@ -6,7 +6,7 @@ describe('mapProductRowToViewModel', () => {
   it('maps correctly with strict id', () => {
     const row: ProductRowFromRpc = {
       id: "15",
-      display_no: 10,
+      display_id: "10", display_no: 10,
       brand: 'desembre',
       section: 'CLEANSER',
       name: 'Name',
@@ -31,8 +31,8 @@ describe('mapProductRowToViewModel', () => {
 
   it('does NOT fallback to legacy_no as id', () => {
     const row = {
-      display_no: 10,
-      legacy_no: 10, // backend might return legacy_no
+      display_id: "10", display_no: 10,
+      legacy_id: "10", display_no: 10, // backend might return legacy_no
       section: 'CLEANSER',
       name: 'Name',
       desc: 'Desc'
@@ -42,7 +42,7 @@ describe('mapProductRowToViewModel', () => {
 
   it('throws an error if identity is completely missing', () => {
     const row = {
-      display_no: 10,
+      display_id: "10", display_no: 10,
       section: 'CLEANSER',
       name: 'Name',
       desc: 'Desc'

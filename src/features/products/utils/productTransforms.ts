@@ -43,8 +43,8 @@ export function mergeProducts(
     if (!o.is_custom || o.deleted) continue;
     const sec = sections.find((s) => s.title === (o.section ?? ""));
     list.push({
-      id: String(o.no),
-      displayNo: o.no,
+      id: String(o.id),
+      displayNo: o.legacyNo ?? 0,
       name: o.name ?? "(Chưa có tên)",
       desc: o.desc ?? "",
       section: o.section ?? "OTHER",
@@ -101,9 +101,10 @@ export function groupProductsBySection(
   return Array.from(map.entries());
 }
 
-export function createDefaultOverride(no: number): ProductOverrideRow {
+export function createDefaultOverride(id: string, legacyNo?: number): ProductOverrideRow {
   return {
-    no,
+    id,
+    legacyNo,
     image_url: null,
     link_url: null,
     link_url_2: null,

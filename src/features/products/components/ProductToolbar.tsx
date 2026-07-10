@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, RotateCcw, Lock, LockOpen, Plus, FileDown, FolderPlus, X, Check } from "lucide-react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { ProductPDF } from "@/features/export-pdf/components/ProductPDF";
@@ -230,7 +231,7 @@ export function ProductToolbar({
           <ProductPDF
             products={filteredProducts.map((p) => ({
               ...p,
-              image: overrides[p.id]?.image_url ?? undefined,
+              image: p.image ?? overrides[p.id]?.image_url ?? undefined,
             }))}
           />
         }
