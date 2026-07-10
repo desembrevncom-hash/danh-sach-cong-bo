@@ -5,41 +5,43 @@ type BrandLogoNavItemProps = {
   to: string;
   label: string;
   imageSrc: string;
-  imageMaxWidth: string;
-  align: "left" | "center" | "right";
 };
 
-function BrandLogoNavItem({ to, label, imageSrc, imageMaxWidth, align }: BrandLogoNavItemProps) {
+function BrandLogoNavItem({ to, label, imageSrc }: BrandLogoNavItemProps) {
   const [imgError, setImgError] = useState(false);
-
-  let justifyClass = "justify-center";
-  if (align === "left") justifyClass = "justify-start md:justify-start";
-  if (align === "right") justifyClass = "justify-end md:justify-end";
-  
-  // on mobile (420px), maybe we want everything somewhat centered or tightly packed, but flex-col or flex-row.
-  // Actually, grid-cols-3 handles the positioning. We just need to align inside the cell.
   
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center ${justifyClass} h-full w-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded-sm px-1 md:px-4 py-2 ${
-          isActive ? "opacity-100 drop-shadow-sm" : "opacity-60 hover:opacity-100"
+        `relative flex flex-col items-center justify-center h-full w-full min-w-0 transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded-sm px-1 overflow-visible ${
+          isActive 
+            ? "opacity-100 scale-[1.06] sm:scale-[1.12]" 
+            : "opacity-60 scale-100 hover:opacity-100 hover:scale-[1.05] hover:-translate-y-0.5"
         }`
       }
       aria-label={label}
     >
-      {!imgError ? (
-        <img
-          src={imageSrc}
-          alt={label}
-          className={`object-contain max-h-8 md:max-h-12 w-full ${imageMaxWidth}`}
-          onError={() => setImgError(true)}
-        />
-      ) : (
-        <span className="text-[10px] sm:text-xs md:text-sm font-bold tracking-widest uppercase text-foreground text-center line-clamp-2 md:line-clamp-1">
-          {label.replace("Xem danh mục ", "").replace("Về trang chủ ", "")}
-        </span>
+      {({ isActive }) => (
+        <>
+          {!imgError ? (
+            <img
+              src={imageSrc}
+              alt={label}
+              className="h-auto w-auto object-contain max-h-[24px] max-w-[88px] sm:max-h-[34px] sm:max-w-[132px] transition-transform duration-300 ease-out"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <span className="text-[10px] sm:text-xs tracking-[0.16em] sm:tracking-[0.28em] font-semibold uppercase text-foreground text-center whitespace-nowrap overflow-visible">
+              {label.replace("Xem danh mục ", "").replace("Về trang chủ ", "")}
+            </span>
+          )}
+          
+          {/* Active indicator underline */}
+          {isActive && (
+            <div className="absolute bottom-1 sm:bottom-2 h-[2px] w-6 sm:w-8 rounded-full bg-[#b89b5e] shadow-sm animate-in fade-in zoom-in-50 duration-300" />
+          )}
+        </>
       )}
     </NavLink>
   );
@@ -47,30 +49,24 @@ function BrandLogoNavItem({ to, label, imageSrc, imageMaxWidth, align }: BrandLo
 
 export function PublicHeader() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-[#f8f5ef]/90 dark:bg-background/90 backdrop-blur-md">
-      <div className="mx-auto grid h-16 sm:h-20 max-w-7xl grid-cols-3 items-center px-3 sm:px-6 gap-1 sm:gap-4">
+    <header className="sticky top-0 z-50 w-full border-b border-black/5 bg-[#f8f5ef]/85 dark:bg-background/90 backdrop-blur-md shadow-sm">
+      <div className="mx-auto grid h-[60px] sm:h-[72px] max-w-5xl grid-cols-3 items-center px-2 sm:px-6">
         <BrandLogoNavItem
           to="/desembre"
           label="Xem danh mục Desembre"
           imageSrc="/images/logo-desembre.png"
-          imageMaxWidth="max-w-[80px] sm:max-w-[96px] md:max-w-[120px]"
-          align="left"
         />
         
         <BrandLogoNavItem
           to="/"
           label="Về trang chủ HYUNJIN"
           imageSrc="/images/logo-hyunjin.png"
-          imageMaxWidth="max-w-[70px] sm:max-w-[90px] md:max-w-[110px]"
-          align="center"
         />
         
         <BrandLogoNavItem
           to="/dermagarden"
           label="Xem danh mục Dermagarden"
           imageSrc="/images/logo-dermagarden.png"
-          imageMaxWidth="max-w-[88px] sm:max-w-[104px] md:max-w-[130px]"
-          align="right"
         />
       </div>
     </header>
