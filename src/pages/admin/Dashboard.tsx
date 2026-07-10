@@ -3,14 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadProductImage } from "@/features/products/utils/upload";
 import { toast } from "sonner";
-import { Plus, Edit2, Trash2, LogOut, Image as ImageIcon, Search, RefreshCw, Package, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Plus, Edit2, Archive, LogOut, Image as ImageIcon, Search, RefreshCw, Package, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { sections } from "@/data/desembreProducts";
 import { AdminHealthAlerts } from "@/features/admin-dashboard/components/AdminHealthAlerts";
 import { generateHealthAlerts, buildStats } from "@/features/admin-dashboard/utils/adminHealthAlerts";
 
 type AdminProduct = {
   id: string;
-  legacyNo?: number;
   section: string;
   name: string;
   desc: string;
@@ -141,7 +140,6 @@ export default function Dashboard() {
       }
       setProducts(data.map((item: RawRow) => ({
         id: item.id || String(item.no || Date.now()),
-        legacyNo: item.no,
         section: item.section || "Khác",
         name: item.name || "",
         desc: item.desc || "",
@@ -187,7 +185,7 @@ export default function Dashboard() {
 
   // 3. Xóa mềm (Soft Delete)
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa/ẩn sản phẩm "${name}"?`)) return;
+    if (!window.confirm(`Bạn có chắc muốn ẩn sản phẩm "${name}"?`)) return;
     try {
       const { error } = await supabase.from("product_overrides").update({ deleted: true }).eq("id", id);
       if (error) throw error;
@@ -515,7 +513,7 @@ export default function Dashboard() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="font-semibold text-foreground line-clamp-1 flex items-center gap-2">
-                        {p.name || `Sản phẩm #${p.legacyNo ?? 'Mới'}`} 
+                        {p.name || "Sản phẩm không tên"} 
                         {p.deleted && <span className="text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full uppercase font-bold tracking-wider shrink-0">Đã ẩn</span>}
                         {!p.link_url && !p.deleted && <span className="text-[10px] bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider shrink-0" title="Thiếu link công bố">Thiếu Link</span>}
                       </div>
@@ -530,12 +528,12 @@ export default function Dashboard() {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         {p.deleted ? (
-                          <button onClick={() => handleRestore(p.id, p.name)} className="p-2 text-emerald-600 hover:bg-emerald-600/10 rounded-md transition-colors" title="Khôi phục">
+                          <button onClick={() => handleRestore(p.id, p.name)} className="p-2 text-emerald-600 hover:bg-emerald-600/10 rounded-md transition-colors" title="Khôi phục hiển thị">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                           </button>
                         ) : (
-                          <button onClick={() => handleDelete(p.id, p.name)} className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors" title="Ẩn">
-                            <Trash2 className="w-4 h-4" />
+                          <button onClick={() => handleDelete(p.id, p.name)} className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors" title="Ẩn sản phẩm">
+                            <Archive className="w-4 h-4" />
                           </button>
                         )}
                       </div>
