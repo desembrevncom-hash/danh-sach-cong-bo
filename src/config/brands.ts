@@ -13,6 +13,43 @@ export const BRAND_CONFIG = {
 
 export type BrandId = keyof typeof BRAND_CONFIG;
 
+export type BrandTheme = {
+  id: BrandId;
+  name: string;
+  website?: string;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  accentColor: string;
+  backgroundClass: string;
+  otherBrandId: BrandId;
+};
+
+export const BRAND_THEMES: Record<BrandId, BrandTheme> = {
+  desembre: {
+    id: "desembre",
+    name: "Desembre",
+    website: "www.desembrevn.com",
+    eyebrow: "WWW.DESEMBREVN.COM · 2026 CATALOG",
+    title: "Danh Sách Công Bố Sản Phẩm Desembre",
+    subtitle: "Bộ sưu tập đầy đủ các dòng sản phẩm chăm sóc da chuyên nghiệp Desembre — đã công bố lưu hành tại Việt Nam.",
+    accentColor: "bg-accent",
+    backgroundClass: "bg-gradient-to-br from-primary/5 to-transparent",
+    otherBrandId: "dermagarden",
+  },
+  dermagarden: {
+    id: "dermagarden",
+    name: "Dermagarden",
+    website: "www.dermagarden.com",
+    eyebrow: "WWW.DERMAGARDEN.COM · 2026 CATALOG",
+    title: "Danh Sách Công Bố Sản Phẩm Dermagarden",
+    subtitle: "Bộ sưu tập đầy đủ các dòng sản phẩm chăm sóc da chuyên nghiệp Dermagarden — đã công bố lưu hành tại Việt Nam.",
+    accentColor: "bg-primary",
+    backgroundClass: "bg-gradient-to-bl from-primary/5 to-transparent",
+    otherBrandId: "desembre",
+  },
+};
+
 export function resolveBrandId(rawBrandId?: string): BrandId {
   if (rawBrandId === "dermagarden") return "dermagarden";
   return "desembre";

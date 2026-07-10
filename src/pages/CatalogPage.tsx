@@ -12,8 +12,8 @@ import { EditHistoryProvider, useEditHistory } from "@/hooks/useEditHistory";
 import { toast } from "sonner";
 import { groupProductsBySection } from "@/features/products/utils/productTransforms";
 import { buildProductDisplayRows, type ProductDisplayRow } from "@/features/products/utils/productDisplayRows";
-import { CatalogHeader } from "@/features/products/components/CatalogHeader";
-import { CatalogFooter } from "@/features/products/components/CatalogFooter";
+import { BrandHero } from "@/features/public-layout/components/BrandHero";
+import { PublicLayout } from "@/features/public-layout/components/PublicLayout";
 import { ProductToolbar } from "@/features/products/components/ProductToolbar";
 import { ProductTable } from "@/features/products/components/ProductTable";
 import { ProductCardList } from "@/features/products/components/ProductCardList";
@@ -291,12 +291,12 @@ const IndexInner = ({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <PublicLayout>
       <SeoHead routePath={`/${activeBrand}`} />
       
-      <CatalogHeader brand={activeBrand} />
+      <BrandHero brandId={activeBrand} />
 
-      <section className="container mx-auto px-3 md:px-6 pt-3 md:pt-8 sticky top-0 z-50 bg-background/80 backdrop-blur-sm pb-2">
+      <section className="container mx-auto px-3 md:px-6 pt-3 md:pt-8 sticky top-16 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-2">
         <ProductToolbar
           query={query}
           onSearchChange={setQuery}
@@ -472,9 +472,7 @@ const IndexInner = ({
           </>
         )}
       </main>
-
-      <CatalogFooter />
-    </div>
+    </PublicLayout>
   );
 };
 
