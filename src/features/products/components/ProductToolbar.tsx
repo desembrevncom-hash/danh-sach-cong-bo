@@ -3,7 +3,7 @@ import { Search, RotateCcw, Lock, LockOpen, Plus, FileDown, FolderPlus, X, Check
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { ProductPDF } from "@/features/export-pdf/components/ProductPDF";
 import { HistoryPanel } from "@/features/products/components/HistoryPanel";
-import { sections } from '@/data/desembreProducts';
+import { ALL_SECTION_VALUE, type SectionOption, type BrandId } from "@/config/brands";
 import type { ProductViewModel } from '@/features/products/types';
 import type { ProductOverrideRow } from "@/features/products/types";
 import type { ProductDisplayRow } from "@/features/products/utils/productDisplayRows";
@@ -13,7 +13,7 @@ export type ProductToolbarProps = {
   onSearchChange: (value: string) => void;
   section: string;
   setSection: (s: string) => void;
-  sectionTitles: string[];
+  sectionOptions: SectionOption[];
   isFiltered: boolean;
   onReset: () => void;
   filteredProducts: ProductDisplayRow[];
@@ -25,9 +25,8 @@ export type ProductToolbarProps = {
   isAdmin?: boolean;
   /** Callback khi Admin xác nhận thêm nhóm mới */
   onAddSection?: (name: string) => void;
+  activeBrand: BrandId;
 };
-
-const ALL = "ALL";
 
 function AnimatedDots() {
   const [count, setCount] = useState(1);
@@ -116,7 +115,7 @@ export function ProductToolbar({
   onSearchChange,
   section,
   setSection,
-  sectionTitles,
+  sectionOptions,
   isFiltered,
   onReset,
   filteredProducts,
@@ -126,6 +125,7 @@ export function ProductToolbar({
   onToggleLock,
   isAdmin = false,
   onAddSection,
+  activeBrand,
 }: ProductToolbarProps) {
   const [showAddSection, setShowAddSection] = useState(false);
   const addSectionRef = useRef<HTMLDivElement>(null);
@@ -174,16 +174,12 @@ export function ProductToolbar({
           onChange={(e) => setSection(e.target.value)}
           className="h-11 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition md:w-56"
         >
-          <option value={ALL}>Tất cả nhóm sản phẩm</option>
-          {sectionTitles.map((s) => {
-            const meta = sections.find((x) => x.title === s);
-            return (
-              <option key={s} value={s}>
-                {s}
-                {meta?.vi ? ` — ${meta.vi}` : ""}
-              </option>
-            );
-          })}
+          <option value={ALL_SECTION_VALUE}>Tất cả nhóm sản phẩm</option>
+          {sectionOptions.map((option) => (
+            <option key={`${activeBrand}-${option.value}`} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
 
         {/* Nút (+) Thêm nhóm — chỉ hiện khi isAdmin */}

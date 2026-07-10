@@ -73,7 +73,7 @@ const ProductLinkCell = ({ productNo, href, onChange, label = "Link", variant = 
     }
     setSaving(true);
     const fieldName = label === "Link 2" ? "link_url_2" : "link_url";
-    const res = await saveProductOverride({ no: productNo, [fieldName]: link_val });
+    const res = await saveProductOverride({ productId: productNo, [fieldName]: link_val });
     setSaving(false);
     if (!res.ok) {
       toast.error(res.error ?? "Lưu thất bại");

@@ -16,10 +16,6 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   );
 } else {
   const keyType = SUPABASE_ANON_KEY.startsWith("eyJ") ? "jwt/anon ✅" : "publishable key ⚠️ (may not work for RPC)";
-  console.log(
-    "[Supabase] client init",
-    { url: SUPABASE_URL, keyType }
-  );
 }
 
 // Import the supabase client like this:

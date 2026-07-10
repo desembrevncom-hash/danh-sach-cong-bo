@@ -22,7 +22,6 @@ export type Database = {
           is_custom: boolean
           link_url: string | null
           name: string | null
-          no: number
           section: string | null
           updated_at: string
         }
@@ -33,7 +32,6 @@ export type Database = {
           is_custom?: boolean
           link_url?: string | null
           name?: string | null
-          no: number
           section?: string | null
           updated_at?: string
         }

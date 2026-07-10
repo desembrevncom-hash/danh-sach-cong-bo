@@ -12,7 +12,7 @@ type AdminEditModalProps = {
   onClose: () => void;
   product: ProductViewModel;
   override?: ProductOverrideRow;
-  onOptimisticUpdate: (no: number, patch: Partial<ProductOverrideRow>) => void;
+  onOptimisticUpdate: (productId: string, patch: Partial<ProductOverrideRow>) => void;
 };
 
 export function AdminEditModal({
@@ -87,7 +87,7 @@ export function AdminEditModal({
       // 2. Ghi xuống DB
       const { error } = await supabase
         .from("product_overrides")
-        .upsert({ no: product.id, ...patch });
+        .upsert({ id: product.id, ...patch });
 
       if (error) {
         toast.error("Lỗi khi lưu: " + error.message);

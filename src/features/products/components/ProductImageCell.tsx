@@ -37,7 +37,7 @@ const ProductImageCell = ({ productNo, src, onChange }: Props) => {
       return null;
     }
     setSaving(true);
-    const res = await saveProductOverride({ no: productNo, ...payload });
+    const res = await saveProductOverride({ productId: productNo, ...payload });
     setSaving(false);
     if (!res.ok) {
       toast.error(res.error ?? "Lưu thất bại");

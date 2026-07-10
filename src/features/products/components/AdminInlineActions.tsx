@@ -10,7 +10,7 @@ type AdminInlineActionsProps = {
   product: ProductViewModel;
   override?: ProductOverrideRow;
   /** Optimistic UI: cập nhật local ngay lập tức */
-  onOptimisticUpdate: (no: number, patch: Partial<ProductOverrideRow>) => void;
+  onOptimisticUpdate: (productId: string, patch: Partial<ProductOverrideRow>) => void;
   // Các props inline-edit cũ vẫn giữ để ProductTable không bị lỗi — nhưng modal tự quản lý
   onStartEdit: () => void;
   onSaveEdit: () => void;
@@ -36,7 +36,7 @@ export function AdminInlineActions({
     // 2. Gửi request xuống DB ngầm
     const { error } = await supabase
       .from("product_overrides")
-      .upsert({ no: product.id, deleted: newDeleted });
+      .upsert({ id: product.id, deleted: newDeleted });
 
     if (error) {
       // Rollback nếu lỗi

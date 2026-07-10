@@ -40,8 +40,8 @@ export type ProductEditDialogProps = {
 // ─── Form state ───────────────────────────────────────────────────────────────
 
 type FormState = {
-  /** String representation of the product number; only editable in edit mode */
-  no: string;
+  /** String representation of the product id; only editable in edit mode */
+  id: string;
   /** Selected section from dropdown */
   section: string;
   /** Free-text section when user picks "add new group" */
@@ -59,7 +59,7 @@ function buildFormState(
   const initSec = initial.section ?? "";
   const inList = initSec && sectionOptions.includes(initSec);
   return {
-    no: initial.id != null ? String(initial.id) : "",
+    id: initial.id != null ? String(initial.id) : "",
     section: inList ? initSec : "",
     customSection: !inList ? initSec : "",
     useCustom: !!initSec && !inList,
@@ -69,7 +69,7 @@ function buildFormState(
 }
 
 const EMPTY_FORM: FormState = {
-  no: "",
+  id: "",
   section: "",
   customSection: "",
   useCustom: false,
@@ -111,9 +111,12 @@ const ProductEditDialog = ({
     }
 
     setSaving(true);
+    const action = form.id ? "upsert" : "create";
+    const payloadId = form.id ? form.id : undefined;
+
     const res = await saveProductOverride({
-      action: isCreate ? "create" : "upsert",
-      productId: isCreate ? undefined : initial!.id,
+      action: action,
+      productId: payloadId,
       section: finalSection,
       name: form.name.trim(),
       desc: form.desc.trim(),

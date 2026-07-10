@@ -23,9 +23,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useAdminSession } from "@/hooks/useAdminSession";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { resolveBrandId } from "@/config/brands";
-
-const ALL = "ALL";
+import { resolveBrandId, ALL_SECTION_VALUE, getBrandSectionOptions, formatSectionLabel, type SectionOption } from "@/config/brands";
 
 // ─── Inner component (has access to EditHistoryContext) ───────────────────────
 
@@ -45,9 +43,41 @@ const IndexInner = ({
 
   const [askUnlock, setAskUnlock] = useState(false);
   const [query, setQuery] = useState("");
-  const [section, setSection] = useState<string>(ALL);
+  const [section, setSection] = useState<string>(ALL_SECTION_VALUE);
   
   const activeBrand = resolveBrandId(brandId);
+  const [dbSections, setDbSections] = useState<SectionOption[] | null>(null);
+  
+  const baseSectionOptions = useMemo(() => {
+    return dbSections ?? getBrandSectionOptions(activeBrand);
+  }, [dbSections, activeBrand]);
+
+  const fetchSections = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_catalog_sections', {
+        brand_id: activeBrand,
+        include_hidden: isAdmin,
+      });
+      if (error) throw error;
+      const options = (data || []).map((row: { section: string }) => ({
+        value: row.section,
+        label: formatSectionLabel(row.section),
+      }));
+      setDbSections(options);
+    } catch (err) {
+      console.error("Error fetching sections:", err);
+      setDbSections(null); // Fallback to static config
+    }
+  }, [activeBrand, isAdmin]);
+
+  useEffect(() => {
+    fetchSections();
+  }, [fetchSections]);
+
+  useEffect(() => {
+    setSection(ALL_SECTION_VALUE);
+    setCurrentPage(1);
+  }, [activeBrand]);
 
   // Pagination & Data states
   const [currentPage, setCurrentPage] = useState(1);
@@ -74,11 +104,9 @@ const IndexInner = ({
     setIsLoading(true);
     try {
       const searchTerm = debouncedQuery?.trim() || null;
-      const catId      = (section && section !== ALL) ? section : null;
+      const catId      = (section && section !== ALL_SECTION_VALUE) ? section : null;
       const pageNum    = Math.max(1, Math.floor(currentPage));
       const pageSize   = 20;
-
-      console.log("[fetchProducts:start]", { activeBrand, searchTerm, catId, pageNum, pageSize });
 
       // Use raw fetch directly — supabase.rpc() times out due to sb_publishable_ key
       // format incompatibility with the current supabase-js client.
@@ -106,8 +134,6 @@ const IndexInner = ({
         15000
       );
 
-      console.log("[fetchProducts:http_status]", res.status);
-
       if (!res.ok) {
         const errText = await res.text();
         console.error("[fetchProducts:error] HTTP", res.status, errText);
@@ -133,11 +159,8 @@ const IndexInner = ({
         total_count?: number;
       }>;
 
-      console.log("[fetchProducts:rpc_result]", { rowsCount: data?.length, firstRow: data?.[0] });
-
       const filteredData = data.filter((item) => (item.brand || "desembre") === activeBrand);
       const formattedData = mapProductRowsToViewModels(filteredData as ProductRowFromRpc[]);
-      console.log("[fetchProducts:mapped]", { mappedCount: formattedData.length, firstMapped: formattedData[0] });
 
       setProductsData(formattedData);
       if (filteredData.length > 0) {
@@ -153,7 +176,6 @@ const IndexInner = ({
       setProductsData([]);
       setTotalCount(0);
     } finally {
-      console.log("[fetchProducts:finally] setIsLoading(false)");
       setIsLoading(false);
     }
   }, [debouncedQuery, section, currentPage, activeBrand]);
@@ -224,24 +246,49 @@ const IndexInner = ({
   // Nhóm tuỳ chỉnh do Admin thêm mới trong phiên làm việc
   const [customSections, setCustomSections] = useState<string[]>([]);
 
-  const sectionTitles = useMemo(() => {
-    const set = new Set<string>(sections.map((s) => s.title));
-    for (const o of Object.values(overrides)) if (o.section) set.add(o.section);
-    for (const cs of customSections) set.add(cs);
-    return Array.from(set);
-  }, [overrides, customSections]);
+  const sectionOptions = useMemo(() => {
+    const options = [...baseSectionOptions];
+    const existingValues = new Set(options.map((o) => o.value));
+
+    for (const cs of customSections) {
+      if (!existingValues.has(cs)) {
+        options.push({ value: cs, label: cs });
+        existingValues.add(cs);
+      }
+    }
+
+    for (const o of Object.values(overrides)) {
+      if (o.section && !existingValues.has(o.section)) {
+        options.push({ value: o.section, label: o.section });
+        existingValues.add(o.section);
+      }
+    }
+    return options;
+  }, [baseSectionOptions, customSections, overrides]);
 
   const handleAddSection = (name: string) => {
-    if (!sectionTitles.includes(name)) {
+    if (!sectionOptions.find(o => o.value === name)) {
       setCustomSections((prev) => [...prev, name]);
     }
   };
 
-  const isFiltered = query !== "" || section !== ALL;
+  const isFiltered = query !== "" || section !== ALL_SECTION_VALUE;
+
+  // Ensure section is valid with dynamic options
+  useEffect(() => {
+    if (section === ALL_SECTION_VALUE) return;
+    // Wait until dbSections are loaded before forcing a reset if it doesn't match
+    if (dbSections === null) return;
+    
+    if (!sectionOptions.some((item) => item.value === section)) {
+      setSection(ALL_SECTION_VALUE);
+      setCurrentPage(1);
+    }
+  }, [section, sectionOptions, dbSections]);
 
   const reset = () => {
     setQuery("");
-    setSection(ALL);
+    setSection(ALL_SECTION_VALUE);
     setCurrentPage(1);
   };
 
@@ -257,16 +304,17 @@ const IndexInner = ({
           onSearchChange={setQuery}
           section={section}
           setSection={setSection}
-          sectionTitles={sectionTitles}
+          sectionOptions={sectionOptions}
           isFiltered={isFiltered}
           onReset={reset}
           filteredProducts={displayRows}
           overrides={overrides}
           unlocked={unlocked}
-          onOpenCreate={() => openCreate(section === ALL ? "" : section)}
+          onOpenCreate={() => openCreate(section === ALL_SECTION_VALUE ? "" : section)}
           onToggleLock={() => (unlocked ? lock() : setAskUnlock(true))}
           isAdmin={isAdmin}
           onAddSection={handleAddSection}
+          activeBrand={activeBrand}
         />
 
         <UnlockDialog open={askUnlock} onOpenChange={setAskUnlock} />
@@ -274,7 +322,7 @@ const IndexInner = ({
           open={editOpen}
           onOpenChange={setEditOpen}
           initial={editInitial}
-          sectionOptions={sectionTitles}
+          sectionOptions={sectionOptions}
           groupedProducts={grouped}
           onSaved={async (row, insertAfterNo) => {
             if (editInitial?.id && editInitial.id !== row.id) {
