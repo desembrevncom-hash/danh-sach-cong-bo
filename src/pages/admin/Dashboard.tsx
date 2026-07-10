@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadProductImage } from "@/features/products/utils/upload";
@@ -40,7 +40,7 @@ export default function Dashboard() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorState, setErrorState] = useState<string | null>(null);
-  const requestIdRef = React.useRef(0);
+  const requestIdRef = useRef(0);
 
   // Filter state
   const [filterTab, setFilterTab] = useState<"ALL" | "ACTIVE" | "DELETED">("ALL");
