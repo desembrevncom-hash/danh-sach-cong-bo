@@ -135,7 +135,7 @@ export function useProductActions({
       if (failed) toast.error(`${failed} sản phẩm lỗi`);
       else toast.success(`Đã đổi nhóm thành "${newTitle}"`);
     },
-    [overrides, setOverrides, snapshot, upsertOverride],
+    [upsertOverride],
   );
 
   const onReorderProduct = useCallback(
@@ -162,7 +162,7 @@ export function useProductActions({
       
       toast.success("Đã cập nhật thứ tự hiển thị!");
     },
-    [setOverrides, refreshOverrides],
+    [setOverrides],
   );
 
   // ── Compose actions object ────────────────────────────────────────────────

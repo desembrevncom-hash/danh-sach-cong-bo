@@ -7,10 +7,14 @@ import { MediaAssetPickerDialog } from '@/features/media/components/MediaAssetPi
 import { MediaAssetType } from '@/features/media/types';
 import { toast } from 'sonner';
 import { Edit2, Save, X, RefreshCw, Eye, Globe, Image as ImageIcon, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { DashboardErrorState } from '@/components/ui/dashboard-error';
+import { withTimeout, getErrorMessage } from '@/lib/asyncState';
 
 export function SeoManagementTab() {
   const [pages, setPages] = useState<SeoPage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorState, setErrorState] = useState<string | null>(null);
+  const requestIdRef = React.useRef(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -43,19 +47,30 @@ export function SeoManagementTab() {
   }, []);
 
   const loadPages = async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
-    const [seoRes, siteRes] = await Promise.all([
-      fetchAllSeoPagesForAdmin(),
-      fetchSiteSettings()
-    ]);
+    setErrorState(null);
+    try {
+      const [seoRes, siteRes] = await Promise.all([
+        withTimeout(fetchAllSeoPagesForAdmin(), 8000),
+        withTimeout(fetchSiteSettings(), 8000)
+      ]);
 
-    if (seoRes.ok && seoRes.data) setPages(seoRes.data);
-    else toast.error(seoRes.error || 'Không thể tải danh sách trang SEO');
+      if (requestId !== requestIdRef.current) return;
 
-    if (siteRes.ok && siteRes.data) setSiteSettings(siteRes.data);
-    else toast.error(siteRes.error || 'Không thể tải cấu hình Site Assets');
-    
-    setLoading(false);
+      if (seoRes.ok && seoRes.data) setPages(seoRes.data);
+      else toast.error(seoRes.error || 'Không thể tải danh sách trang SEO');
+
+      if (siteRes.ok && siteRes.data) setSiteSettings(siteRes.data);
+      else toast.error(siteRes.error || 'Không thể tải cấu hình Site Assets');
+    } catch (error) {
+      if (requestId !== requestIdRef.current) return;
+      setErrorState(getErrorMessage(error));
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
+    }
   };
 
   const handleEdit = (p: SeoPage) => {
@@ -193,6 +208,10 @@ export function SeoManagementTab() {
 
   if (loading) {
     return <div className="p-8 text-center"><RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary" /></div>;
+  }
+
+  if (errorState) {
+    return <div className="p-8"><DashboardErrorState message={errorState} onRetry={loadPages} /></div>;
   }
 
   if (editingId) {

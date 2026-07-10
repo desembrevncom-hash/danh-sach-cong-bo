@@ -4,6 +4,8 @@ import { listMediaAssets, uploadMediaAsset, softDeleteMediaAsset } from '../serv
 import { validateMediaFile } from '../utils/mediaValidation';
 import { toast } from 'sonner';
 import { Upload, Trash2, Copy, RefreshCw, Image as ImageIcon, Filter } from 'lucide-react';
+import { DashboardErrorState } from '@/components/ui/dashboard-error';
+import { withTimeout, getErrorMessage } from '@/lib/asyncState';
 
 const ASSET_TYPES: { value: MediaAssetType; label: string }[] = [
   { value: 'favicon', label: 'Favicon' },
@@ -18,7 +20,9 @@ const ASSET_TYPES: { value: MediaAssetType; label: string }[] = [
 export function MediaLibraryTab() {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorState, setErrorState] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const requestIdRef = useRef(0);
   
   // Filters
   const [filterType, setFilterType] = useState<MediaAssetType | ''>('');
@@ -27,18 +31,29 @@ export function MediaLibraryTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchAssets = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
+    setErrorState(null);
     const filters: Record<string, string> = {};
     if (filterType) filters.assetType = filterType;
     if (filterBrand) filters.brand = filterBrand;
 
-    const { ok, data, error } = await listMediaAssets(filters as { assetType?: MediaAssetType, brand?: string });
-    if (ok && data) {
-      setAssets(data);
-    } else {
-      toast.error(error || 'Không thể tải thư viện ảnh');
+    try {
+      const result = await withTimeout(listMediaAssets(filters as { assetType?: MediaAssetType, brand?: string }), 12000);
+      if (requestId !== requestIdRef.current) return;
+      if (result.ok && result.data) {
+        setAssets(result.data);
+      } else {
+        setErrorState(result.error || 'Không thể tải thư viện ảnh');
+      }
+    } catch (error) {
+      if (requestId !== requestIdRef.current) return;
+      setErrorState(getErrorMessage(error));
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
-    setLoading(false);
   }, [filterType, filterBrand]);
 
   useEffect(() => {
@@ -146,6 +161,8 @@ export function MediaLibraryTab() {
           <RefreshCw className="w-8 h-8 animate-spin mx-auto text-primary" />
           <p className="mt-2 text-muted-foreground">Đang tải thư viện ảnh...</p>
         </div>
+      ) : errorState ? (
+        <DashboardErrorState message={errorState} onRetry={fetchAssets} />
       ) : assets.length === 0 ? (
         <div className="py-16 text-center bg-card border border-border border-dashed rounded-lg">
           <ImageIcon className="w-12 h-12 mx-auto text-muted-foreground opacity-50 mb-4" />
@@ -158,7 +175,17 @@ export function MediaLibraryTab() {
           {assets.map(asset => (
             <div key={asset.id} className="bg-card border border-border rounded-lg overflow-hidden flex flex-col group">
               <div className="aspect-square bg-muted/30 relative flex items-center justify-center overflow-hidden p-4">
-                <img src={asset.publicUrl} alt={asset.fileName} className="max-w-full max-h-full object-contain" />
+                <img 
+                  src={asset.publicUrl} 
+                  alt={asset.fileName} 
+                  loading="lazy" 
+                  decoding="async"
+                  className="max-w-full max-h-full object-contain" 
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).onerror = null;
+                    (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="%23ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+                  }}
+                />
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <button onClick={() => handleCopyUrl(asset.publicUrl)} className="p-2 bg-white/20 hover:bg-white/40 rounded-full text-white" title="Copy URL">
                     <Copy className="w-4 h-4" />

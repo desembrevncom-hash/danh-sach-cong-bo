@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Edit2, Trash2, RefreshCw, Check, X, ArrowUp, ArrowDown } from "lucide-react";
+import { DashboardErrorState } from "@/components/ui/dashboard-error";
+import { withTimeout, getErrorMessage } from "@/lib/asyncState";
 import { resolveBrandId, type BrandId } from "@/config/brands";
 
 interface SectionRow {
@@ -18,6 +20,8 @@ interface SectionRow {
 export function SectionManagementTab({ activeBrand }: { activeBrand: BrandId }) {
   const [sections, setSections] = useState<SectionRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorState, setErrorState] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
   
   // Form states
   const [isEditing, setIsEditing] = useState<string | null>(null);
@@ -25,24 +29,33 @@ export function SectionManagementTab({ activeBrand }: { activeBrand: BrandId }) 
   const [isAdding, setIsAdding] = useState(false);
 
   const fetchSections = async () => {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
+    setErrorState(null);
     try {
-      // 1. Fetch raw catalog_sections to get full details (description, id, etc.)
-      const { data: dbSections, error: dbError } = await supabase
+      const dbPromise = supabase
         .from("catalog_sections")
         .select("*")
         .eq("brand", activeBrand)
         .order("sort_order", { ascending: true });
 
-      if (dbError) throw dbError;
-
-      // 2. Fetch RPC to get total_count
-      const { data: rpcSections, error: rpcError } = await supabase.rpc("get_catalog_sections", {
+      const rpcPromise = supabase.rpc("get_catalog_sections", {
         brand_id: activeBrand,
         include_hidden: true
       });
 
-      if (rpcError) throw rpcError;
+      const [dbRes, rpcRes] = await Promise.all([
+        withTimeout(dbPromise, 8000),
+        withTimeout(rpcPromise, 8000)
+      ]);
+
+      if (requestId !== requestIdRef.current) return;
+
+      if (dbRes.error) throw dbRes.error;
+      if (rpcRes.error) throw rpcRes.error;
+
+      const dbSections = dbRes.data;
+      const rpcSections = rpcRes.data;
 
       // Merge data
       const merged = (dbSections || []).map(sec => {
@@ -69,17 +82,21 @@ export function SectionManagementTab({ activeBrand }: { activeBrand: BrandId }) 
         }));
 
       setSections([...merged, ...fallbackSections].sort((a, b) => a.sort_order - b.sort_order));
-    } catch (e: unknown) {
-      const err = e as Error;
-      console.error("Fetch sections error:", err);
-      toast.error("Lỗi tải danh sách nhóm: " + err.message);
+    } catch (error) {
+      if (requestId !== requestIdRef.current) return;
+      const msg = getErrorMessage(error);
+      setErrorState(msg);
+      if (import.meta.env.DEV) console.error("Fetch sections error:", error);
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchSections();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeBrand]);
 
   const handleSaveEdit = async (id: string) => {
@@ -207,7 +224,7 @@ export function SectionManagementTab({ activeBrand }: { activeBrand: BrandId }) 
     // Gửi update lên DB
     try {
       const updates = newSections.map(s => {
-        const payload: any = {
+        const payload: Record<string, string | number | boolean> = {
           brand: s.brand,
           value: s.value,
           label: s.label,
@@ -303,6 +320,8 @@ export function SectionManagementTab({ activeBrand }: { activeBrand: BrandId }) 
 
             {isLoading ? (
               <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Đang tải dữ liệu...</td></tr>
+            ) : errorState ? (
+              <tr><td colSpan={6} className="p-4"><DashboardErrorState message={errorState} onRetry={fetchSections} /></td></tr>
             ) : sections.length === 0 && !isAdding ? (
               <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Chưa có nhóm sản phẩm nào.</td></tr>
             ) : (

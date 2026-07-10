@@ -15,6 +15,8 @@ import { resolveBrandId, type BrandId } from "@/config/brands";
 import { SeoHead } from "@/features/seo/components/SeoHead";
 import { SeoManagementTab } from "@/features/seo/components/SeoManagementTab";
 import { MediaLibraryTab } from '@/features/media/components/MediaLibraryTab';
+import { withTimeout, getErrorMessage } from "@/lib/asyncState";
+import { DashboardErrorState } from "@/components/ui/dashboard-error";
 
 type AdminProduct = {
   id: string;
@@ -38,6 +40,7 @@ export default function Dashboard() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorState, setErrorState] = useState<string | null>(null);
+  const requestIdRef = React.useRef(0);
 
   // Filter state
   const [filterTab, setFilterTab] = useState<"ALL" | "ACTIVE" | "DELETED">("ALL");
@@ -128,55 +131,69 @@ export default function Dashboard() {
 
   // 2. Lấy danh sách sản phẩm
   const fetchProducts = async () => {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setErrorState(null);
     
-    // Admin lấy trực tiếp từ bảng product_overrides để quản lý toàn bộ bản ghi (cả ẩn và hiện)
-    const [productsRes, sectionsRes] = await Promise.all([
-      supabase.from("product_overrides").select("*").order("updated_at", { ascending: false }),
-      supabase.from("catalog_sections").select("*").eq("brand", selectedBrand).order("sort_order", { ascending: true })
-    ]);
+    try {
+      // Admin lấy trực tiếp từ bảng product_overrides để quản lý toàn bộ bản ghi (cả ẩn và hiện)
+      const [productsRes, sectionsRes] = await Promise.all([
+        withTimeout(supabase.from("product_overrides").select("*").order("updated_at", { ascending: false }), 10000),
+        withTimeout(supabase.from("catalog_sections").select("*").eq("brand", selectedBrand).order("sort_order", { ascending: true }), 10000)
+      ]);
 
-    const { data, error } = productsRes;
-    const { data: secData } = sectionsRes;
+      if (requestId !== requestIdRef.current) return;
 
-    if (secData && secData.length > 0) {
-      setSectionOptions(secData as SectionOption[]);
-    } else {
-      setSectionOptions(fallbackSections.map((s, i) => ({ value: s.title, label: s.title, sort_order: i * 10 })));
-    }
+      const { data, error } = productsRes;
+      const { data: secData, error: secError } = sectionsRes;
 
-    if (error) {
-      setErrorState(error.message);
-      toast.error("Lỗi lấy dữ liệu: " + error.message);
-    } else if (data) {
-      interface RawRow {
-        id: string;
-        section: string | null;
-        name: string | null;
-        desc: string | null;
-        link_url: string | null;
-        link_url_2: string | null;
-        image_url: string | null;
-        deleted: boolean;
-        brand: string | null;
-        sort_order: number | null;
+      if (secError) throw secError;
+      if (error) throw error;
+
+      if (secData && secData.length > 0) {
+        setSectionOptions(secData as SectionOption[]);
+      } else {
+        setSectionOptions(fallbackSections.map((s, i) => ({ value: s.title, label: s.title, sort_order: i * 10 })));
       }
-      setProducts(data.map((item: RawRow) => ({
-        id: item.id || String(Date.now()),
-        section: item.section || "Khác",
-        name: item.name || "",
-        desc: item.desc || "",
-        link_url: item.link_url || undefined,
-        link_url_2: item.link_url_2 || undefined,
-        image_url: item.image_url || undefined,
-        deleted: item.deleted,
-        brand: item.brand || "desembre",
-        sort_order: item.sort_order || 0,
-        updated_at: item.updated_at || undefined
-      })));
+
+      if (data) {
+        interface RawRow {
+          id: string;
+          section: string | null;
+          name: string | null;
+          desc: string | null;
+          link_url: string | null;
+          link_url_2: string | null;
+          image_url: string | null;
+          deleted: boolean;
+          brand: string | null;
+          sort_order: number | null;
+          updated_at: string | null;
+        }
+        setProducts(data.map((item: RawRow) => ({
+          id: item.id || String(Date.now()),
+          section: item.section || "Khác",
+          name: item.name || "",
+          desc: item.desc || "",
+          link_url: item.link_url || undefined,
+          link_url_2: item.link_url_2 || undefined,
+          image_url: item.image_url || undefined,
+          deleted: item.deleted,
+          brand: item.brand || "desembre",
+          sort_order: item.sort_order || 0,
+          updated_at: item.updated_at || undefined
+        })));
+      }
+    } catch (error) {
+      if (requestId !== requestIdRef.current) return;
+      const msg = getErrorMessage(error);
+      setErrorState(msg);
+      if (import.meta.env.DEV) console.error("fetchProducts error:", error);
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
-    setIsLoading(false);
   };
 
   const handleLogout = async () => {
@@ -223,7 +240,8 @@ export default function Dashboard() {
       // Optimistic update
       setProducts(prev => prev.map(p => p.id === id ? { ...p, deleted: true } : p));
       toast.success('Đã ẩn sản phẩm thành công!');
-    } catch (err: any) {
+    } catch (error) {
+      const err = error as Error;
       console.error("Lỗi khi ẩn sản phẩm:", err);
       toast.error('Ẩn thất bại! ' + (err.message || ''));
     }
@@ -242,7 +260,8 @@ export default function Dashboard() {
       // Optimistic update
       setProducts(prev => prev.map(p => p.id === id ? { ...p, deleted: false } : p));
       toast.success('Đã khôi phục sản phẩm thành công!');
-    } catch (err: any) {
+    } catch (error) {
+      const err = error as Error;
       console.error("Lỗi khi khôi phục sản phẩm:", err);
       toast.error('Khôi phục thất bại! ' + (err.message || ''));
     }
@@ -594,13 +613,13 @@ export default function Dashboard() {
                 <p className="text-sm font-medium text-muted-foreground">Đang tải dữ liệu...</p>
               </div>
             ) : errorState ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-                <AlertTriangle className="w-12 h-12 text-destructive mb-4 opacity-80" />
-                <h3 className="text-lg font-semibold mb-2">Lỗi tải dữ liệu</h3>
-                <p className="text-sm text-muted-foreground mb-4 max-w-md">{errorState}</p>
-                <button onClick={fetchProducts} className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-md text-sm font-medium transition-colors">
-                  <RefreshCw className="w-4 h-4" /> Thử lại
-                </button>
+              <div className="absolute inset-0 z-10 flex items-center justify-center p-4 bg-background/50 backdrop-blur-sm">
+                <DashboardErrorState 
+                  title="Không thể tải dữ liệu sản phẩm" 
+                  message={errorState} 
+                  onRetry={fetchProducts} 
+                  className="w-full max-w-md shadow-lg bg-card"
+                />
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
@@ -633,7 +652,17 @@ export default function Dashboard() {
                   <tr key={p.id} className={`hover:bg-muted/30 transition-colors ${p.deleted ? "opacity-60 bg-muted/10" : ""}`}>
                     <td className="px-5 py-3 w-16">
                       {p.image_url ? (
-                        <img src={p.image_url} alt={p.name} className={`w-11 h-11 object-cover rounded-md border border-border shadow-sm ${p.deleted ? "grayscale-[50%]" : ""}`} />
+                        <img 
+                          src={p.image_url} 
+                          alt={p.name} 
+                          loading="lazy"
+                          decoding="async"
+                          className={`w-11 h-11 object-cover rounded-md border border-border shadow-sm ${p.deleted ? "grayscale-[50%]" : ""}`}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).onerror = null;
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="%23ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+                          }}
+                        />
                       ) : (
                         <div className="w-11 h-11 bg-muted/50 flex items-center justify-center rounded-md border border-border shadow-sm"><ImageIcon className="w-4 h-4 text-muted-foreground/40"/></div>
                       )}
