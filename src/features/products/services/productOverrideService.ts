@@ -40,7 +40,16 @@ export async function saveProductOverride(payload: SaveProductOverridePayload) {
   }
 
   if (error) {
-    return { ok: false as const, error: error.message ?? "Lỗi mạng khi gọi Edge Function" };
+    let msg = error.message ?? "Lỗi mạng khi gọi Edge Function";
+    if (error.context && error.context.status >= 400 && error.context.status < 600) {
+      // supabase-js v2 puts the response promise or body in context
+      console.error("Edge function error context:", error.context);
+    }
+    // Try to parse data if it came back as JSON in data
+    if (data && typeof data === 'object' && 'error' in data) {
+      msg = String(data.error);
+    }
+    return { ok: false as const, error: msg };
   }
   if (data?.error) {
     return { ok: false as const, error: data.error as string };
