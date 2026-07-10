@@ -9,6 +9,7 @@ import { AdminHealthAlerts } from "@/features/admin-dashboard/components/AdminHe
 import { generateHealthAlerts, buildStats } from "@/features/admin-dashboard/utils/adminHealthAlerts";
 import { SectionManagementTab } from "@/features/admin-dashboard/components/SectionManagementTab";
 import { sortProductRows } from "@/features/products/utils/productDisplayOrder";
+import { saveProductOverride } from "@/features/products/services/productOverrideService";
 import type { SectionOption } from "@/config/brands";
 import { resolveBrandId, type BrandId } from "@/config/brands";
 
@@ -303,27 +304,19 @@ export default function Dashboard() {
         }
       }
 
-      // Payload dữ liệu
-      const payload: Record<string, unknown> = {
-        name,
-        desc,
-        section: finalSection,
+      const res = await saveProductOverride({
+        action: editingId === null ? "create" : "upsert",
+        productId: editingId === null ? undefined : editingId,
         brand: formBrand,
-        link_url: linkUrl || null,
-        link_url_2: linkUrl2 || null,
-        image_url: finalImageUrl || null,
-        deleted: false
-      };
+        section: finalSection,
+        name: name.trim(),
+        desc: desc.trim(),
+        imageUrl: finalImageUrl || undefined,
+        linkUrl: linkUrl || undefined,
+        linkUrl2: linkUrl2 || undefined,
+      });
 
-      if (editingId === null) {
-        payload.id = crypto.randomUUID(); 
-      } else {
-        payload.id = editingId;
-      }
-
-      const { error } = await supabase.from("product_overrides").upsert(payload);
-
-      if (error) throw error;
+      if (!res.ok) throw new Error(res.error);
 
       toast.success("Đã lưu sản phẩm thành công!");
       setIsFormOpen(false);
