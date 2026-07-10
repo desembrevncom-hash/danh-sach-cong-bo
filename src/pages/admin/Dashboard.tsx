@@ -639,7 +639,7 @@ export default function Dashboard() {
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold">Nhóm sản phẩm <span className="text-destructive">*</span></label>
                   <select required value={section} onChange={e=>setSection(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm shadow-sm">
-                    {sections.map(s => <option key={s.title} value={s.title}>{s.title}</option>)}
+                    {sectionOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">
