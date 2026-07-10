@@ -52,6 +52,7 @@ export type ProductOverrideRow = {
 
 export type SaveProductOverridePayload = {
   productId?: string;
+  brand?: string; // Add brand field
   legacyNo?: number; // for transition if needed
   action?: "upsert" | "create" | "hard_delete";
   image_data_url?: string | null;

@@ -35,6 +35,7 @@ export type ProductEditDialogProps = {
   sectionOptions: string[];
   groupedProducts?: [string, ProductViewModel[]][];
   onSaved: (row: OverrideRow, insertAfterNo?: number) => void;
+  activeBrand?: string;
 };
 
 // ─── Form state ───────────────────────────────────────────────────────────────
@@ -86,6 +87,7 @@ const ProductEditDialog = ({
   sectionOptions,
   groupedProducts,
   onSaved,
+  activeBrand = "desembre",
 }: ProductEditDialogProps) => {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [insertPos, setInsertPos] = useState<number>(-2); // -2: end, -1: start, others: after product no
@@ -117,6 +119,7 @@ const ProductEditDialog = ({
     const res = await saveProductOverride({
       action: action,
       productId: payloadId,
+      brand: activeBrand,
       section: finalSection,
       name: form.name.trim(),
       desc: form.desc.trim(),

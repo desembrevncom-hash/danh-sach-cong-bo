@@ -4,9 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadProductImage } from "@/features/products/utils/upload";
 import { toast } from "sonner";
 import { Plus, Edit2, Archive, LogOut, Image as ImageIcon, Search, RefreshCw, Package, Eye, EyeOff, AlertTriangle } from "lucide-react";
-import { sections } from "@/data/desembreProducts";
+import { sections as fallbackSections } from "@/data/desembreProducts";
 import { AdminHealthAlerts } from "@/features/admin-dashboard/components/AdminHealthAlerts";
 import { generateHealthAlerts, buildStats } from "@/features/admin-dashboard/utils/adminHealthAlerts";
+import { SectionManagementTab } from "@/features/admin-dashboard/components/SectionManagementTab";
+import { sortProductRows } from "@/features/products/utils/productDisplayOrder";
+import type { SectionOption } from "@/config/brands";
+import { resolveBrandId, type BrandId } from "@/config/brands";
 
 type AdminProduct = {
   id: string;
@@ -33,6 +37,8 @@ export default function Dashboard() {
   const [filterTab, setFilterTab] = useState<"ALL" | "ACTIVE" | "DELETED">("ALL");
   const [selectedBrand, setSelectedBrand] = useState<string>("desembre");
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeMainTab, setActiveMainTab] = useState<"products" | "sections">("products");
+  const [sectionOptions, setSectionOptions] = useState<SectionOption[]>([]);
   
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -42,7 +48,7 @@ export default function Dashboard() {
   // Form fields
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
-  const [section, setSection] = useState(sections[0].title);
+  const [section, setSection] = useState("");
   const [formBrand, setFormBrand] = useState("desembre");
   const [linkUrl, setLinkUrl] = useState("");
   const [linkUrl2, setLinkUrl2] = useState("");
@@ -73,12 +79,14 @@ export default function Dashboard() {
         if (profileError) {
           console.error("[Dashboard] Failed to fetch role", profileError);
           toast.error("Không thể xác minh quyền admin.");
+          await supabase.auth.signOut();
           navigate("/admin/login");
           return;
         }
 
         if (profile?.role !== "admin") {
           toast.error("Bạn không có quyền truy cập trang này.");
+          await supabase.auth.signOut();
           navigate("/admin/login");
           return;
         }
@@ -86,6 +94,7 @@ export default function Dashboard() {
         setSessionLoading(false);
       } catch (err) {
         console.error("[Dashboard] Unexpected error", err);
+        await supabase.auth.signOut();
         navigate("/admin/login");
       }
     }
@@ -117,10 +126,19 @@ export default function Dashboard() {
     setErrorState(null);
     
     // Admin lấy trực tiếp từ bảng product_overrides để quản lý toàn bộ bản ghi (cả ẩn và hiện)
-    const { data, error } = await supabase
-      .from("product_overrides")
-      .select("*")
-      .order("updated_at", { ascending: false });
+    const [productsRes, sectionsRes] = await Promise.all([
+      supabase.from("product_overrides").select("*").order("updated_at", { ascending: false }),
+      supabase.from("catalog_sections").select("*").eq("brand", selectedBrand).order("sort_order", { ascending: true })
+    ]);
+
+    const { data, error } = productsRes;
+    const { data: secData } = sectionsRes;
+
+    if (secData) {
+      setSectionOptions(secData as SectionOption[]);
+    } else {
+      setSectionOptions(fallbackSections.map((s, i) => ({ value: s.title, label: s.title, sort_order: i * 10 })));
+    }
 
     if (error) {
       setErrorState(error.message);
@@ -128,7 +146,6 @@ export default function Dashboard() {
     } else if (data) {
       interface RawRow {
         id: string;
-        no?: number;
         section: string | null;
         name: string | null;
         desc: string | null;
@@ -139,7 +156,7 @@ export default function Dashboard() {
         brand: string | null;
       }
       setProducts(data.map((item: RawRow) => ({
-        id: item.id || String(item.no || Date.now()),
+        id: item.id || String(Date.now()),
         section: item.section || "Khác",
         name: item.name || "",
         desc: item.desc || "",
@@ -161,7 +178,7 @@ export default function Dashboard() {
     setEditingId(null);
     setName("");
     setDesc("");
-    setSection(sections[0].title);
+    setSection(sectionOptions.length > 0 ? sectionOptions[0].value : fallbackSections[0].title);
     setFormBrand(selectedBrand);
     setLinkUrl("");
     setLinkUrl2("");
@@ -174,7 +191,7 @@ export default function Dashboard() {
     setEditingId(p.id);
     setName(p.name || "");
     setDesc(p.desc || "");
-    setSection(p.section || sections[0].title);
+    setSection(p.section || (sectionOptions.length > 0 ? sectionOptions[0].value : fallbackSections[0].title));
     setFormBrand(p.brand || "desembre");
     setLinkUrl(p.link_url || "");
     setLinkUrl2(p.link_url_2 || "");
@@ -247,6 +264,28 @@ export default function Dashboard() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    
+    // Nếu chọn tạo nhóm mới thông qua prompt nhanh
+    let finalSection = section;
+    if (section === "__CREATE_NEW__") {
+      const newSecName = prompt("Nhập tên nhóm sản phẩm mới:");
+      if (!newSecName?.trim()) {
+        setIsSaving(false);
+        return;
+      }
+      finalSection = newSecName.trim().toUpperCase();
+      // Tạo group mới ngay lập tức
+      const { error: secErr } = await supabase.from("catalog_sections").insert({
+        brand: formBrand,
+        value: finalSection,
+        label: newSecName.trim(),
+        sort_order: sectionOptions.length * 10,
+        active: true
+      });
+      if (!secErr) {
+        setSectionOptions(prev => [...prev, { value: finalSection, label: newSecName.trim(), sort_order: sectionOptions.length * 10, active: true }]);
+      }
+    }
 
     try {
       let finalImageUrl = imageUrl;
@@ -268,7 +307,7 @@ export default function Dashboard() {
       const payload: Record<string, unknown> = {
         name,
         desc,
-        section,
+        section: finalSection,
         brand: formBrand,
         link_url: linkUrl || null,
         link_url_2: linkUrl2 || null,
@@ -308,25 +347,29 @@ export default function Dashboard() {
   }, [stats]);
 
   // Filtered products for the table UI
-  const filteredProducts = products.filter(p => {
-    // 1. Lọc theo thương hiệu (brand)
-    const pBrand = p.brand || "desembre";
-    if (pBrand !== selectedBrand) return false;
+  const filteredProducts = useMemo(() => {
+    const filtered = products.filter(p => {
+      // 1. Lọc theo thương hiệu (brand)
+      const pBrand = p.brand || "desembre";
+      if (pBrand !== selectedBrand) return false;
 
-    // 2. Lọc theo trạng thái (status)
-    if (filterTab === "ACTIVE" && p.deleted) return false;
-    if (filterTab === "DELETED" && !p.deleted) return false;
-    
-    // 3. Lọc theo từ khóa tìm kiếm (searchQuery)
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchesName = p.name?.toLowerCase().includes(query);
-      const matchesSection = p.section?.toLowerCase().includes(query);
-      if (!matchesName && !matchesSection) return false;
-    }
-    
-    return true;
-  });
+      // 2. Lọc theo trạng thái (status)
+      if (filterTab === "ACTIVE" && p.deleted) return false;
+      if (filterTab === "DELETED" && !p.deleted) return false;
+      
+      // 3. Lọc theo từ khóa tìm kiếm (searchQuery)
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesName = p.name?.toLowerCase().includes(query);
+        const matchesSection = p.section?.toLowerCase().includes(query);
+        if (!matchesName && !matchesSection) return false;
+      }
+      
+      return true;
+    });
+
+    return sortProductRows(filtered, sectionOptions);
+  }, [products, selectedBrand, filterTab, searchQuery, sectionOptions]);
 
   if (sessionLoading) {
     return (
@@ -357,8 +400,36 @@ export default function Dashboard() {
 
       <main className="container mx-auto p-4 md:p-6 space-y-6">
         
-        {/* Top Controls & KPI */}
-        <div className="flex flex-col xl:flex-row gap-6">
+        {/* Main Tabs */}
+        <div className="flex space-x-1 border-b border-border">
+          <button
+            onClick={() => setActiveMainTab("products")}
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+              activeMainTab === "products"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            }`}
+          >
+            Sản phẩm
+          </button>
+          <button
+            onClick={() => setActiveMainTab("sections")}
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+              activeMainTab === "sections"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            }`}
+          >
+            Nhóm sản phẩm
+          </button>
+        </div>
+
+        {activeMainTab === "sections" ? (
+          <SectionManagementTab activeBrand={resolveBrandId(selectedBrand)} />
+        ) : (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Top Controls & KPI */}
+            <div className="flex flex-col xl:flex-row gap-6">
           <div className="flex-1 space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-3">
@@ -544,6 +615,8 @@ export default function Dashboard() {
             </table>
           </div>
         </div>
+          </div>
+        )}
       </main>
 
       {/* Modal Form */}

@@ -83,7 +83,7 @@ export function HistoryPanel() {
                         <span className="text-xs text-muted-foreground font-mono">{formatTime(snap.timestamp)}</span>
                       </div>
                       <p className="text-sm font-semibold text-foreground mt-0.5 truncate">{snap.label}</p>
-                      <p className="text-xs text-muted-foreground">Sản phẩm #{String(snap.no).padStart(2, "0")}</p>
+                      <p className="text-xs text-muted-foreground font-mono truncate">{snap.id}</p>
                     </div>
 
                     {/* Restore button */}

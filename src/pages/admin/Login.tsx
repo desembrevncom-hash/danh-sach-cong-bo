@@ -15,7 +15,12 @@ export default function Login() {
       if (session) {
         // Kiểm tra quyền admin
         supabase.from("profiles").select("role").eq("user_id", session.user.id).maybeSingle()
-          .then(({ data: profile }) => {
+          .then(({ data: profile, error }) => {
+            if (error) {
+              console.error("[Login] Fetch profile error", error);
+              // Don't sign out on network error
+              return;
+            }
             if (profile?.role === "admin") {
               navigate("/admin/dashboard", { replace: true });
             } else {
@@ -46,7 +51,7 @@ export default function Login() {
 
     try {
       // Bọc signInWithPassword trong 1 Promise.race để chống treo vĩnh viễn
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 15000));
+      const timeoutPromise = new Promise<{ data: null; error: Error }>((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 15000));
       
       const { data, error: signInError } = await Promise.race([
         supabase.auth.signInWithPassword({
@@ -54,7 +59,7 @@ export default function Login() {
           password,
         }),
         timeoutPromise
-      ]) as any;
+      ]);
 
       if (signInError) {
         setError("Email hoặc mật khẩu không đúng.");
@@ -88,9 +93,9 @@ export default function Login() {
       }
 
       navigate("/admin/dashboard", { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[admin-login] Unexpected error", err);
-      if (err?.message === "TIMEOUT") {
+      if (err instanceof Error && err.message === "TIMEOUT") {
         setError("Kết nối máy chủ quá hạn. Trình duyệt của bạn có thể đang bị kẹt bộ nhớ. Vui lòng bấm nút 'Xóa bộ nhớ đệm' bên dưới.");
       } else {
         setError("Đăng nhập thất bại. Vui lòng thử lại.");

@@ -21,6 +21,8 @@ export function resolveBrandId(rawBrandId?: string): BrandId {
 export type SectionOption = {
   value: string;
   label: string;
+  sort_order?: number;
+  active?: boolean;
 };
 
 export const ALL_SECTION_VALUE = "__ALL__";
