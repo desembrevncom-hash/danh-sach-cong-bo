@@ -14,17 +14,50 @@ export default function Login() {
     setIsLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
+      if (signInError) {
+        setError("Email hoặc mật khẩu không đúng.");
+        return;
+      }
+
+      const userId = data.user?.id;
+      if (!userId) {
+        await supabase.auth.signOut();
+        setError("Không xác định được tài khoản đăng nhập.");
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("[admin-login] Failed to fetch role", profileError);
+        await supabase.auth.signOut();
+        setError("Không thể xác minh quyền admin. Vui lòng kiểm tra profile role.");
+        return;
+      }
+
+      if (!profile || profile.role !== "admin") {
+        await supabase.auth.signOut();
+        setError("Bạn không có quyền truy cập trang này.");
+        return;
+      }
+
+      navigate("/admin/dashboard", { replace: true });
+    } catch (err) {
+      console.error("[admin-login] Unexpected error", err);
+      await supabase.auth.signOut();
+      setError("Đăng nhập thất bại. Vui lòng thử lại.");
+    } finally {
       setIsLoading(false);
-      setError(error.message);
-    } else {
-      // Đăng nhập thành công, chuyển hướng
-      navigate("/admin/dashboard");
     }
   };
 
