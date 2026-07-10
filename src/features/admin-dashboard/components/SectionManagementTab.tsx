@@ -157,6 +157,24 @@ export function SectionManagementTab({ activeBrand }: { activeBrand: BrandId }) 
     }
   };
 
+  const handleDeleteSection = async (sec: CatalogSection) => {
+    if (sec.id.startsWith("fallback-")) return;
+    if (sec.total_count && sec.total_count > 0) {
+      toast.error(`Không thể xóa nhóm này vì đang có ${sec.total_count} sản phẩm! Vui lòng chuyển các sản phẩm sang nhóm khác hoặc xóa chúng trước.`);
+      return;
+    }
+    if (!window.confirm(`Bạn có chắc muốn xóa vĩnh viễn nhóm "${sec.label}" không?`)) return;
+    
+    try {
+      const { error } = await supabase.from("catalog_sections").delete().eq("id", sec.id);
+      if (error) throw error;
+      setSections(prev => prev.filter(s => s.id !== sec.id));
+      toast.success("Đã xóa nhóm sản phẩm");
+    } catch (err: unknown) {
+      toast.error("Lỗi xóa nhóm: " + (err as Error).message);
+    }
+  };
+
   const moveOrder = async (index: number, direction: 'up' | 'down') => {
     if (
       (direction === 'up' && index === 0) || 
@@ -349,6 +367,15 @@ export function SectionManagementTab({ activeBrand }: { activeBrand: BrandId }) 
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
+                        {!sec.id.startsWith("fallback-") && (
+                          <button 
+                            onClick={() => handleDeleteSection(sec)} 
+                            className="p-1.5 text-destructive hover:bg-destructive/10 rounded transition-colors" 
+                            title="Xóa nhóm"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
