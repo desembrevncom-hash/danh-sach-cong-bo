@@ -114,11 +114,11 @@ export default function Dashboard() {
   }, [navigate]);
 
   useEffect(() => {
-    if (!sessionLoading) {
+    if (!sessionLoading && activeMainTab === "products") {
       fetchProducts();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionLoading, selectedBrand]);
+  }, [sessionLoading, selectedBrand, activeMainTab]);
 
   // 2. Lấy danh sách sản phẩm
   const fetchProducts = async () => {
