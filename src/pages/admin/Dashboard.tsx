@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadProductImage } from "@/features/products/utils/upload";
 import { toast } from "sonner";
-import { Plus, Edit2, Trash2, LogOut, Image as ImageIcon } from "lucide-react";
+import { Plus, Edit2, Trash2, LogOut, Image as ImageIcon, Search, RefreshCw, Package, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { sections } from "@/data/desembreProducts";
+import { AdminHealthAlerts } from "@/features/admin-dashboard/components/AdminHealthAlerts";
+import { generateHealthAlerts, buildStats } from "@/features/admin-dashboard/utils/adminHealthAlerts";
 
 type AdminProduct = {
   id: string;
@@ -22,10 +24,16 @@ type AdminProduct = {
 export default function Dashboard() {
   const navigate = useNavigate();
   const [sessionLoading, setSessionLoading] = useState(true);
+  
+  // Data state
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorState, setErrorState] = useState<string | null>(null);
+
+  // Filter state
   const [filterTab, setFilterTab] = useState<"ALL" | "ACTIVE" | "DELETED">("ALL");
   const [selectedBrand, setSelectedBrand] = useState<string>("desembre");
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -101,19 +109,22 @@ export default function Dashboard() {
     if (!sessionLoading) {
       fetchProducts();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionLoading, selectedBrand]);
 
   // 2. Lấy danh sách sản phẩm
   const fetchProducts = async () => {
     setIsLoading(true);
+    setErrorState(null);
+    
     // Admin lấy trực tiếp từ bảng product_overrides để quản lý toàn bộ bản ghi (cả ẩn và hiện)
     const { data, error } = await supabase
       .from("product_overrides")
       .select("*")
-      .eq("brand", selectedBrand)
       .order("updated_at", { ascending: false });
 
     if (error) {
+      setErrorState(error.message);
       toast.error("Lỗi lấy dữ liệu: " + error.message);
     } else if (data) {
       interface RawRow {
@@ -128,7 +139,6 @@ export default function Dashboard() {
         deleted: boolean;
         brand: string | null;
       }
-      // Map về AdminProduct, giữ nguyên thuộc tính deleted
       setProducts(data.map((item: RawRow) => ({
         id: item.id || String(item.no || Date.now()),
         legacyNo: item.no,
@@ -199,12 +209,7 @@ export default function Dashboard() {
       
       // Optimistic update
       setProducts(prev => prev.map(p => p.id === id ? { ...p, deleted: false } : p));
-      
-      if (typeof toast !== 'undefined' && toast.success) {
-        toast.success('Đã khôi phục sản phẩm thành công!');
-      } else {
-        console.log("Đã khôi phục thành công sản phẩm: " + name);
-      }
+      toast.success('Đã khôi phục sản phẩm thành công!');
     } catch (err) {
       console.error("Lỗi khi khôi phục sản phẩm:", err);
       toast.error('Khôi phục thất bại!');
@@ -273,7 +278,6 @@ export default function Dashboard() {
         deleted: false
       };
 
-      // Sinh UUID mới nếu là tạo mới (Round 4 identity)
       if (editingId === null) {
         payload.id = crypto.randomUUID(); 
       } else {
@@ -298,102 +302,230 @@ export default function Dashboard() {
     }
   };
 
+  // Derived state calculations based on ALL products (DB truth)
+  const stats = useMemo(() => buildStats(products), [products]);
+  
+  const alerts = useMemo(() => {
+    return generateHealthAlerts(stats);
+  }, [stats]);
+
+  // Filtered products for the table UI
+  const filteredProducts = products.filter(p => {
+    // 1. Lọc theo thương hiệu (brand)
+    const pBrand = p.brand || "desembre";
+    if (pBrand !== selectedBrand) return false;
+
+    // 2. Lọc theo trạng thái (status)
+    if (filterTab === "ACTIVE" && p.deleted) return false;
+    if (filterTab === "DELETED" && !p.deleted) return false;
+    
+    // 3. Lọc theo từ khóa tìm kiếm (searchQuery)
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesName = p.name?.toLowerCase().includes(query);
+      const matchesSection = p.section?.toLowerCase().includes(query);
+      if (!matchesName && !matchesSection) return false;
+    }
+    
+    return true;
+  });
+
   if (sessionLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Đang kiểm tra quyền truy cập...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground font-medium">Đang kiểm tra quyền truy cập...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-muted/20">
+    <div className="min-h-screen bg-muted/20 pb-12">
       {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-10 px-4 h-16 flex items-center justify-between">
-        <h1 className="font-bold text-lg md:text-xl">Dashboard Quản trị</h1>
+      <header className="bg-card border-b border-border sticky top-0 z-10 px-4 md:px-6 h-16 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary/10 p-2 rounded-lg">
+            <Package className="w-5 h-5 text-primary" />
+          </div>
+          <h1 className="font-bold text-lg md:text-xl tracking-tight">Dashboard Quản trị</h1>
+        </div>
         <button onClick={handleLogout} className="text-sm font-medium text-destructive flex items-center gap-2 hover:bg-destructive/10 px-3 py-1.5 rounded-md transition-colors">
           <LogOut className="w-4 h-4" />
           <span className="hidden md:inline">Đăng xuất</span>
         </button>
       </header>
 
-      <main className="container mx-auto p-4 md:p-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <h2 className="text-xl font-semibold">Danh sách Sản phẩm</h2>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Thương hiệu:</span>
-              <select 
-                value={selectedBrand} 
-                onChange={(e) => setSelectedBrand(e.target.value)}
-                className="h-9 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm font-medium"
-              >
-                <option value="desembre">Desembre</option>
-                <option value="dermagarden">Dermagarden</option>
-              </select>
+      <main className="container mx-auto p-4 md:p-6 space-y-6">
+        
+        {/* Top Controls & KPI */}
+        <div className="flex flex-col xl:flex-row gap-6">
+          <div className="flex-1 space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-foreground bg-card px-3 py-1.5 rounded-md border border-border shadow-sm">Thương hiệu</span>
+                <select 
+                  value={selectedBrand} 
+                  onChange={(e) => setSelectedBrand(e.target.value)}
+                  className="h-9 px-3 rounded-md border border-input bg-card focus:ring-2 focus:ring-primary focus:border-primary text-sm font-medium shadow-sm"
+                >
+                  <option value="desembre">Desembre</option>
+                  <option value="dermagarden">Dermagarden</option>
+                </select>
+              </div>
+              <button onClick={openAddForm} className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 hover:opacity-90 shadow-sm transition-all active:scale-95 h-9">
+                <Plus className="w-4 h-4" />
+                Thêm mới
+              </button>
             </div>
-            <button onClick={openAddForm} className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 hover:opacity-90 shadow-sm transition-all active:scale-95 h-9">
-              <Plus className="w-4 h-4" />
-              Thêm mới
-            </button>
+            
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-card rounded-xl border border-border p-5 shadow-sm flex items-center gap-4">
+                <div className="bg-primary/10 p-3 rounded-full text-primary">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tổng sản phẩm</p>
+                  <p className="text-2xl font-bold mt-1">{stats.total}</p>
+                </div>
+              </div>
+              <div className="bg-card rounded-xl border border-border p-5 shadow-sm flex items-center gap-4">
+                <div className="bg-emerald-500/10 p-3 rounded-full text-emerald-600 dark:text-emerald-500">
+                  <Eye className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Đang hiển thị</p>
+                  <p className="text-2xl font-bold mt-1">{stats.visible}</p>
+                </div>
+              </div>
+              <div className="bg-card rounded-xl border border-border p-5 shadow-sm flex items-center gap-4">
+                <div className="bg-destructive/10 p-3 rounded-full text-destructive">
+                  <EyeOff className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Đã ẩn</p>
+                  <p className="text-2xl font-bold mt-1">{stats.hidden}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Health Alerts Panel */}
+          <div className="w-full xl:w-[400px] shrink-0">
+            <div className="bg-card rounded-xl border border-border p-5 shadow-sm h-full">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
+                Cảnh báo dữ liệu 
+                <span className="bg-muted px-2 py-0.5 rounded-full text-[10px] text-foreground">{alerts.length}</span>
+              </h3>
+              <AdminHealthAlerts alerts={alerts} />
+            </div>
           </div>
         </div>
 
-        {/* Tab Bộ lọc trạng thái */}
-        <div className="flex gap-2 mb-4 bg-card w-fit p-1 rounded-lg border border-border shadow-sm">
-          <button 
-            onClick={() => setFilterTab("ALL")} 
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterTab === "ALL" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}
-          >
-            Tất cả
-          </button>
-          <button 
-            onClick={() => setFilterTab("ACTIVE")} 
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterTab === "ACTIVE" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}
-          >
-            Đang hiển thị
-          </button>
-          <button 
-            onClick={() => setFilterTab("DELETED")} 
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterTab === "DELETED" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}
-          >
-            Đã ẩn
-          </button>
-        </div>
+        {/* Management Section */}
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
+          {/* Table Toolbar */}
+          <div className="p-4 border-b border-border bg-muted/10 flex flex-col sm:flex-row justify-between gap-4">
+            <div className="flex gap-2 bg-background w-fit p-1 rounded-lg border border-border shadow-sm">
+              <button 
+                onClick={() => setFilterTab("ALL")} 
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterTab === "ALL" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}
+              >
+                Tất cả
+              </button>
+              <button 
+                onClick={() => setFilterTab("ACTIVE")} 
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterTab === "ACTIVE" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}
+              >
+                Đang hiển thị
+              </button>
+              <button 
+                onClick={() => setFilterTab("DELETED")} 
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterTab === "DELETED" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}
+              >
+                Đã ẩn
+              </button>
+            </div>
 
-        {/* Bảng danh sách */}
-        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-          {isLoading ? (
-            <div className="p-10 text-center text-muted-foreground animate-pulse">Đang tải dữ liệu...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-muted/50 border-b border-border text-muted-foreground uppercase text-xs">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Ảnh</th>
-                    <th className="px-4 py-3 font-medium">Sản phẩm</th>
-                    <th className="px-4 py-3 font-medium hidden md:table-cell">Nhóm</th>
-                    <th className="px-4 py-3 font-medium text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {products.filter(p => {
-                    if (filterTab === "ACTIVE") return !p.deleted;
-                    if (filterTab === "DELETED") return p.deleted;
-                    return true;
-                  }).map((p) => (
-                    <tr key={p.id} className={`hover:bg-muted/30 transition-colors ${p.deleted ? "opacity-50 grayscale-[50%]" : ""}`}>
-                      <td className="px-4 py-3 w-16">
-                        {p.image_url ? (
-                          <img src={p.image_url} alt={p.name} className="w-10 h-10 object-cover rounded-md border border-border" />
-                        ) : (
-                          <div className="w-10 h-10 bg-muted flex items-center justify-center rounded-md border border-border"><ImageIcon className="w-4 h-4 text-muted-foreground/50"/></div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-foreground line-clamp-1">{p.name || `Sản phẩm #${p.legacyNo ?? 'Mới'}`} {p.deleted && <span className="ml-2 text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full uppercase">Đã ẩn</span>}</div>
-                        <div className="text-muted-foreground text-xs line-clamp-1 mt-0.5">{p.desc}</div>
-                      </td>
-                      <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
-                        {p.section}
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-2 w-28">
+            <div className="relative w-full sm:w-64 shrink-0">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input 
+                type="text"
+                placeholder="Tìm kiếm sản phẩm..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-9 pl-9 pr-4 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm shadow-sm"
+              />
+            </div>
+          </div>
+
+          {/* Table Content */}
+          <div className="overflow-x-auto min-h-[300px] relative">
+            {isLoading ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm z-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+                <p className="text-sm font-medium text-muted-foreground">Đang tải dữ liệu...</p>
+              </div>
+            ) : errorState ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                <AlertTriangle className="w-12 h-12 text-destructive mb-4 opacity-80" />
+                <h3 className="text-lg font-semibold mb-2">Lỗi tải dữ liệu</h3>
+                <p className="text-sm text-muted-foreground mb-4 max-w-md">{errorState}</p>
+                <button onClick={fetchProducts} className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-md text-sm font-medium transition-colors">
+                  <RefreshCw className="w-4 h-4" /> Thử lại
+                </button>
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <Search className="w-8 h-8 text-muted-foreground/50" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Không tìm thấy sản phẩm</h3>
+                <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                  Không có sản phẩm nào phù hợp với bộ lọc hiện tại. Vui lòng thử tìm kiếm với từ khóa khác.
+                </p>
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery("")} className="mt-4 text-primary text-sm font-medium hover:underline">
+                    Xóa tìm kiếm
+                  </button>
+                )}
+              </div>
+            ) : null}
+
+            <table className="w-full text-sm text-left relative">
+              <thead className="bg-muted/30 border-b border-border text-muted-foreground uppercase text-xs sticky top-0 backdrop-blur-md z-0">
+                <tr>
+                  <th className="px-5 py-3.5 font-medium whitespace-nowrap">Ảnh</th>
+                  <th className="px-5 py-3.5 font-medium min-w-[200px]">Sản phẩm</th>
+                  <th className="px-5 py-3.5 font-medium hidden md:table-cell whitespace-nowrap">Nhóm</th>
+                  <th className="px-5 py-3.5 font-medium text-right whitespace-nowrap">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredProducts.map((p) => (
+                  <tr key={p.id} className={`hover:bg-muted/30 transition-colors ${p.deleted ? "opacity-60 bg-muted/10" : ""}`}>
+                    <td className="px-5 py-3 w-16">
+                      {p.image_url ? (
+                        <img src={p.image_url} alt={p.name} className={`w-11 h-11 object-cover rounded-md border border-border shadow-sm ${p.deleted ? "grayscale-[50%]" : ""}`} />
+                      ) : (
+                        <div className="w-11 h-11 bg-muted/50 flex items-center justify-center rounded-md border border-border shadow-sm"><ImageIcon className="w-4 h-4 text-muted-foreground/40"/></div>
+                      )}
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="font-semibold text-foreground line-clamp-1 flex items-center gap-2">
+                        {p.name || `Sản phẩm #${p.legacyNo ?? 'Mới'}`} 
+                        {p.deleted && <span className="text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full uppercase font-bold tracking-wider shrink-0">Đã ẩn</span>}
+                        {!p.link_url && !p.deleted && <span className="text-[10px] bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider shrink-0" title="Thiếu link công bố">Thiếu Link</span>}
+                      </div>
+                      <div className="text-muted-foreground text-xs line-clamp-1 mt-1 leading-relaxed">{p.desc || "Chưa có mô tả"}</div>
+                    </td>
+                    <td className="px-5 py-3 hidden md:table-cell text-muted-foreground font-medium">
+                      {p.section}
+                    </td>
+                    <td className="px-5 py-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
                         <button onClick={() => openEditForm(p)} className="p-2 text-primary hover:bg-primary/10 rounded-md transition-colors" title="Sửa">
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -406,16 +538,13 @@ export default function Dashboard() {
                             <Trash2 className="w-4 h-4" />
                           </button>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                  {products.length === 0 && (
-                    <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Chưa có sản phẩm nào.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </main>
 
@@ -424,27 +553,27 @@ export default function Dashboard() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => !isSaving && setIsFormOpen(false)} />
           <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-lg z-10 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
-            <div className="p-4 md:p-6 border-b border-border flex justify-between items-center">
-              <h3 className="font-bold text-lg">{editingNo ? "Sửa sản phẩm" : "Thêm sản phẩm mới"}</h3>
+            <div className="p-4 md:p-6 border-b border-border flex justify-between items-center bg-muted/10 rounded-t-xl">
+              <h3 className="font-bold text-lg">{editingId ? "Sửa sản phẩm" : "Thêm sản phẩm mới"}</h3>
               <button onClick={() => !isSaving && setIsFormOpen(false)} className="text-muted-foreground hover:text-foreground text-xl leading-none">&times;</button>
             </div>
             
-            <form onSubmit={handleSave} className="overflow-y-auto p-4 md:p-6 space-y-4">
+            <form onSubmit={handleSave} className="overflow-y-auto p-4 md:p-6 space-y-5">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Tên sản phẩm <span className="text-destructive">*</span></label>
-                <input required value={name} onChange={e=>setName(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm" placeholder="Nhập tên sản phẩm..." />
+                <label className="text-sm font-semibold">Tên sản phẩm <span className="text-destructive">*</span></label>
+                <input required value={name} onChange={e=>setName(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm shadow-sm" placeholder="Nhập tên sản phẩm..." />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Nhóm sản phẩm <span className="text-destructive">*</span></label>
-                  <select required value={section} onChange={e=>setSection(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm">
+                  <label className="text-sm font-semibold">Nhóm sản phẩm <span className="text-destructive">*</span></label>
+                  <select required value={section} onChange={e=>setSection(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm shadow-sm">
                     {sections.map(s => <option key={s.title} value={s.title}>{s.title}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Thương hiệu <span className="text-destructive">*</span></label>
-                  <select required value={formBrand} onChange={e=>setFormBrand(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm">
+                  <label className="text-sm font-semibold">Thương hiệu <span className="text-destructive">*</span></label>
+                  <select required value={formBrand} onChange={e=>setFormBrand(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm shadow-sm">
                     <option value="desembre">Desembre</option>
                     <option value="dermagarden">Dermagarden</option>
                   </select>
@@ -452,31 +581,31 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Mô tả ngắn</label>
-                <textarea value={desc} onChange={e=>setDesc(e.target.value)} className="w-full min-h-[80px] p-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm resize-y" placeholder="Mô tả công dụng..." />
+                <label className="text-sm font-semibold">Mô tả ngắn</label>
+                <textarea value={desc} onChange={e=>setDesc(e.target.value)} className="w-full min-h-[80px] p-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm resize-y shadow-sm" placeholder="Mô tả công dụng..." />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Link công bố 1</label>
-                  <input value={linkUrl} onChange={e=>setLinkUrl(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm" placeholder="https://..." />
+                  <label className="text-sm font-semibold">Link công bố 1</label>
+                  <input value={linkUrl} onChange={e=>setLinkUrl(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm shadow-sm" placeholder="https://..." />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Link công bố 2 (Tuỳ chọn)</label>
-                  <input value={linkUrl2} onChange={e=>setLinkUrl2(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm" placeholder="https://..." />
+                  <label className="text-sm font-semibold">Link công bố 2 (Tuỳ chọn)</label>
+                  <input value={linkUrl2} onChange={e=>setLinkUrl2(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm shadow-sm" placeholder="https://..." />
                 </div>
               </div>
 
-              <div className="space-y-1.5 pt-2 border-t border-border">
-                <label className="text-sm font-medium">Hình ảnh sản phẩm</label>
-                <div className="flex items-center gap-4 mt-2">
-                  <div className="w-16 h-16 rounded-md border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
+              <div className="space-y-1.5 pt-4 border-t border-border">
+                <label className="text-sm font-semibold">Hình ảnh sản phẩm</label>
+                <div className="flex items-center gap-4 mt-2 bg-muted/20 p-3 rounded-lg border border-border">
+                  <div className="w-16 h-16 rounded-md border border-border bg-background flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
                     {imageFile ? (
                       <img src={URL.createObjectURL(imageFile)} alt="preview" className="w-full h-full object-cover" />
                     ) : imageUrl ? (
                       <img src={imageUrl} alt="preview" className="w-full h-full object-cover" />
                     ) : (
-                      <ImageIcon className="w-6 h-6 text-muted-foreground/50" />
+                      <ImageIcon className="w-6 h-6 text-muted-foreground/30" />
                     )}
                   </div>
                   <div className="flex-1">
@@ -484,26 +613,26 @@ export default function Dashboard() {
                       type="file" 
                       accept="image/jpeg, image/png, image/webp" 
                       onChange={handleFileChange}
-                      className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-colors"
+                      className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-colors cursor-pointer"
                     />
-                    <p className="text-xs text-muted-foreground mt-1.5">JPG, PNG, WEBP (Max: 5MB)</p>
+                    <p className="text-xs text-muted-foreground mt-2">JPG, PNG, WEBP (Max: 5MB)</p>
                   </div>
                 </div>
               </div>
 
             </form>
             
-            <div className="p-4 md:p-6 border-t border-border bg-muted/20 flex justify-end gap-3 rounded-b-xl">
-              <button type="button" onClick={() => setIsFormOpen(false)} disabled={isSaving} className="px-4 py-2 font-medium text-sm rounded-md border border-input hover:bg-muted/50 transition-colors">
+            <div className="p-4 md:p-6 border-t border-border bg-muted/10 flex justify-end gap-3 rounded-b-xl">
+              <button type="button" onClick={() => setIsFormOpen(false)} disabled={isSaving} className="px-5 py-2 font-medium text-sm rounded-md border border-input bg-background hover:bg-muted transition-colors shadow-sm">
                 Hủy
               </button>
-              <button onClick={handleSave} disabled={isSaving} className="px-6 py-2 bg-primary text-primary-foreground font-medium text-sm rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2">
+              <button onClick={handleSave} disabled={isSaving} className="px-6 py-2 bg-primary text-primary-foreground font-medium text-sm rounded-md hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2 shadow-sm active:scale-95">
                 {isSaving ? (
                   <>
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                     Đang lưu...
                   </>
-                ) : "Lưu sản phẩm"}
+                ) : "Lưu thay đổi"}
               </button>
             </div>
           </div>
