@@ -21,8 +21,10 @@ type AdminProduct = {
   link_url?: string;
   link_url_2?: string;
   image_url?: string;
-  deleted?: boolean;
-  brand?: string;
+  deleted: boolean;
+  brand: string;
+  sort_order?: number;
+  updated_at?: string;
 };
 
 export default function Dashboard() {
@@ -155,6 +157,7 @@ export default function Dashboard() {
         image_url: string | null;
         deleted: boolean;
         brand: string | null;
+        sort_order: number | null;
       }
       setProducts(data.map((item: RawRow) => ({
         id: item.id || String(Date.now()),
@@ -165,7 +168,9 @@ export default function Dashboard() {
         link_url_2: item.link_url_2 || undefined,
         image_url: item.image_url || undefined,
         deleted: item.deleted,
-        brand: item.brand || "desembre"
+        brand: item.brand || "desembre",
+        sort_order: item.sort_order || 0,
+        updated_at: item.updated_at || undefined
       })));
     }
     setIsLoading(false);
@@ -369,7 +374,27 @@ export default function Dashboard() {
       return true;
     });
 
-    return sortProductRows(filtered, sectionOptions);
+    const sectionSortOrderMap = new Map(sectionOptions.map(s => [s.value, s.sort_order]));
+
+    return filtered.sort((a, b) => {
+      const aSecSort = sectionSortOrderMap.get(a.section) ?? 999999;
+      const bSecSort = sectionSortOrderMap.get(b.section) ?? 999999;
+      
+      if (aSecSort !== bSecSort) {
+        return aSecSort - bSecSort;
+      }
+      
+      const aProdSort = a.sort_order ?? 0;
+      const bProdSort = b.sort_order ?? 0;
+      
+      if (aProdSort !== bProdSort) {
+        return aProdSort - bProdSort;
+      }
+
+      const timeA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+      const timeB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+      return timeB - timeA;
+    });
   }, [products, selectedBrand, filterTab, searchQuery, sectionOptions]);
 
   if (sessionLoading) {
