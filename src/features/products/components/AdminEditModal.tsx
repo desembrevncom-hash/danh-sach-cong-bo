@@ -6,6 +6,8 @@ import { Image as ImageIcon } from "lucide-react";
 import { sections } from "@/data/desembreProducts";
 import type { ProductViewModel } from "@/features/products/types";
 import type { ProductOverrideRow } from "@/features/products/types";
+import { saveProductOverride } from "@/features/products/services/productOverrideService";
+import { useAdminSession } from "@/hooks/useAdminSession";
 
 type AdminEditModalProps = {
   open: boolean;
@@ -36,7 +38,8 @@ export function AdminEditModal({
   const [linkUrl2,setLinkUrl2]= useState(currentLinkUrl2);
   const [imageUrl,setImageUrl]= useState(currentImageUrl);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsSaving]   = useState(false);
+  const { session } = useAdminSession();
 
   if (!open) return null;
 
@@ -62,11 +65,15 @@ export function AdminEditModal({
     setIsSaving(true);
 
     try {
+      if (!session?.access_token) {
+        throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+      }
+
       let finalImageUrl = imageUrl;
 
       // Upload ảnh mới nếu có
       if (imageFile) {
-        const res = await uploadProductImage(imageFile);
+        const res = await uploadProductImage(imageFile, session.access_token);
         if (res.error) { toast.error(res.error); setIsSaving(false); return; }
         if (res.url) finalImageUrl = res.url;
       }
@@ -85,12 +92,22 @@ export function AdminEditModal({
       onClose();
 
       // 2. Ghi xuống DB
-      const { error } = await supabase
-        .from("product_overrides")
-        .upsert({ id: product.id, ...patch });
+      const payload = {
+        productId: product.id,
+        brand: product.brand || "desembre",
+        section: patch.section || product.section || "Khác",
+        name: patch.name || product.name || "",
+        desc: patch.desc || product.desc || "",
+        imageUrl: patch.image_url || product.image_url,
+        linkUrl: patch.link_url || product.link_url,
+        linkUrl2: patch.link_url_2 || product.link_url_2,
+        deleted: override?.deleted ?? false
+      };
+      
+      const res = await saveProductOverride(payload, session.access_token);
 
-      if (error) {
-        toast.error("Lỗi khi lưu: " + error.message);
+      if (!res.ok) {
+        throw new Error(res.error);
       } else {
         toast.success(`Đã lưu sản phẩm "${patch.name}" thành công!`);
       }

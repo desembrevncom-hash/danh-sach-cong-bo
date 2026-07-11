@@ -189,6 +189,7 @@ export default function Dashboard() {
       }
 
       if (data) {
+        setErrorState(null);
         interface RawRow {
           id: string;
           section: string | null;
@@ -461,7 +462,8 @@ export default function Dashboard() {
       console.log("[add-product:edge-save:success]");
 
       setIsFormOpen(false);
-      toast.success("Đã lưu sản phẩm thành công!");
+      const successMessage = editingId === null ? "Đã thêm sản phẩm" : "Đã lưu thay đổi";
+      toast.success(successMessage);
 
       console.log("[add-product:refresh:start]");
       try {

@@ -3,7 +3,8 @@ import { Eye, EyeOff, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { ProductViewModel } from "@/features/products/types";
-import type { ProductOverrideRow } from "@/features/products/types";
+import { saveProductOverride } from "@/features/products/services/productOverrideService";
+import { useAdminSession } from "@/hooks/useAdminSession";
 import { AdminEditModal } from "@/features/products/components/AdminEditModal";
 
 type AdminInlineActionsProps = {
@@ -26,24 +27,42 @@ export function AdminInlineActions({
   const isDeleted = override?.deleted ?? false;
   const [modalOpen, setModalOpen] = useState(false);
 
+  const { session } = useAdminSession();
+
   // ─── Ẩn / Hiện sản phẩm (Soft Delete toggle) ─────────────────────────────
   const handleToggleVisibility = async () => {
     const newDeleted = !isDeleted;
+
+    if (!session?.access_token) {
+      toast.error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+      return;
+    }
 
     // 1. Optimistic UI — cập nhật ngay lập tức
     onOptimisticUpdate(product.id, { deleted: newDeleted });
 
     // 2. Gửi request xuống DB ngầm
-    const { error } = await supabase
-      .from("product_overrides")
-      .upsert({ id: product.id, deleted: newDeleted });
-
-    if (error) {
+    try {
+      const payload = {
+        productId: product.id,
+        brand: product.brand || "desembre",
+        section: product.section || "Khác",
+        name: product.name || "",
+        desc: product.desc || "",
+        imageUrl: product.image_url,
+        linkUrl: product.link_url,
+        linkUrl2: product.link_url_2,
+        deleted: newDeleted
+      };
+      
+      const res = await saveProductOverride(payload, session.access_token);
+      if (!res.ok) throw new Error(res.error);
+      
+      toast.success(newDeleted ? "Đã ẩn sản phẩm." : "Đã hiện sản phẩm.");
+    } catch (error) {
       // Rollback nếu lỗi
       onOptimisticUpdate(product.id, { deleted: isDeleted });
       toast.error("Lỗi khi thay đổi trạng thái hiển thị.");
-    } else {
-      toast.success(newDeleted ? "Đã ẩn sản phẩm." : "Đã hiện sản phẩm.");
     }
   };
 
