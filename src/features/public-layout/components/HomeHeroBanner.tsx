@@ -2,63 +2,80 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useSiteSettings } from "@/features/seo/components/SiteSettingsProvider";
 
-// Image tray with rounded clipping, brand gradient, and error fallback
-function BrandImageTray({
-  src,
-  alt,
-  gradientFrom,
-  gradientTo,
+function BrandCard({
+  to,
+  imageUrl,
+  title,
+  subtitle,
+  imgGradientFrom,
+  imgGradientVia,
+  imgGradientTo,
 }: {
-  src: string | null | undefined;
-  alt: string;
-  gradientFrom: string;
-  gradientTo: string;
+  to: string;
+  imageUrl: string | null | undefined;
+  title: string;
+  subtitle: string;
+  imgGradientFrom: string;
+  imgGradientVia: string;
+  imgGradientTo: string;
 }) {
   const [imgError, setImgError] = useState(false);
 
-  // Reset error state whenever src changes
   useEffect(() => {
     setImgError(false);
-  }, [src]);
+  }, [imageUrl]);
 
-  const showImage = src && !imgError;
+  const showImage = imageUrl && !imgError;
 
   return (
-    <div
-      className="
-        mx-auto my-auto
-        w-[82%] sm:w-[80%] md:w-[78%]
-        h-[150px] sm:h-[170px] md:h-[200px]
-        rounded-[24px] overflow-hidden
-        border border-white/50
-        flex items-center justify-center
-        transition-transform duration-500 group-hover:scale-[1.015]
-      "
-      style={{
-        background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})`,
-      }}
+    <Link
+      to={to}
+      className="group flex flex-col text-left rounded-[28px] overflow-hidden bg-background border border-border/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full h-[340px] sm:h-[370px] lg:h-[400px]"
     >
-      {showImage ? (
-        <img
-          src={src}
-          alt={alt}
-          className="
-            w-[92%] h-[92%]
-            object-contain object-center
-            opacity-[0.97]
-          "
-          onError={() => setImgError(true)}
-        />
-      ) : (
-        // Fallback: subtle brand-colored inner glow
-        <div
-          className="w-full h-full rounded-[24px]"
-          style={{
-            background: `radial-gradient(ellipse at 50% 70%, ${gradientTo}cc 0%, ${gradientFrom}55 100%)`,
-          }}
-        />
-      )}
-    </div>
+      {/* IMAGE SECTION — full-bleed, no inner frame, clipped by card overflow-hidden */}
+      <div
+        className="relative w-full h-[210px] sm:h-[225px] lg:h-[245px] flex-shrink-0 overflow-hidden"
+        style={{
+          background: `linear-gradient(135deg, ${imgGradientFrom}, ${imgGradientVia}, ${imgGradientTo})`,
+        }}
+      >
+        {showImage ? (
+          <img
+            src={imageUrl}
+            alt={title}
+            className="h-full w-full object-contain object-center transition-transform duration-500 group-hover:scale-[1.04]"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          /* Fallback: brand gradient shape — no path request */
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `radial-gradient(ellipse at 50% 80%, ${imgGradientTo}cc 0%, ${imgGradientFrom}88 100%)`,
+            }}
+          />
+        )}
+
+        {/* Subtle bottom fade into content area */}
+        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-background/70 to-transparent pointer-events-none" />
+      </div>
+
+      {/* CONTENT SECTION */}
+      <div className="flex flex-col justify-center flex-1 px-6 py-4 md:px-7 md:py-5 bg-background">
+        <h3 className="text-2xl lg:text-[30px] font-black tracking-tight text-foreground mb-0.5 group-hover:text-primary transition-colors leading-tight">
+          {title}
+        </h3>
+        <p className="text-sm md:text-base font-medium text-muted-foreground truncate">
+          {subtitle}
+        </p>
+        <div className="flex items-center gap-1.5 text-sm font-semibold text-primary mt-3">
+          Tra cứu ngay{" "}
+          <span className="inline-block group-hover:translate-x-1 transition-transform duration-300">
+            &rarr;
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -70,7 +87,7 @@ export function HomeHeroBanner() {
 
   return (
     <section className="relative w-full min-h-[720px] md:min-h-[760px] lg:min-h-[820px] bg-muted/30 overflow-hidden isolate py-16 flex items-center">
-      {/* Desktop Background Image */}
+      {/* Desktop Background */}
       <div
         className="absolute inset-0 -z-20 bg-cover bg-center bg-no-repeat hidden md:block"
         style={{
@@ -80,7 +97,7 @@ export function HomeHeroBanner() {
         aria-hidden="true"
       />
 
-      {/* Mobile Background Image */}
+      {/* Mobile Background */}
       <div
         className="absolute inset-0 -z-20 bg-cover bg-center bg-no-repeat block md:hidden"
         style={{
@@ -90,7 +107,7 @@ export function HomeHeroBanner() {
         aria-hidden="true"
       />
 
-      {/* Overlay for text readability */}
+      {/* Overlay */}
       <div className="absolute inset-0 -z-10 bg-background/60 md:bg-gradient-to-r md:from-background/75 md:via-background/50 md:to-background/70 backdrop-blur-[2px]" />
 
       <div className="container mx-auto px-4 sm:px-6 h-full flex flex-col justify-center items-center mt-8">
@@ -106,93 +123,29 @@ export function HomeHeroBanner() {
           </div>
 
           <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-10 max-w-[720px] mx-auto drop-shadow-sm px-2">
-            Cập nhật chính xác liên tục các công bố sản phẩm Desembre và Dermagarden đang được phép lưu hành tại Việt Nam
+            Cập nhật chính xác liên tục các công bố sản phẩm Desembre và
+            Dermagarden đang được phép lưu hành tại Việt Nam
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full max-w-[960px] lg:max-w-[1040px] mt-2">
-            {/* DESEMBRE CARD */}
-            <Link
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 w-full max-w-[960px] lg:max-w-[1040px] mt-2">
+            <BrandCard
               to="/desembre"
-              className="
-                group flex flex-col text-left
-                rounded-3xl overflow-hidden
-                bg-background/85 backdrop-blur-md
-                border border-border/60
-                shadow-sm hover:shadow-lg
-                hover:-translate-y-1
-                transition-all duration-300
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
-                w-full h-[320px] sm:h-[360px] lg:h-[400px]
-              "
-            >
-              {/* IMAGE AREA */}
-              <div className="relative w-full flex-[1.7] bg-gradient-to-br from-[#f8f3ea] via-[#f3f4ee] to-[#e8eee6] flex items-center justify-center overflow-hidden">
-                <BrandImageTray
-                  src={settings?.homeBrandDesembreImageUrl}
-                  alt="Desembre sản phẩm"
-                  gradientFrom="#f8f3ea"
-                  gradientTo="#e8eee6"
-                />
-              </div>
-
-              {/* CONTENT AREA */}
-              <div className="flex-1 flex flex-col justify-center px-5 py-4 md:px-7 md:py-5 bg-background border-t border-border/30">
-                <h3 className="text-2xl lg:text-[32px] font-black tracking-tight text-foreground mb-0.5 group-hover:text-primary transition-colors leading-none">
-                  DESEMBRE
-                </h3>
-                <p className="text-sm md:text-base font-medium text-muted-foreground truncate">
-                  Thẩm mỹ chuyên nghiệp
-                </p>
-                <div className="flex items-center gap-1.5 text-sm font-semibold text-primary transition-all mt-3">
-                  Tra cứu ngay{" "}
-                  <span className="group-hover:translate-x-1 transition-transform duration-300">
-                    &rarr;
-                  </span>
-                </div>
-              </div>
-            </Link>
-
-            {/* DERMAGARDEN CARD */}
-            <Link
+              imageUrl={settings?.homeBrandDesembreImageUrl}
+              title="DESEMBRE"
+              subtitle="Thẩm mỹ chuyên nghiệp"
+              imgGradientFrom="#f8f3ea"
+              imgGradientVia="#f3f4ee"
+              imgGradientTo="#e8eee6"
+            />
+            <BrandCard
               to="/dermagarden"
-              className="
-                group flex flex-col text-left
-                rounded-3xl overflow-hidden
-                bg-background/85 backdrop-blur-md
-                border border-border/60
-                shadow-sm hover:shadow-lg
-                hover:-translate-y-1
-                transition-all duration-300
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
-                w-full h-[320px] sm:h-[360px] lg:h-[400px]
-              "
-            >
-              {/* IMAGE AREA */}
-              <div className="relative w-full flex-[1.7] bg-gradient-to-br from-[#effaf5] via-[#edf8f4] to-[#e2f5ec] flex items-center justify-center overflow-hidden">
-                <BrandImageTray
-                  src={settings?.homeBrandDermagardenImageUrl}
-                  alt="Dermagarden sản phẩm"
-                  gradientFrom="#effaf5"
-                  gradientTo="#e2f5ec"
-                />
-              </div>
-
-              {/* CONTENT AREA */}
-              <div className="flex-1 flex flex-col justify-center px-5 py-4 md:px-7 md:py-5 bg-background border-t border-border/30">
-                <h3 className="text-2xl lg:text-[32px] font-black tracking-tight text-foreground mb-0.5 group-hover:text-primary transition-colors leading-none">
-                  DERMAGARDEN
-                </h3>
-                <p className="text-sm md:text-base font-medium text-muted-foreground truncate">
-                  Chăm sóc da chuyên sâu
-                </p>
-                <div className="flex items-center gap-1.5 text-sm font-semibold text-primary transition-all mt-3">
-                  Tra cứu ngay{" "}
-                  <span className="group-hover:translate-x-1 transition-transform duration-300">
-                    &rarr;
-                  </span>
-                </div>
-              </div>
-            </Link>
+              imageUrl={settings?.homeBrandDermagardenImageUrl}
+              title="DERMAGARDEN"
+              subtitle="Chăm sóc da chuyên sâu"
+              imgGradientFrom="#effaf5"
+              imgGradientVia="#edf8f4"
+              imgGradientTo="#e2f5ec"
+            />
           </div>
         </div>
       </div>
