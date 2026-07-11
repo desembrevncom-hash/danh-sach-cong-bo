@@ -1,16 +1,16 @@
-import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
-import { fetchSiteSettings, SiteSettings } from "@/features/seo/services/siteSettingsService";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { resolveBrandLogoUrl, SupportedBrandKey } from "@/features/design-manager/utils/brandLogoResolver";
+import { useSiteSettings } from "@/features/seo/components/SiteSettingsProvider";
 
 type BrandLogoNavItemProps = {
   to: string;
   brand: SupportedBrandKey;
   imageSrc: string | null;
+  isLoading: boolean;
 };
 
-function BrandLogoNavItem({ to, brand, imageSrc }: BrandLogoNavItemProps) {
+function BrandLogoNavItem({ to, brand, imageSrc, isLoading }: BrandLogoNavItemProps) {
   return (
     <NavLink
       to={to}
@@ -28,6 +28,7 @@ function BrandLogoNavItem({ to, brand, imageSrc }: BrandLogoNavItemProps) {
           <BrandLogo 
             brand={brand} 
             src={imageSrc} 
+            isLoading={isLoading}
             className="h-[24px] sm:h-[34px] flex items-center justify-center overflow-visible"
             imgClassName="max-h-[24px] max-w-[88px] sm:max-h-[34px] sm:max-w-[132px] transition-transform duration-300 ease-out"
             textClassName="text-[10px] sm:text-xs tracking-[0.16em] sm:tracking-[0.28em] text-foreground"
@@ -44,16 +45,7 @@ function BrandLogoNavItem({ to, brand, imageSrc }: BrandLogoNavItemProps) {
 }
 
 export function PublicHeader() {
-  const [settings, setSettings] = useState<SiteSettings | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    fetchSiteSettings().then(res => {
-      if (!mounted || !res.ok || !res.data) return;
-      setSettings(res.data);
-    }).catch(console.error);
-    return () => { mounted = false; };
-  }, []);
+  const { settings, isLoading } = useSiteSettings();
 
   const desembreLogo = resolveBrandLogoUrl(settings, "desembre");
   const hyunjinLogo = resolveBrandLogoUrl(settings, "hyunjin");
@@ -66,18 +58,21 @@ export function PublicHeader() {
           to="/desembre"
           brand="desembre"
           imageSrc={desembreLogo}
+          isLoading={isLoading}
         />
         
         <BrandLogoNavItem
           to="/"
           brand="hyunjin"
           imageSrc={hyunjinLogo}
+          isLoading={isLoading}
         />
         
         <BrandLogoNavItem
           to="/dermagarden"
           brand="dermagarden"
           imageSrc={dermagardenLogo}
+          isLoading={isLoading}
         />
       </div>
     </header>

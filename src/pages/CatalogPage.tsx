@@ -13,7 +13,6 @@ import { toast } from "sonner";
 import { groupProductsBySection } from "@/features/products/utils/productTransforms";
 import { buildProductDisplayRows, type ProductDisplayRow } from "@/features/products/utils/productDisplayRows";
 import { BrandHero } from "@/features/public-layout/components/BrandHero";
-import { PublicLayout } from "@/features/public-layout/components/PublicLayout";
 import { ProductToolbar } from "@/features/products/components/ProductToolbar";
 import { ProductTable } from "@/features/products/components/ProductTable";
 import { ProductCardList } from "@/features/products/components/ProductCardList";
@@ -291,7 +290,7 @@ const IndexInner = ({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <PublicLayout>
+    <>
       <SeoHead routePath={`/${activeBrand}`} />
       
       <BrandHero brandId={activeBrand} />
@@ -472,7 +471,7 @@ const IndexInner = ({
           </>
         )}
       </main>
-    </PublicLayout>
+    </>
   );
 };
 

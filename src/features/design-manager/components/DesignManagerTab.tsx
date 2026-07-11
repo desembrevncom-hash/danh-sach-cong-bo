@@ -3,12 +3,14 @@ import { Save, Image as ImageIcon, RefreshCw, X, LayoutTemplate, Eye as EyeIcon 
 import { fetchSiteSettings, updateSiteSettings, type SiteSettings } from '@/features/seo/services/siteSettingsService';
 import { MediaAssetPickerDialog } from '@/features/media/components/MediaAssetPickerDialog';
 import { DashboardErrorState } from '@/components/ui/dashboard-error';
+import { useSiteSettings } from '@/features/seo/components/SiteSettingsProvider';
 import { withTimeout, getErrorMessage } from '@/lib/asyncState';
 import { toast } from 'sonner';
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { SupportedBrandKey } from "../utils/brandLogoResolver";
 
 export function DesignManagerTab() {
+  const { refreshSettings } = useSiteSettings();
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -87,6 +89,7 @@ export function DesignManagerTab() {
         toast.success('Đã lưu thiết kế thành công!');
         // Update local state
         setSettings(prev => prev ? { ...prev, ...payload } : null);
+        await refreshSettings();
       } else {
         toast.error(error || 'Lỗi khi lưu thiết kế');
       }

@@ -4,13 +4,14 @@ import { cn } from "@/lib/utils";
 
 interface BrandLogoProps {
   brand: SupportedBrandKey;
-  src?: string | null;
+  src: string | null | undefined;
+  isLoading?: boolean;
   className?: string;
   imgClassName?: string;
   textClassName?: string;
 }
 
-export function BrandLogo({ brand, src, className, imgClassName, textClassName }: BrandLogoProps) {
+export function BrandLogo({ brand, src, isLoading, className, imgClassName, textClassName }: BrandLogoProps) {
   const [hasImageError, setHasImageError] = useState(false);
 
   useEffect(() => {
@@ -21,7 +22,9 @@ export function BrandLogo({ brand, src, className, imgClassName, textClassName }
 
   return (
     <div className={cn("flex items-center justify-center overflow-hidden", className)}>
-      {shouldShowImage ? (
+      {isLoading && !src ? (
+        <span className="opacity-0 min-w-[80px]" aria-hidden="true">Đang tải</span>
+      ) : shouldShowImage ? (
         <img
           src={src as string}
           alt={`${BRAND_TEXT_LABELS[brand]} logo`}
