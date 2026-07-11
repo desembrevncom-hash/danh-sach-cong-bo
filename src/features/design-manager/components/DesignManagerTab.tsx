@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Image as ImageIcon, RefreshCw, X, LayoutTemplate } from 'lucide-react';
+import { Save, Image as ImageIcon, RefreshCw, X, LayoutTemplate, Eye as EyeIcon } from 'lucide-react';
 import { fetchSiteSettings, updateSiteSettings, type SiteSettings } from '@/features/seo/services/siteSettingsService';
 import { MediaAssetPickerDialog } from '@/features/media/components/MediaAssetPickerDialog';
 import { DashboardErrorState } from '@/components/ui/dashboard-error';
 import { withTimeout, getErrorMessage } from '@/lib/asyncState';
 import { toast } from 'sonner';
+import { BrandLogo } from "@/components/ui/BrandLogo";
+import { SupportedBrandKey } from "../utils/brandLogoResolver";
 
 export function DesignManagerTab() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -134,8 +136,7 @@ export function DesignManagerTab() {
             value={logoDesembre}
             onChange={setLogoDesembre}
             onOpenPicker={() => openPicker('desembre')}
-            fallbackSrc="/images/logo-desembre.png"
-            fallbackText="DESEMBRE"
+            brand="desembre"
           />
 
           {/* Logo HYUNJIN */}
@@ -144,8 +145,7 @@ export function DesignManagerTab() {
             value={logoHyunjin}
             onChange={setLogoHyunjin}
             onOpenPicker={() => openPicker('hyunjin')}
-            fallbackSrc="/images/logo-hyunjin.png"
-            fallbackText="HYUNJIN"
+            brand="hyunjin"
           />
 
           {/* Logo Dermagarden */}
@@ -154,8 +154,7 @@ export function DesignManagerTab() {
             value={logoDermagarden}
             onChange={setLogoDermagarden}
             onOpenPicker={() => openPicker('dermagarden')}
-            fallbackSrc="/images/logo-dermagarden.png"
-            fallbackText="DERMAGARDEN"
+            brand="dermagarden"
           />
         </div>
 
@@ -170,9 +169,9 @@ export function DesignManagerTab() {
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Desktop (Max 1024px)</span>
               <div className="h-[72px] bg-white dark:bg-card border border-border shadow-sm flex items-center justify-around px-6 relative overflow-hidden">
-                <PreviewLogo src={logoDesembre} fallbackSrc="/images/logo-desembre.png" fallbackText="DESEMBRE" isDesktop />
-                <PreviewLogo src={logoHyunjin} fallbackSrc="/images/logo-hyunjin.png" fallbackText="HYUNJIN" isDesktop active />
-                <PreviewLogo src={logoDermagarden} fallbackSrc="/images/logo-dermagarden.png" fallbackText="DERMAGARDEN" isDesktop />
+                <PreviewLogo src={logoDesembre} brand="desembre" isDesktop />
+                <PreviewLogo src={logoHyunjin} brand="hyunjin" isDesktop active />
+                <PreviewLogo src={logoDermagarden} brand="dermagarden" isDesktop />
               </div>
             </div>
 
@@ -180,9 +179,9 @@ export function DesignManagerTab() {
             <div className="space-y-1 max-w-[420px] mx-auto">
               <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Mobile (390px - 420px)</span>
               <div className="h-[60px] bg-white dark:bg-card border border-border shadow-sm flex items-center justify-between px-2 relative overflow-hidden">
-                <PreviewLogo src={logoDesembre} fallbackSrc="/images/logo-desembre.png" fallbackText="DESEMBRE" />
-                <PreviewLogo src={logoHyunjin} fallbackSrc="/images/logo-hyunjin.png" fallbackText="HYUNJIN" active />
-                <PreviewLogo src={logoDermagarden} fallbackSrc="/images/logo-dermagarden.png" fallbackText="DERMAGARDEN" />
+                <PreviewLogo src={logoDesembre} brand="desembre" />
+                <PreviewLogo src={logoHyunjin} brand="hyunjin" active />
+                <PreviewLogo src={logoDermagarden} brand="dermagarden" />
               </div>
             </div>
           </div>
@@ -220,51 +219,26 @@ function LogoCard({
   value,
   onChange,
   onOpenPicker,
-  fallbackSrc,
-  fallbackText
+  brand
 }: { 
   title: string; 
   value: string; 
   onChange: (val: string) => void;
   onOpenPicker: () => void;
-  fallbackSrc: string;
-  fallbackText: string;
+  brand: SupportedBrandKey;
 }) {
-  const [imgError, setImgError] = useState(false);
-
-  // Reset error state when value changes
-  useEffect(() => {
-    setImgError(false);
-  }, [value]);
-
   return (
     <div className="border border-border rounded-md p-4 space-y-4 bg-muted/20">
       <h3 className="font-semibold text-sm">{title}</h3>
       
       <div className="h-20 bg-white dark:bg-card border border-border rounded flex items-center justify-center p-2 relative overflow-hidden group">
-        {value ? (
-          !imgError ? (
-            <img 
-              src={value} 
-              alt="Preview" 
-              className="max-h-full max-w-full object-contain" 
-              onError={() => setImgError(true)}
-            />
-          ) : (
-            <span className="text-xs font-bold uppercase tracking-widest text-destructive text-center px-2">LỖI ẢNH</span>
-          )
-        ) : (
-          !imgError ? (
-            <img 
-              src={fallbackSrc} 
-              alt="Fallback" 
-              className="max-h-full max-w-full object-contain opacity-50"
-              onError={() => setImgError(true)}
-            />
-          ) : (
-            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground text-center px-2">{fallbackText}</span>
-          )
-        )}
+        <BrandLogo 
+          brand={brand} 
+          src={value} 
+          className="h-full w-full"
+          imgClassName="max-h-full max-w-full"
+          textClassName="text-xs font-bold uppercase tracking-widest text-muted-foreground"
+        />
         {!value && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/50">
             <span className="text-xs font-medium text-muted-foreground px-2 py-1 bg-background rounded-sm">Mặc định</span>
@@ -309,24 +283,16 @@ function LogoCard({
   );
 }
 
-function PreviewLogo({ src, fallbackSrc, fallbackText, isDesktop = false, active = false }: { src: string, fallbackSrc: string, fallbackText: string, isDesktop?: boolean, active?: boolean }) {
-  const [error, setError] = useState(false);
-  const displaySrc = src || fallbackSrc;
-  
+function PreviewLogo({ src, brand, isDesktop = false, active = false }: { src: string, brand: SupportedBrandKey, isDesktop?: boolean, active?: boolean }) {
   return (
     <div className={`relative flex items-center justify-center flex-1 h-full px-1 ${active ? 'opacity-100' : 'opacity-60'}`}>
-      {!error ? (
-        <img 
-          src={displaySrc} 
-          alt="Logo preview" 
-          className={`h-auto w-auto object-contain transition-transform ${isDesktop ? 'max-h-[34px] max-w-[132px]' : 'max-h-[24px] max-w-[88px]'} ${active ? (isDesktop ? 'scale-[1.12]' : 'scale-[1.06]') : ''}`}
-          onError={() => setError(true)}
-        />
-      ) : (
-        <span className={`tracking-[0.16em] sm:tracking-[0.28em] font-semibold uppercase text-foreground text-center whitespace-nowrap overflow-visible ${isDesktop ? 'text-xs' : 'text-[10px]'}`}>
-          {fallbackText}
-        </span>
-      )}
+      <BrandLogo 
+        brand={brand} 
+        src={src}
+        className="w-full h-full flex items-center justify-center"
+        imgClassName={`transition-transform ${isDesktop ? 'max-h-[34px] max-w-[132px]' : 'max-h-[24px] max-w-[88px]'} ${active ? (isDesktop ? 'scale-[1.12]' : 'scale-[1.06]') : ''}`}
+        textClassName={`tracking-[0.16em] sm:tracking-[0.28em] font-semibold text-foreground ${isDesktop ? 'text-xs' : 'text-[10px]'}`}
+      />
       {active && (
         <div className={`absolute bottom-2 h-[2px] bg-[#b89b5e] rounded-full shadow-sm ${isDesktop ? 'w-8' : 'w-6'}`} />
       )}
@@ -334,22 +300,4 @@ function PreviewLogo({ src, fallbackSrc, fallbackText, isDesktop = false, active
   );
 }
 
-function EyeIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
+
