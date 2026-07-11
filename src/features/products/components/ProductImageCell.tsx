@@ -5,16 +5,19 @@ import UnlockDialog from "@/features/edit-unlock/components/UnlockDialog";
 import { saveProductOverride } from "@/features/products/services/productOverrideService";
 import { toast } from "sonner";
 
+import { useAdminSession } from "@/hooks/useAdminSession";
+
 type Props = {
-  productNo: number;
+  productId: string;
   src?: string;
   onChange: (src: string | undefined) => void;
 };
 
 const MAX_BYTES = 1.5 * 1024 * 1024; // 1.5MB
 
-const ProductImageCell = ({ productNo, src, onChange }: Props) => {
+const ProductImageCell = ({ productId, src, onChange }: Props) => {
   const { unlocked } = useEditUnlock();
+  const { session } = useAdminSession();
   const [open, setOpen] = useState(false);
   const [askUnlock, setAskUnlock] = useState(false);
   const [urlInput, setUrlInput] = useState("");
@@ -37,7 +40,13 @@ const ProductImageCell = ({ productNo, src, onChange }: Props) => {
       return null;
     }
     setSaving(true);
-    const res = await saveProductOverride({ productId: productNo, ...payload });
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      toast.error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+      setSaving(false);
+      return null;
+    }
+    const res = await saveProductOverride({ productId, ...payload }, accessToken);
     setSaving(false);
     if (!res.ok) {
       toast.error(res.error ?? "Lưu thất bại");

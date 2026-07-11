@@ -134,7 +134,7 @@ export function ProductCardList({
                       <div className="flex gap-4">
                         <div className="w-28 flex-shrink-0">
                           <ProductImageCell
-                            productNo={row.id}
+                            productId={row.id}
                             src={row.image ?? overrides[row.id]?.image_url ?? undefined}
                             onChange={(src) => actions.onSetImage(row.id, src)}
                             mobile
@@ -149,14 +149,14 @@ export function ProductCardList({
                           </div>
                           <div className="pt-2 border-t border-border mt-3 flex flex-wrap gap-1.5">
                             <ProductLinkCell
-                              productNo={row.id}
+                              productId={row.id}
                               href={row.link}
                               onChange={(href) => actions.onSetLink(row.id, href, false)}
                               mobile
                             />
                             {(unlocked || row.link2) && (
                               <ProductLinkCell
-                                productNo={row.id}
+                                productId={row.id}
                                 href={row.link2}
                                 onChange={(href) => actions.onSetLink(row.id, href, true)}
                                 label="Link 2"

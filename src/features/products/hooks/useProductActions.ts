@@ -15,6 +15,7 @@ export type UseProductActionsOptions = {
   setOverrides: React.Dispatch<React.SetStateAction<Record<string, OverrideRow>>>;
   snapshot: (id: string, prev: OverrideRow | undefined, label: string) => void;
   refreshOverrides: () => Promise<void>;
+  accessToken: string | null;
 };
 
 export type UseProductActionsReturn = {
@@ -34,6 +35,7 @@ export function useProductActions({
   setOverrides,
   snapshot,
   refreshOverrides,
+  accessToken,
 }: UseProductActionsOptions): UseProductActionsReturn {
   const [editOpen, setEditOpen] = useState(false);
   const [editInitial, setEditInitial] = useState<ProductDialogInitial | null>(null);
@@ -91,13 +93,22 @@ export function useProductActions({
 
   const onDelete = useCallback(
     async (p: ProductViewModel) => {
-      if (!confirm(`Xoá sản phẩm "${p.name}"?`)) return;
-
+      if (!accessToken) {
+        toast.error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+        return;
+      }
+      
       const prev = overrides[p.id];
       const isCustom = !!prev?.is_custom;
 
+      // When soft deleting or restoring, always pass the full payload per user requirement
+      const actionLabel = prev?.deleted ? "Khôi phục" : "Xoá mềm";
+      const confirmMessage = prev?.deleted ? `Khôi phục sản phẩm "${p.name}"?` : `Xoá sản phẩm "${p.name}"?`;
+      
+      if (!confirm(confirmMessage)) return;
+
       if (isCustom) {
-        const res = await saveProductOverride({ action: "hard_delete", productId: p.id });
+        const res = await saveProductOverride({ action: "hard_delete", productId: p.id }, accessToken);
         if (!res.ok) return toast.error(res.error ?? "Xoá thất bại");
         snapshot(p.id, prev, `Xoá "${p.name}"`);
         setOverrides((prev2) => {
@@ -105,18 +116,37 @@ export function useProductActions({
           delete n[p.id];
           return n;
         });
+        toast.success("Đã xoá thành công!");
       } else {
-        const res = await saveProductOverride({ productId: p.id, deleted: true });
-        if (!res.ok || !res.row) return toast.error(res.error ?? "Xoá thất bại");
-        upsertOverride(res.row, { snapshotLabel: `Xoá "${p.name}"` });
+        const payload = {
+          productId: p.id,
+          brand: p.brand,
+          section: p.section,
+          name: p.name,
+          desc: p.desc,
+          imageUrl: p.image_url,
+          linkUrl: p.link_url,
+          linkUrl2: p.link_url_2,
+          deleted: !prev?.deleted // toggle the deleted state
+        };
+        const res = await saveProductOverride(payload, accessToken);
+        if (!res.ok || !res.row) return toast.error(res.error ?? `${actionLabel} thất bại`);
+        upsertOverride(res.row, { snapshotLabel: `${actionLabel} "${p.name}"` });
+        toast.success(`Đã ${actionLabel.toLowerCase()} sản phẩm`);
       }
-      toast.success("Đã xoá — có thể hoàn tác");
+      
+      // refresh products after save
+      refreshOverrides();
     },
-    [overrides, setOverrides, snapshot, upsertOverride],
+    [overrides, setOverrides, snapshot, upsertOverride, accessToken, refreshOverrides],
   );
 
   const onRenameSection = useCallback(
     async (oldTitle: string, rows: ProductViewModel[]) => {
+      if (!accessToken) {
+        toast.error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+        return;
+      }
       const next = window.prompt(`Đổi tên nhóm "${oldTitle}" thành:`, oldTitle);
       if (!next) return;
       const newTitle = next.trim();
@@ -125,7 +155,18 @@ export function useProductActions({
       toast.info(`Đang đổi tên ${rows.length} sản phẩm…`);
       let failed = 0;
       for (const r of rows) {
-        const res = await saveProductOverride({ productId: r.id, section: newTitle });
+        const payload = {
+          productId: r.id,
+          brand: r.brand,
+          section: newTitle,
+          name: r.name,
+          desc: r.desc,
+          imageUrl: r.image_url,
+          linkUrl: r.link_url,
+          linkUrl2: r.link_url_2,
+          deleted: r.deleted
+        };
+        const res = await saveProductOverride(payload, accessToken);
         if (!res.ok || !res.row) {
           failed++;
           continue;
@@ -134,16 +175,22 @@ export function useProductActions({
       }
       if (failed) toast.error(`${failed} sản phẩm lỗi`);
       else toast.success(`Đã đổi nhóm thành "${newTitle}"`);
+      
+      refreshOverrides();
     },
-    [upsertOverride],
+    [upsertOverride, accessToken, refreshOverrides],
   );
 
   const onReorderProduct = useCallback(
     async (section: string, orderedIds: string[]) => {
+      if (!accessToken) {
+        toast.error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+        return;
+      }
       const res = await saveProductOrder({
         section,
         ordered_ids: orderedIds,
-      });
+      }, accessToken);
       if (!res.ok) {
         toast.error(res.error ?? "Lỗi lưu vị trí");
         return;
@@ -161,8 +208,9 @@ export function useProductActions({
       }
       
       toast.success("Đã cập nhật thứ tự hiển thị!");
+      refreshOverrides();
     },
-    [setOverrides],
+    [setOverrides, accessToken, refreshOverrides],
   );
 
   // ── Compose actions object ────────────────────────────────────────────────

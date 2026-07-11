@@ -259,19 +259,33 @@ export default function Dashboard() {
   };
 
   // 3. Xóa mềm (Soft Delete)
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Bạn có chắc muốn ẩn sản phẩm "${name}"?`)) return;
+  const handleDelete = async (p: AdminProduct) => {
+    if (!window.confirm(`Bạn có chắc muốn ẩn sản phẩm "${p.name}"?`)) return;
+    
+    if (!session?.access_token) {
+      toast.error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+      return;
+    }
+    
     try {
       const res = await saveProductOverride({
-        action: "upsert",
-        productId: id,
+        productId: p.id,
+        brand: p.brand || "desembre",
+        section: p.section || "Khác",
+        name: p.name || "",
+        desc: p.desc || "",
+        imageUrl: p.image_url,
+        linkUrl: p.link_url,
+        linkUrl2: p.link_url_2,
         deleted: true
-      });
+      }, session.access_token);
+      
       if (!res.ok) throw new Error(res.error);
       
       // Optimistic update
-      setProducts(prev => prev.map(p => p.id === id ? { ...p, deleted: true } : p));
+      setProducts(prev => prev.map(item => item.id === p.id ? { ...item, deleted: true } : item));
       toast.success('Đã ẩn sản phẩm thành công!');
+      fetchProducts();
     } catch (error) {
       const err = error as Error;
       console.error("Lỗi khi ẩn sản phẩm:", err);
@@ -280,18 +294,31 @@ export default function Dashboard() {
   };
 
   // Khôi phục (Restore)
-  const handleRestore = async (id: string, name: string) => {
+  const handleRestore = async (p: AdminProduct) => {
+    if (!session?.access_token) {
+      toast.error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+      return;
+    }
+    
     try {
       const res = await saveProductOverride({
-        action: "upsert",
-        productId: id,
+        productId: p.id,
+        brand: p.brand || "desembre",
+        section: p.section || "Khác",
+        name: p.name || "",
+        desc: p.desc || "",
+        imageUrl: p.image_url,
+        linkUrl: p.link_url,
+        linkUrl2: p.link_url_2,
         deleted: false
-      });
+      }, session.access_token);
+      
       if (!res.ok) throw new Error(res.error);
       
       // Optimistic update
-      setProducts(prev => prev.map(p => p.id === id ? { ...p, deleted: false } : p));
+      setProducts(prev => prev.map(item => item.id === p.id ? { ...item, deleted: false } : item));
       toast.success('Đã khôi phục sản phẩm thành công!');
+      fetchProducts();
     } catch (error) {
       const err = error as Error;
       console.error("Lỗi khi khôi phục sản phẩm:", err);
@@ -773,11 +800,11 @@ export default function Dashboard() {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         {p.deleted ? (
-                          <button onClick={() => handleRestore(p.id, p.name)} className="p-2 text-emerald-600 hover:bg-emerald-600/10 rounded-md transition-colors" title="Khôi phục hiển thị">
+                          <button onClick={() => handleRestore(p)} className="p-2 text-emerald-600 hover:bg-emerald-600/10 rounded-md transition-colors" title="Khôi phục hiển thị">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                           </button>
                         ) : (
-                          <button onClick={() => handleDelete(p.id, p.name)} className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors" title="Ẩn sản phẩm">
+                          <button onClick={() => handleDelete(p)} className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors" title="Ẩn sản phẩm">
                             <Archive className="w-4 h-4" />
                           </button>
                         )}

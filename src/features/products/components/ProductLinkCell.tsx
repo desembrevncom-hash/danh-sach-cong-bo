@@ -4,9 +4,10 @@ import { useEditUnlock } from "@/features/edit-unlock/hooks/useEditUnlock";
 import UnlockDialog from "@/features/edit-unlock/components/UnlockDialog";
 import { saveProductOverride } from "@/features/products/services/productOverrideService";
 import { toast } from "sonner";
+import { useAdminSession } from "@/hooks/useAdminSession";
 
 type Props = {
-  productNo: number;
+  productId: string;
   href?: string;
   onChange: (href: string | undefined) => void;
   label?: string;
@@ -21,8 +22,9 @@ const normalize = (raw: string): string | undefined => {
   return `https://${v}`;
 };
 
-const ProductLinkCell = ({ productNo, href, onChange, label = "Link", variant = "primary", mobile }: Props) => {
+const ProductLinkCell = ({ productId, href, onChange, label = "Link", variant = "primary", mobile }: Props) => {
   const { unlocked } = useEditUnlock();
+  const { session } = useAdminSession();
   const [open, setOpen] = useState(false);
   const [askUnlock, setAskUnlock] = useState(false);
   const [value, setValue] = useState(href ?? "");
@@ -72,8 +74,14 @@ const ProductLinkCell = ({ productNo, href, onChange, label = "Link", variant = 
       return false;
     }
     setSaving(true);
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      toast.error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+      setSaving(false);
+      return false;
+    }
     const fieldName = label === "Link 2" ? "link_url_2" : "link_url";
-    const res = await saveProductOverride({ productId: productNo, [fieldName]: link_val });
+    const res = await saveProductOverride({ productId: productId, [fieldName]: link_val }, accessToken);
     setSaving(false);
     if (!res.ok) {
       toast.error(res.error ?? "Lưu thất bại");

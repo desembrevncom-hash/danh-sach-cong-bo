@@ -101,7 +101,7 @@ export function ProductTable({
                       </td>
                       <td className="overflow-visible">
                         <ProductImageCell
-                          productNo={row.id}
+                          productId={row.id}
                           src={row.image ?? overrides[row.id]?.image_url ?? undefined}
                           onChange={(src) => actions.onSetImage(row.id, src)}
                         />
@@ -141,13 +141,13 @@ export function ProductTable({
                       <td className="text-center overflow-visible">
                         <div className="flex flex-col gap-1 items-center justify-center">
                           <ProductLinkCell
-                            productNo={row.id}
+                            productId={row.id}
                             href={row.link}
                             onChange={(href) => actions.onSetLink(row.id, href, false)}
                           />
                           {(unlocked || row.link2) && (
                             <ProductLinkCell
-                              productNo={row.id}
+                              productId={row.id}
                               href={row.link2}
                               onChange={(href) => actions.onSetLink(row.id, href, true)}
                               label="Link 2"

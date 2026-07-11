@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { withTimeout } from "@/lib/asyncState";
 import type { ProductViewModel } from "@/features/products/types";
+import { useAdminSession } from "@/hooks/useAdminSession";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,6 +94,7 @@ const ProductEditDialog = ({
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [insertPos, setInsertPos] = useState<number>(-2); // -2: end, -1: start, others: after product no
   const [saving, setSaving] = useState(false);
+  const { session } = useAdminSession();
 
   // Reset form whenever the dialog opens or initial data changes
   useEffect(() => {
@@ -119,6 +121,11 @@ const ProductEditDialog = ({
     const payloadId = form.id ? form.id : undefined;
 
     try {
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+      }
+      
       console.log("[add-product:validate-ok]");
       console.log("[add-product:edge-save:start]");
       
@@ -130,7 +137,7 @@ const ProductEditDialog = ({
           section: finalSection,
           name: form.name.trim(),
           desc: form.desc.trim(),
-        }),
+        }, accessToken),
         15000,
         "Lưu sản phẩm quá lâu. Vui lòng thử lại."
       );
