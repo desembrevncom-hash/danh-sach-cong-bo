@@ -33,10 +33,13 @@ export async function saveProductOverride(payload: SaveProductOverridePayload) {
     return { ok: false as const, error: "Bạn không có quyền thực hiện thao tác này." };
   }
   if (status === 400) {
-    return { ok: false as const, error: data?.error || "Dữ liệu không hợp lệ." };
+    return { ok: false as const, error: data?.message || data?.error || "Dữ liệu không hợp lệ." };
+  }
+  if (status === 409) {
+    return { ok: false as const, error: data?.message || data?.error || "Dữ liệu bị trùng lặp." };
   }
   if (status === 500) {
-    return { ok: false as const, error: "Lỗi hệ thống máy chủ." };
+    return { ok: false as const, error: data?.message || data?.error || "Lỗi hệ thống máy chủ." };
   }
 
   if (error) {

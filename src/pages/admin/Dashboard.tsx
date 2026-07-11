@@ -409,10 +409,13 @@ export default function Dashboard() {
       console.log("[add-product:done]");
     } catch (err: unknown) {
       console.error("[add-product:error]", { step: "general", error: err });
-      if (err instanceof Error) {
-        toast.error("Lỗi khi lưu: " + err.message);
+      
+      let errorMsg = err instanceof Error ? err.message : "Lỗi khi lưu không xác định!";
+      
+      if (imageFile) {
+         toast.error(`Ảnh đã tải lên nhưng lưu sản phẩm thất bại. Vui lòng thử lại hoặc kiểm tra thư viện ảnh. Chi tiết lỗi: ${errorMsg}`, { duration: 8000 });
       } else {
-        toast.error("Lỗi khi lưu không xác định!");
+         toast.error("Lỗi khi lưu: " + errorMsg);
       }
     } finally {
       isSavingRef.current = false;
