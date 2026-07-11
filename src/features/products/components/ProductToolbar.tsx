@@ -3,7 +3,7 @@ import { Search, RotateCcw, Lock, LockOpen, Plus, FileDown, FolderPlus, X, Check
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { ProductPDF } from "@/features/export-pdf/components/ProductPDF";
 import { HistoryPanel } from "@/features/products/components/HistoryPanel";
-import { ALL_SECTION_VALUE, type SectionOption, type BrandId } from "@/config/brands";
+import { ALL_SECTION_VALUE, type SectionOption, type BrandId, BRAND_THEMES } from "@/config/brands";
 import type { ProductViewModel } from '@/features/products/types';
 import type { ProductOverrideRow } from "@/features/products/types";
 import type { ProductDisplayRow } from "@/features/products/utils/productDisplayRows";
@@ -154,6 +154,9 @@ export function ProductToolbar({
     setSection(name);
   };
 
+  const brandLabel = activeBrand && BRAND_THEMES[activeBrand] ? BRAND_THEMES[activeBrand].name : undefined;
+  const pdfFilename = activeBrand ? `danh-sach-san-pham-${activeBrand}.pdf` : "danh-sach-san-pham.pdf";
+
   return (
     <div className="bg-card border border-border rounded-lg p-3 md:p-5 shadow-md flex flex-col md:flex-row gap-2 md:gap-3 md:items-center">
       <div className="relative flex-1">
@@ -226,13 +229,14 @@ export function ProductToolbar({
       <PDFDownloadLink
         document={
           <ProductPDF
+            brandLabel={brandLabel}
             products={filteredProducts.map((p) => ({
               ...p,
               image: p.image ?? overrides[p.id]?.image_url ?? undefined,
             }))}
           />
         }
-        fileName="danh-sach-san-pham-desembre.pdf"
+        fileName={pdfFilename}
         className="h-11 px-4 rounded-md border border-border bg-card text-foreground text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-muted/50 hover:shadow-sm transition-transform duration-150 active:scale-[0.98] md:hover:-translate-y-px"
       >
         {({ loading }) => (

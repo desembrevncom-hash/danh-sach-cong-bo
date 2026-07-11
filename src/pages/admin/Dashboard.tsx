@@ -61,11 +61,7 @@ export default function Dashboard() {
     return allSections.filter(s => s.brand === selectedBrand);
   }, [allSections, selectedBrand]);
 
-  const formSectionOptions = useMemo(() => {
-    if (allSections.length === 0) return fallbackSections.map((s, i) => ({ value: s.title, label: s.title, sort_order: i * 10, active: true, brand: formBrand }));
-    return allSections.filter(s => s.brand === formBrand);
-  }, [allSections, formBrand]);
-  
+
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -80,6 +76,12 @@ export default function Dashboard() {
   const [linkUrl2, setLinkUrl2] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const formSectionOptions = useMemo(() => {
+    if (allSections.length === 0) return fallbackSections.map((s, i) => ({ value: s.title, label: s.title, sort_order: i * 10, active: true, brand: formBrand }));
+    return allSections.filter(s => s.brand === formBrand);
+  }, [allSections, formBrand]);
+
 
   const isSavingRef = useRef(false);
 

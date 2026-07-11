@@ -107,14 +107,16 @@ export interface ProductPDFRow {
   link2?: string;
 }
 
-export const ProductPDF = ({ products }: { products: ProductPDFRow[] }) => (
+export const ProductPDF = ({ products, brandLabel }: { products: ProductPDFRow[], brandLabel?: string }) => (
   <Document>
     <Page size="A4" style={styles.page}>
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>DANH SÁCH CÔNG BỐ SẢN PHẨM</Text>
-          <Text style={styles.subtitle}>Desembre - Thẩm mỹ chuyên nghiệp từ Hàn Quốc</Text>
+          <Text style={styles.title}>
+            {brandLabel ? `DANH SÁCH SẢN PHẨM ${brandLabel.toUpperCase()}` : "DANH SÁCH SẢN PHẨM"}
+          </Text>
+          {brandLabel && <Text style={styles.subtitle}>{brandLabel} - Thẩm mỹ chuyên nghiệp</Text>}
         </View>
         <Text style={{ fontSize: 9, color: '#A0AEC0' }}>2026 Edition</Text>
       </View>
@@ -164,7 +166,7 @@ export const ProductPDF = ({ products }: { products: ProductPDFRow[] }) => (
 
       {/* Footer */}
       <Text style={styles.footer} render={({ pageNumber, totalPages }) => (
-        `Trang ${pageNumber} / ${totalPages} - Bản quyền © 2026 Desembre Vietnam`
+        `Trang ${pageNumber} / ${totalPages} - Bản quyền © 2026 ${brandLabel ? brandLabel + " Vietnam" : "Danh Sách Công Bố"}`
       )} fixed />
     </Page>
   </Document>
