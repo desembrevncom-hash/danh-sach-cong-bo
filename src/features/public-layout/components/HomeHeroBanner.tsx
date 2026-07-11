@@ -30,7 +30,7 @@ export function HomeHeroBanner() {
       />
       
       {/* Strong Overlay for Text Readability */}
-      <div className="absolute inset-0 -z-10 bg-background/80 md:bg-gradient-to-r md:from-background/95 md:via-background/70 md:to-background/90 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 -z-10 bg-background/60 md:bg-gradient-to-r md:from-background/75 md:via-background/50 md:to-background/70 backdrop-blur-[2px]" />
 
       <div className="container mx-auto px-4 sm:px-6 h-full flex flex-col justify-center items-center mt-8">
         <div className="w-full mx-auto text-center animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out fill-mode-both flex flex-col items-center">
