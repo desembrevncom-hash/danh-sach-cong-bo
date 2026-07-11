@@ -47,6 +47,54 @@ const IndexInner = ({
   
   const activeBrand = resolveBrandId(brandId);
   const [dbSections, setDbSections] = useState<SectionOption[] | null>(null);
+
+  // -- BRAND TOTAL COUNT --
+  const [brandTotalCount, setBrandTotalCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTotalCount = async () => {
+      const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL as string;
+      const supabaseKey  =
+        (import.meta.env.VITE_SUPABASE_ANON_KEY as string) ||
+        (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string);
+        
+      try {
+        const res = await fetch(`${supabaseUrl}/rest/v1/rpc/search_products_catalog`, {
+          method: "POST",
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            search_term: null,
+            cat_id: null,
+            brand_id: activeBrand,
+            page_num: 1,
+            page_size: 1,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data && data.length > 0) {
+            setBrandTotalCount(data[0].total_count ?? 0);
+          } else if (isMounted) {
+            setBrandTotalCount(0);
+          }
+        } else {
+            if (isMounted) setBrandTotalCount(-1);
+        }
+      } catch (err) {
+        if (isMounted) setBrandTotalCount(-1);
+      }
+    };
+    
+    setBrandTotalCount(null);
+    fetchTotalCount();
+    
+    return () => { isMounted = false; };
+  }, [activeBrand]);
   
   const baseSectionOptions = useMemo(() => {
     return dbSections ?? getBrandSectionOptions(activeBrand);
@@ -293,7 +341,7 @@ const IndexInner = ({
     <>
       <SeoHead routePath={`/${activeBrand}`} />
       
-      <BrandHero brandId={activeBrand} />
+      <BrandHero brandId={activeBrand} totalCount={brandTotalCount} />
 
       <section className="container mx-auto px-3 md:px-6 pt-3 md:pt-8 sticky top-16 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-2">
         <ProductToolbar

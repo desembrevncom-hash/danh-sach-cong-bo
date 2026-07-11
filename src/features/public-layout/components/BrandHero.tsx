@@ -4,9 +4,10 @@ import { ArrowRight } from "lucide-react";
 
 interface BrandHeroProps {
   brandId: BrandId;
+  totalCount?: number | null;
 }
 
-export function BrandHero({ brandId }: BrandHeroProps) {
+export function BrandHero({ brandId, totalCount }: BrandHeroProps) {
   const theme = BRAND_THEMES[brandId];
   if (!theme) return null;
 
@@ -27,7 +28,11 @@ export function BrandHero({ brandId }: BrandHeroProps) {
           <div className={`h-1.5 w-16 mb-6 rounded-full ${theme.accentColor}`} />
           
           <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-10 max-w-2xl">
-            {theme.subtitle}
+            {totalCount === null 
+              ? `Đang cập nhật số lượng công bố sản phẩm thương hiệu ${theme.name}. Xin mời tra cứu.`
+              : totalCount < 0
+              ? `Thông tin công bố sản phẩm thương hiệu ${theme.name} đang được cập nhật. Xin mời tra cứu.`
+              : `Hiện tại đang có tổng số ${totalCount} công bố sản phẩm thương hiệu ${theme.name} trên hệ thống. Xin mời tra cứu.`}
           </p>
 
           <div className="flex items-center gap-4">

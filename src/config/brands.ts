@@ -29,10 +29,10 @@ export const BRAND_THEMES: Record<BrandId, BrandTheme> = {
   desembre: {
     id: "desembre",
     name: "Desembre",
-    website: "www.desembrevn.com",
-    eyebrow: "WWW.DESEMBREVN.COM · 2026 CATALOG",
+    website: "www.hjcnt.com.vn",
+    eyebrow: "WWW.HJCNT.COM.VN · #desembre",
     title: "Danh Sách Công Bố Sản Phẩm Desembre",
-    subtitle: "Bộ sưu tập đầy đủ các dòng sản phẩm chăm sóc da chuyên nghiệp Desembre — đã công bố lưu hành tại Việt Nam.",
+    subtitle: "", // Handled dynamically in BrandHero
     accentColor: "bg-accent",
     backgroundClass: "bg-gradient-to-br from-primary/5 to-transparent",
     otherBrandId: "dermagarden",
@@ -40,10 +40,10 @@ export const BRAND_THEMES: Record<BrandId, BrandTheme> = {
   dermagarden: {
     id: "dermagarden",
     name: "Dermagarden",
-    website: "www.dermagarden.com",
-    eyebrow: "WWW.DERMAGARDEN.COM · 2026 CATALOG",
+    website: "www.hjcnt.com.vn",
+    eyebrow: "WWW.HJCNT.COM.VN · #dermagarden",
     title: "Danh Sách Công Bố Sản Phẩm Dermagarden",
-    subtitle: "Bộ sưu tập đầy đủ các dòng sản phẩm chăm sóc da chuyên nghiệp Dermagarden — đã công bố lưu hành tại Việt Nam.",
+    subtitle: "", // Handled dynamically in BrandHero
     accentColor: "bg-primary",
     backgroundClass: "bg-gradient-to-bl from-primary/5 to-transparent",
     otherBrandId: "desembre",
