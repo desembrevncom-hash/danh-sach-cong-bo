@@ -366,7 +366,7 @@ export function SeoManagementTab() {
                 {siteErrors.siteName && <p className="text-xs text-destructive mt-1">{siteErrors.siteName}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Favicon URL (1:1, khuyên dùng PNG/SVG)</label>
+                <label className="block text-sm font-medium mb-1">Favicon URL (1:1, khuyên dùng PNG/ICO)</label>
                 <div className="flex gap-2">
                   <input value={siteForm.faviconUrl || ''} onChange={e => setSiteForm({...siteForm, faviconUrl: e.target.value})} placeholder="/favicon.png" className={`flex-1 p-2 border rounded-md bg-background ${siteErrors.faviconUrl ? 'border-destructive' : 'border-input'}`} />
                   <button onClick={() => openPicker('site_favicon', 'favicon')} className="px-3 py-2 bg-muted hover:bg-primary/10 hover:text-primary rounded-md border border-input text-sm font-medium shrink-0">Thư viện</button>
