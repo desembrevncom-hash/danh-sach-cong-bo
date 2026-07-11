@@ -52,64 +52,70 @@ export function HomeHeroBanner() {
             {/* DESEMBRE CARD */}
             <Link 
               to="/desembre"
-              className="group relative flex flex-col text-left rounded-[28px] bg-background/80 backdrop-blur-md border border-border/60 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full h-[260px] sm:h-[320px] lg:h-[360px]"
+              className="group flex flex-col text-left rounded-3xl bg-background/85 backdrop-blur-md border border-border/60 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full h-[320px] sm:h-[360px] lg:h-[400px]"
             >
-              <div className="p-6 md:p-8 flex flex-col z-20">
-                <h3 className="text-2xl md:text-3xl font-black tracking-tight text-foreground mb-1 group-hover:text-primary transition-colors flex items-center justify-between w-full">
-                  DESEMBRE
-                </h3>
-                <p className="text-sm font-semibold text-foreground/80 mb-4">
-                  Thương hiệu thẩm mỹ chuyên nghiệp
-                </p>
-                
-                <div className="flex items-center gap-2 text-sm font-bold text-primary transition-all">
-                  Tra cứu ngay <span className="group-hover:translate-x-1.5 transition-transform duration-300">&rarr;</span>
-                </div>
-              </div>
-              
-              <div className="absolute bottom-0 left-0 right-0 h-[150px] sm:h-[180px] lg:h-[220px] overflow-hidden flex items-end justify-center">
-                <div className="absolute inset-0 bg-gradient-to-b from-background via-background/40 to-transparent z-10" />
-                <div className="absolute inset-0 bg-orange-100/20 dark:bg-orange-950/10" />
-                {settings?.homeBrandDesembreImageUrl && (
+              {/* IMAGE AREA */}
+              <div className="relative w-full flex-[1.7] bg-gradient-to-t from-[#e9eee6] to-[#f7f2e8] flex items-end justify-center overflow-hidden">
+                {settings?.homeBrandDesembreImageUrl ? (
                   <img 
                     src={settings.homeBrandDesembreImageUrl} 
                     alt="Desembre" 
-                    className="w-full h-[90%] object-contain object-bottom group-hover:scale-[1.03] transition-transform duration-700 opacity-95" 
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    className="w-full max-w-[90%] h-[90%] object-contain object-bottom group-hover:scale-[1.03] transition-transform duration-700" 
+                    onError={(e) => { 
+                      e.currentTarget.style.display = 'none'; 
+                    }}
                   />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-t from-orange-100/50 to-orange-50/20" />
                 )}
+              </div>
+
+              {/* CONTENT AREA */}
+              <div className="flex-1 flex flex-col justify-center p-5 md:p-7 bg-background">
+                <h3 className="text-2xl lg:text-[32px] font-black tracking-tight text-foreground mb-1 group-hover:text-primary transition-colors leading-none">
+                  DESEMBRE
+                </h3>
+                <p className="text-sm md:text-base font-medium text-muted-foreground truncate">
+                  Thương hiệu thẩm mỹ chuyên nghiệp
+                </p>
+                <div className="flex items-center gap-1.5 text-sm font-semibold text-primary transition-all mt-3 md:mt-4">
+                  Tra cứu ngay <span className="group-hover:translate-x-1.5 transition-transform duration-300">&rarr;</span>
+                </div>
               </div>
             </Link>
 
             {/* DERMAGARDEN CARD */}
             <Link 
               to="/dermagarden"
-              className="group relative flex flex-col text-left rounded-[28px] bg-background/80 backdrop-blur-md border border-border/60 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full h-[260px] sm:h-[320px] lg:h-[360px]"
+              className="group flex flex-col text-left rounded-3xl bg-background/85 backdrop-blur-md border border-border/60 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full h-[320px] sm:h-[360px] lg:h-[400px]"
             >
-              <div className="p-6 md:p-8 flex flex-col z-20">
-                <h3 className="text-2xl md:text-3xl font-black tracking-tight text-foreground mb-1 group-hover:text-primary transition-colors flex items-center justify-between w-full">
-                  DERMAGARDEN
-                </h3>
-                <p className="text-sm font-semibold text-foreground/80 mb-4">
-                  Thương hiệu chăm sóc da chuyên sâu
-                </p>
-                
-                <div className="flex items-center gap-2 text-sm font-bold text-primary transition-all">
-                  Tra cứu ngay <span className="group-hover:translate-x-1.5 transition-transform duration-300">&rarr;</span>
-                </div>
-              </div>
-              
-              <div className="absolute bottom-0 left-0 right-0 h-[150px] sm:h-[180px] lg:h-[220px] overflow-hidden flex items-end justify-center">
-                <div className="absolute inset-0 bg-gradient-to-b from-background via-background/40 to-transparent z-10" />
-                <div className="absolute inset-0 bg-emerald-100/20 dark:bg-emerald-950/10" />
-                {settings?.homeBrandDermagardenImageUrl && (
+              {/* IMAGE AREA */}
+              <div className="relative w-full flex-[1.7] bg-gradient-to-t from-[#e4f6ee] to-[#eef8f4] flex items-end justify-center overflow-hidden">
+                {settings?.homeBrandDermagardenImageUrl ? (
                   <img 
                     src={settings.homeBrandDermagardenImageUrl} 
                     alt="Dermagarden" 
-                    className="w-full h-[90%] object-contain object-bottom group-hover:scale-[1.03] transition-transform duration-700 opacity-95" 
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    className="w-full max-w-[90%] h-[90%] object-contain object-bottom group-hover:scale-[1.03] transition-transform duration-700" 
+                    onError={(e) => { 
+                      e.currentTarget.style.display = 'none'; 
+                    }}
                   />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-t from-emerald-100/50 to-emerald-50/20" />
                 )}
+              </div>
+
+              {/* CONTENT AREA */}
+              <div className="flex-1 flex flex-col justify-center p-5 md:p-7 bg-background">
+                <h3 className="text-2xl lg:text-[32px] font-black tracking-tight text-foreground mb-1 group-hover:text-primary transition-colors leading-none">
+                  DERMAGARDEN
+                </h3>
+                <p className="text-sm md:text-base font-medium text-muted-foreground truncate">
+                  Thương hiệu chăm sóc da chuyên sâu
+                </p>
+                <div className="flex items-center gap-1.5 text-sm font-semibold text-primary transition-all mt-3 md:mt-4">
+                  Tra cứu ngay <span className="group-hover:translate-x-1.5 transition-transform duration-300">&rarr;</span>
+                </div>
               </div>
             </Link>
           </div>
