@@ -217,45 +217,51 @@ export function DesignManagerTab() {
 // ----------------------------------------------------------------------
 
 function LogoCard({ 
-  title, 
-  value, 
-  onChange, 
   onOpenPicker,
   fallbackSrc,
   fallbackText
 }: { 
   title: string; 
   value: string; 
-  onChange: (val: string) => void; 
+  onChange: (val: string) => void;
   onOpenPicker: () => void;
   fallbackSrc: string;
   fallbackText: string;
 }) {
+  const [imgError, setImgError] = useState(false);
+
+  // Reset error state when value changes
+  useEffect(() => {
+    setImgError(false);
+  }, [value]);
+
   return (
     <div className="border border-border rounded-md p-4 space-y-4 bg-muted/20">
       <h3 className="font-semibold text-sm">{title}</h3>
       
       <div className="h-20 bg-white dark:bg-card border border-border rounded flex items-center justify-center p-2 relative overflow-hidden group">
         {value ? (
-          <img 
-            src={value} 
-            alt="Preview" 
-            className="max-h-full max-w-full object-contain" 
-            onError={(e) => {
-              (e.target as HTMLImageElement).onerror = null;
-              (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="%23ff4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>';
-            }}
-          />
+          !imgError ? (
+            <img 
+              src={value} 
+              alt="Preview" 
+              className="max-h-full max-w-full object-contain" 
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <span className="text-xs font-bold uppercase tracking-widest text-destructive text-center px-2">LỖI ẢNH</span>
+          )
         ) : (
-          <img 
-            src={fallbackSrc} 
-            alt="Fallback" 
-            className="max-h-full max-w-full object-contain opacity-50"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-              e.currentTarget.parentElement!.innerHTML = `<span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">${fallbackText}</span>`;
-            }}
-          />
+          !imgError ? (
+            <img 
+              src={fallbackSrc} 
+              alt="Fallback" 
+              className="max-h-full max-w-full object-contain opacity-50"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground text-center px-2">{fallbackText}</span>
+          )
         )}
         {!value && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/50">

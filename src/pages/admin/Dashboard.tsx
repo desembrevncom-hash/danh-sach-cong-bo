@@ -14,6 +14,7 @@ import type { SectionOption } from "@/config/brands";
 import { resolveBrandId, type BrandId } from "@/config/brands";
 import { SeoHead } from "@/features/seo/components/SeoHead";
 import { SeoManagementTab } from "@/features/seo/components/SeoManagementTab";
+import { AdminTabErrorBoundary } from "@/components/ui/AdminTabErrorBoundary";
 import { MediaLibraryTab } from '@/features/media/components/MediaLibraryTab';
 import { DesignManagerTab } from "@/features/design-manager/components/DesignManagerTab";
 import { withTimeout, getErrorMessage } from "@/lib/asyncState";
@@ -658,13 +659,21 @@ export default function Dashboard() {
         </div>
 
         {activeMainTab === "design" ? (
-          <DesignManagerTab />
+          <AdminTabErrorBoundary tabName="Thiết kế">
+            <DesignManagerTab />
+          </AdminTabErrorBoundary>
         ) : activeMainTab === "media" ? (
-          <MediaLibraryTab />
+          <AdminTabErrorBoundary tabName="Thư viện ảnh">
+            <MediaLibraryTab />
+          </AdminTabErrorBoundary>
         ) : activeMainTab === "seo" ? (
-          <SeoManagementTab />
+          <AdminTabErrorBoundary tabName="SEO">
+            <SeoManagementTab />
+          </AdminTabErrorBoundary>
         ) : activeMainTab === "sections" ? (
-          <SectionManagementTab activeBrand={resolveBrandId(selectedBrand)} />
+          <AdminTabErrorBoundary tabName="Nhóm sản phẩm">
+            <SectionManagementTab activeBrand={resolveBrandId(selectedBrand)} />
+          </AdminTabErrorBoundary>
         ) : (
           <div className="space-y-6 animate-in fade-in duration-300">
             {/* Top Controls & KPI */}

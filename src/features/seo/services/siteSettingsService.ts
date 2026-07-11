@@ -94,6 +94,10 @@ export async function updateSiteSettings(payload: Partial<SiteSettings>): Promis
     if (payload.webAppIcon512Url !== undefined) updateData.web_app_icon_512_url = payload.webAppIcon512Url;
     if (payload.defaultOgImageUrl !== undefined) updateData.default_og_image_url = payload.defaultOgImageUrl;
     
+    if (payload.headerLogoDesembreUrl !== undefined) updateData.header_logo_desembre_url = payload.headerLogoDesembreUrl;
+    if (payload.headerLogoHyunjinUrl !== undefined) updateData.header_logo_hyunjin_url = payload.headerLogoHyunjinUrl;
+    if (payload.headerLogoDermagardenUrl !== undefined) updateData.header_logo_dermagarden_url = payload.headerLogoDermagardenUrl;
+    
     // ensure updated_at is refreshed via trigger or implicitly, or explicitly set it
     updateData.updated_at = new Date().toISOString();
 
