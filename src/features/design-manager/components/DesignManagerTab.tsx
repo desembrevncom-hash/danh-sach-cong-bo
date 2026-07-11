@@ -229,7 +229,7 @@ export function DesignManagerTab() {
           <h2 className="text-xl font-bold">Ảnh thẻ thương hiệu trang chủ</h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          Ảnh hiển thị trong 2 thẻ Desembre và Dermagarden ở Hero trang chủ. Khuyến nghị dùng ảnh PNG/JPG/WebP, ngang hoặc sản phẩm nền trong suốt.
+          Ảnh hiển thị trong 2 thẻ Desembre và Dermagarden ở Hero trang chủ. Khuyến nghị dùng ảnh PNG/JPG/WebP kích thước 1200×700px, tỉ lệ 12:7, dung lượng dưới 800KB. Ưu tiên ảnh sản phẩm nền trong suốt hoặc nền sáng, đặt sản phẩm ở giữa/dưới khung.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -248,6 +248,10 @@ export function DesignManagerTab() {
             fallbackType="dermagarden"
           />
         </div>
+
+        <p className="text-xs text-muted-foreground bg-muted/30 p-3 rounded border border-border/50">
+          <strong className="text-foreground">Lưu ý:</strong> Tránh đặt chữ nhỏ, logo hoặc chi tiết quan trọng sát mép ảnh để không bị cắt trên mobile.
+        </p>
 
         <div className="flex justify-end pt-4 border-t border-border mt-4">
           <button 
@@ -377,14 +381,17 @@ function ImageCard({
 }) {
   return (
     <div className="border border-border rounded-md p-4 space-y-4 bg-muted/20">
-      <h3 className="font-semibold text-sm">{title}</h3>
+      <div>
+        <h3 className="font-semibold text-sm">{title}</h3>
+        <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Chuẩn đề xuất: 1200×700px · Tỉ lệ 12:7 · PNG/JPG/WebP · &lt;800KB</p>
+      </div>
       
-      <div className="h-40 bg-white dark:bg-card border border-border rounded flex items-center justify-center relative overflow-hidden group">
+      <div className="aspect-[12/7] w-full bg-[#f8f5ef] dark:bg-card border border-border rounded flex items-center justify-center relative overflow-hidden group">
         {value ? (
           <img 
             src={value} 
             alt="Preview" 
-            className="w-full h-full object-cover" 
+            className="w-full h-full object-contain object-bottom" 
             onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement?.classList.add('bg-destructive/10'); }}
           />
         ) : (
