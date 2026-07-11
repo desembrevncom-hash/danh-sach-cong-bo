@@ -65,6 +65,8 @@ export default function Dashboard() {
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
+  const isSavingRef = useRef(false);
+
   // 1. Auth Guard & Role Check
   useEffect(() => {
     let mounted = true;
@@ -300,7 +302,8 @@ export default function Dashboard() {
   // 5. Lưu sản phẩm (Thêm mới hoặc Cập nhật)
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSaving) return;
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
     setIsSaving(true);
     
     // Nếu chọn tạo nhóm mới thông qua prompt nhanh
@@ -365,6 +368,7 @@ export default function Dashboard() {
         toast.error("Lỗi khi lưu!");
       }
     } finally {
+      isSavingRef.current = false;
       setIsSaving(false);
     }
   };
