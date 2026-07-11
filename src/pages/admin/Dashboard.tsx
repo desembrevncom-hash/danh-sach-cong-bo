@@ -333,9 +333,10 @@ export default function Dashboard() {
 
       // Nếu có chọn ảnh mới thì upload
       if (imageFile) {
-        const uploadRes = await uploadProductImage(imageFile);
+        const uploadRes = await withTimeout(uploadProductImage(imageFile), 15000);
         if (uploadRes.error) {
           toast.error(uploadRes.error);
+          isSavingRef.current = false;
           setIsSaving(false);
           return;
         }
@@ -344,7 +345,7 @@ export default function Dashboard() {
         }
       }
 
-      const res = await saveProductOverride({
+      const res = await withTimeout(saveProductOverride({
         action: editingId === null ? "create" : "upsert",
         productId: editingId === null ? undefined : editingId,
         brand: formBrand,
@@ -354,7 +355,7 @@ export default function Dashboard() {
         image_url: finalImageUrl || undefined,
         link_url: linkUrl || undefined,
         link_url_2: linkUrl2 || undefined,
-      });
+      }), 15000);
 
       if (!res.ok) throw new Error(res.error);
 
