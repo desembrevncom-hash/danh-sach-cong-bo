@@ -1,68 +1,104 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowRight } from "lucide-react";
 import { useSiteSettings } from "@/features/seo/components/SiteSettingsProvider";
 
 // ─────────────────────────────────────────────
-// Hook: useTypewriter
+// Hook: useTypewriterLoop
+// Loops through an array of sentences: type → pause → delete → next
 // ─────────────────────────────────────────────
-function useTypewriter(
-  fullText: string,
-  {
-    speed = 28,
-    startDelay = 600,
-    cursorBlinkDuration = 1800,
-    disabled = false,
-  }: {
-    speed?: number;
-    startDelay?: number;
-    cursorBlinkDuration?: number;
-    disabled?: boolean;
-  } = {}
-) {
-  const [displayed, setDisplayed] = useState(disabled ? fullText : "");
+const SENTENCES = [
+  "Cập nhật liên tục danh sách công bố sản phẩm.",
+  "Tra cứu nhanh sản phẩm Desembre và Dermagarden.",
+  "Thông tin công bố rõ ràng, chính xác, dễ kiểm tra.",
+  "Danh sách sản phẩm đang được phép lưu hành tại Việt Nam.",
+];
+
+const STATIC_DESCRIPTION =
+  "Cập nhật liên tục danh sách công bố sản phẩm Desembre và Dermagarden đang được phép lưu hành tại Việt Nam.";
+
+function useTypewriterLoop({
+  sentences,
+  typeSpeed = 28,
+  deleteSpeed = 15,
+  pauseAfterType = 1900,
+  pauseAfterDelete = 380,
+  disabled = false,
+}: {
+  sentences: string[];
+  typeSpeed?: number;
+  deleteSpeed?: number;
+  pauseAfterType?: number;
+  pauseAfterDelete?: number;
+  disabled?: boolean;
+}) {
+  const [displayed, setDisplayed] = useState(disabled ? sentences[0] : "");
   const [showCursor, setShowCursor] = useState(!disabled);
-  const [done, setDone] = useState(disabled);
+
+  const stateRef = useRef({
+    sentenceIndex: 0,
+    charIndex: 0,
+    isDeleting: false,
+  });
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeRef = useRef(true);
+
+  const tick = useCallback(() => {
+    if (!activeRef.current) return;
+
+    const { sentenceIndex, charIndex, isDeleting } = stateRef.current;
+    const current = sentences[sentenceIndex];
+
+    if (!isDeleting) {
+      // Typing
+      const next = charIndex + 1;
+      stateRef.current.charIndex = next;
+      setDisplayed(current.slice(0, next));
+
+      if (next >= current.length) {
+        // Done typing — pause then start deleting
+        stateRef.current.isDeleting = true;
+        timerRef.current = setTimeout(tick, pauseAfterType);
+      } else {
+        timerRef.current = setTimeout(tick, typeSpeed);
+      }
+    } else {
+      // Deleting
+      const next = charIndex - 1;
+      stateRef.current.charIndex = next;
+      setDisplayed(current.slice(0, next));
+
+      if (next <= 0) {
+        // Done deleting — pause then move to next sentence
+        stateRef.current.isDeleting = false;
+        stateRef.current.sentenceIndex =
+          (sentenceIndex + 1) % sentences.length;
+        timerRef.current = setTimeout(tick, pauseAfterDelete);
+      } else {
+        timerRef.current = setTimeout(tick, deleteSpeed);
+      }
+    }
+  }, [sentences, typeSpeed, deleteSpeed, pauseAfterType, pauseAfterDelete]);
 
   useEffect(() => {
-    if (disabled) {
-      setDisplayed(fullText);
-      setShowCursor(false);
-      setDone(true);
-      return;
-    }
+    if (disabled) return;
 
+    activeRef.current = true;
+    stateRef.current = { sentenceIndex: 0, charIndex: 0, isDeleting: false };
     setDisplayed("");
     setShowCursor(true);
-    setDone(false);
 
-    let charIndex = 0;
-    let typeInterval: ReturnType<typeof setInterval>;
-    let cursorTimer: ReturnType<typeof setTimeout>;
-
-    const startTimer = setTimeout(() => {
-      typeInterval = setInterval(() => {
-        charIndex++;
-        setDisplayed(fullText.slice(0, charIndex));
-        if (charIndex >= fullText.length) {
-          clearInterval(typeInterval);
-          setDone(true);
-          cursorTimer = setTimeout(() => {
-            setShowCursor(false);
-          }, cursorBlinkDuration);
-        }
-      }, speed);
-    }, startDelay);
+    // Small initial delay before starting
+    timerRef.current = setTimeout(tick, 700);
 
     return () => {
-      clearTimeout(startTimer);
-      clearInterval(typeInterval);
-      clearTimeout(cursorTimer);
+      activeRef.current = false;
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fullText, disabled]);
+  }, [disabled]);
 
-  return { displayed, showCursor, done };
+  return { displayed, showCursor };
 }
 
 // ─────────────────────────────────────────────
@@ -127,55 +163,17 @@ function BrandCard({
           </p>
         </div>
 
-        {/* Right: Morph CTA — circle on desktop idle, pill on hover; always pill on mobile */}
+        {/* CTA pill — always visible with text, not just icon */}
         <div
-          className={[
-            "flex-shrink-0 flex items-center justify-center overflow-hidden",
-            "rounded-full bg-[#14221c] text-white",
-            "transition-all duration-300 ease-in-out",
-            "shadow-md group-hover:shadow-lg",
-            // pulse ring — only on desktop, reduced-motion safe via CSS
-            "motion-safe:animate-none",
-            // Desktop: 46px circle → 108px pill on group-hover
-            "w-[46px] h-[46px]",
-            "md:w-[52px] md:h-[52px]",
-            "md:group-hover:w-[116px] md:group-focus-within:w-[116px]",
-            "md:group-hover:scale-[1.04] md:group-hover:shadow-xl",
-          ].join(" ")}
+          className="flex-shrink-0 flex items-center gap-2 rounded-full bg-[#14221c] text-white font-semibold text-sm shadow-md cta-soft-pulse px-[18px] h-[44px] md:px-5 md:h-[48px] group-hover:scale-[1.04] group-hover:shadow-xl group-hover:-translate-y-0.5 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           aria-label={ctaLabel}
           role="img"
         >
-          {/* Text label — hidden on mobile, fade-in on desktop hover */}
-          <span
-            className={[
-              "whitespace-nowrap text-sm font-semibold leading-none",
-              // Mobile: always hidden (pill handled below)
-              "hidden",
-              // Desktop: hidden by default, visible on group-hover
-              "md:block md:max-w-0 md:opacity-0 md:overflow-hidden",
-              "md:group-hover:max-w-[60px] md:group-hover:opacity-100 md:group-hover:mr-1",
-              "transition-all duration-300 ease-in-out",
-            ].join(" ")}
-          >
-            Tra cứu
-          </span>
+          <span className="whitespace-nowrap leading-none">Tra cứu</span>
           <ArrowRight
-            className="w-[18px] h-[18px] flex-shrink-0 group-hover:translate-x-0.5 transition-transform duration-300"
+            className="w-4 h-4 flex-shrink-0 group-hover:translate-x-0.5 transition-transform duration-300"
             strokeWidth={2.2}
           />
-        </div>
-
-        {/* Mobile-only pill: always visible */}
-        <div
-          className={[
-            "md:hidden flex-shrink-0 flex items-center gap-1.5",
-            "rounded-full bg-[#14221c] text-white",
-            "px-4 h-[40px] text-sm font-semibold",
-            "shadow-md",
-          ].join(" ")}
-          aria-hidden="true"
-        >
-          Tra cứu <ArrowRight className="w-[14px] h-[14px]" strokeWidth={2.2} />
         </div>
       </div>
     </Link>
@@ -185,25 +183,24 @@ function BrandCard({
 // ─────────────────────────────────────────────
 // Main: HomeHeroBanner
 // ─────────────────────────────────────────────
-const DESCRIPTION =
-  "Cập nhật chính xác liên tục các công bố sản phẩm Desembre và Dermagarden đang được phép lưu hành tại Việt Nam";
-
 export function HomeHeroBanner() {
   const { settings } = useSiteSettings();
   const fallbackBanner = "/images/home-hero-banner.jpg";
   const desktopBanner = settings?.homeHeroBannerImageUrl || fallbackBanner;
   const mobileBanner = settings?.homeHeroBannerMobileImageUrl || desktopBanner;
 
-  // Detect prefers-reduced-motion
+  // Detect prefers-reduced-motion once on mount
   const reducedMotion = useRef(
     typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
   ).current;
 
-  const { displayed, showCursor } = useTypewriter(DESCRIPTION, {
-    speed: 26,
-    startDelay: 700,
-    cursorBlinkDuration: 1800,
+  const { displayed, showCursor } = useTypewriterLoop({
+    sentences: SENTENCES,
+    typeSpeed: 28,
+    deleteSpeed: 14,
+    pauseAfterType: 2000,
+    pauseAfterDelete: 400,
     disabled: reducedMotion,
   });
 
@@ -244,23 +241,22 @@ export function HomeHeroBanner() {
             </h1>
           </div>
 
-          {/* Description with typewriter effect */}
+          {/* Description with typewriter loop */}
           <div
             className="mb-10 max-w-[720px] mx-auto px-2"
-            /* min-height = roughly 2 lines to prevent layout shift */
-            style={{ minHeight: "3.5rem" }}
+            style={{ minHeight: "3.75rem" }}
           >
-            {/* Screen reader gets full text immediately */}
-            <span className="sr-only">{DESCRIPTION}</span>
+            {/* Screen reader: full static description, read once */}
+            <span className="sr-only">{STATIC_DESCRIPTION}</span>
 
-            {/* Visual typewriter (aria-hidden so SR doesn't read char by char) */}
+            {/* Visual typewriter (aria-hidden — not read by SR) */}
             <p
               className="text-base sm:text-lg text-muted-foreground leading-relaxed drop-shadow-sm"
               aria-hidden="true"
             >
-              {displayed}
-              {showCursor && (
-                <span className="inline-block w-[2px] h-[1.1em] bg-muted-foreground/70 ml-0.5 align-middle animate-[blink_0.75s_step-end_infinite]" />
+              {reducedMotion ? STATIC_DESCRIPTION : displayed}
+              {showCursor && !reducedMotion && (
+                <span className="inline-block w-[2px] h-[1.1em] bg-muted-foreground/60 ml-0.5 align-middle animate-[blink_0.75s_step-end_infinite]" />
               )}
             </p>
           </div>

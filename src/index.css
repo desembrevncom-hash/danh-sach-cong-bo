@@ -182,3 +182,18 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }
 }
+
+/* CTA subtle pulse — very soft shadow ring every ~5s */
+@keyframes cta-soft-pulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(20,34,28,0.18); }
+  50%       { box-shadow: 0 2px 16px rgba(20,34,28,0.38), 0 0 0 4px rgba(20,34,28,0.07); }
+}
+.cta-soft-pulse {
+  animation: cta-soft-pulse 5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-soft-pulse {
+    animation: none;
+  }
+}
