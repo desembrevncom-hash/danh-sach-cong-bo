@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { ArrowRight } from "lucide-react";
 import { useSiteSettings } from "@/features/seo/components/SiteSettingsProvider";
 
 function BrandCard({
@@ -7,17 +8,15 @@ function BrandCard({
   imageUrl,
   title,
   subtitle,
-  imgGradientFrom,
-  imgGradientVia,
-  imgGradientTo,
+  ctaLabel,
+  fallbackGradient,
 }: {
   to: string;
   imageUrl: string | null | undefined;
   title: string;
   subtitle: string;
-  imgGradientFrom: string;
-  imgGradientVia: string;
-  imgGradientTo: string;
+  ctaLabel: string;
+  fallbackGradient: string;
 }) {
   const [imgError, setImgError] = useState(false);
 
@@ -30,49 +29,51 @@ function BrandCard({
   return (
     <Link
       to={to}
-      className="group flex flex-col text-left rounded-[28px] overflow-hidden bg-background border border-border/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full h-[340px] sm:h-[370px] lg:h-[400px]"
+      className="group flex flex-col text-left rounded-[28px] overflow-hidden bg-background border border-border/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full"
     >
-      {/* IMAGE SECTION — full-bleed, no inner frame, clipped by card overflow-hidden */}
+      {/* IMAGE SECTION — full-bleed aspect-[12/7], no inner frame */}
       <div
-        className="relative w-full h-[210px] sm:h-[225px] lg:h-[245px] flex-shrink-0 overflow-hidden"
-        style={{
-          background: `linear-gradient(135deg, ${imgGradientFrom}, ${imgGradientVia}, ${imgGradientTo})`,
-        }}
+        className="relative w-full aspect-[12/7] overflow-hidden flex-shrink-0"
+        style={{ background: fallbackGradient }}
       >
         {showImage ? (
           <img
             src={imageUrl}
             alt={title}
-            className="h-full w-full object-contain object-center transition-transform duration-500 group-hover:scale-[1.04]"
+            className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.04]"
             onError={() => setImgError(true)}
           />
         ) : (
-          /* Fallback: brand gradient shape — no path request */
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `radial-gradient(ellipse at 50% 80%, ${imgGradientTo}cc 0%, ${imgGradientFrom}88 100%)`,
-            }}
-          />
+          /* Gradient fallback — no path request, no 404 */
+          <div className="absolute inset-0" style={{ background: fallbackGradient }} />
         )}
 
-        {/* Subtle bottom fade into content area */}
-        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-background/70 to-transparent pointer-events-none" />
+        {/* Subtle bottom fade into content */}
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background/40 to-transparent pointer-events-none" />
       </div>
 
       {/* CONTENT SECTION */}
-      <div className="flex flex-col justify-center flex-1 px-6 py-4 md:px-7 md:py-5 bg-background">
-        <h3 className="text-2xl lg:text-[30px] font-black tracking-tight text-foreground mb-0.5 group-hover:text-primary transition-colors leading-tight">
-          {title}
-        </h3>
-        <p className="text-sm md:text-base font-medium text-muted-foreground truncate">
-          {subtitle}
-        </p>
-        <div className="flex items-center gap-1.5 text-sm font-semibold text-primary mt-3">
-          Tra cứu ngay{" "}
-          <span className="inline-block group-hover:translate-x-1 transition-transform duration-300">
-            &rarr;
-          </span>
+      <div className="flex items-center justify-between gap-4 px-6 py-5 md:px-7 md:py-6 bg-background min-h-[130px] md:min-h-[140px]">
+        {/* Left: text */}
+        <div className="flex flex-col min-w-0">
+          <h3 className="text-2xl lg:text-[28px] font-black tracking-tight text-foreground group-hover:text-primary transition-colors leading-tight">
+            {title}
+          </h3>
+          <p className="text-sm md:text-base font-medium text-muted-foreground mt-0.5 truncate">
+            {subtitle}
+          </p>
+        </div>
+
+        {/* Right: circle CTA button */}
+        <div
+          className="flex-shrink-0 w-[46px] h-[46px] md:w-[52px] md:h-[52px] rounded-full bg-[#14221c] flex items-center justify-center shadow-md group-hover:scale-[1.06] group-hover:shadow-lg transition-all duration-300"
+          aria-label={ctaLabel}
+          role="img"
+        >
+          <ArrowRight
+            className="w-5 h-5 text-white group-hover:translate-x-0.5 transition-transform duration-300"
+            strokeWidth={2.2}
+          />
         </div>
       </div>
     </Link>
@@ -123,28 +124,25 @@ export function HomeHeroBanner() {
           </div>
 
           <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-10 max-w-[720px] mx-auto drop-shadow-sm px-2">
-            Cập nhật chính xác liên tục các công bố sản phẩm Desembre và
-            Dermagarden đang được phép lưu hành tại Việt Nam
+            Cập nhật chính xác liên tục các công bố sản phẩm Desembre và Dermagarden đang được phép lưu hành tại Việt Nam
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 w-full max-w-[960px] lg:max-w-[1040px] mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 lg:gap-7 w-full max-w-[1080px] lg:max-w-[1120px] mt-2">
             <BrandCard
               to="/desembre"
               imageUrl={settings?.homeBrandDesembreImageUrl}
               title="DESEMBRE"
               subtitle="Thẩm mỹ chuyên nghiệp"
-              imgGradientFrom="#f8f3ea"
-              imgGradientVia="#f3f4ee"
-              imgGradientTo="#e8eee6"
+              ctaLabel="Tra cứu sản phẩm Desembre"
+              fallbackGradient="linear-gradient(135deg, #f8f3ea, #f3f4ee, #e8eee6)"
             />
             <BrandCard
               to="/dermagarden"
               imageUrl={settings?.homeBrandDermagardenImageUrl}
               title="DERMAGARDEN"
               subtitle="Chăm sóc da chuyên sâu"
-              imgGradientFrom="#effaf5"
-              imgGradientVia="#edf8f4"
-              imgGradientTo="#e2f5ec"
+              ctaLabel="Tra cứu sản phẩm Dermagarden"
+              fallbackGradient="linear-gradient(135deg, #effaf5, #edf8f4, #e2f5ec)"
             />
           </div>
         </div>
