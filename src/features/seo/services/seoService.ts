@@ -48,7 +48,7 @@ export async function fetchSeoPageByRoute(routePath: string): Promise<SeoPage> {
     
     seoCache.set(routePath, pageInfo);
     return pageInfo;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Lỗi khi tải cấu hình SEO:', error instanceof Error ? error.message : String(error));
     return {
       id: `default-${routePath}`,
@@ -78,6 +78,7 @@ export async function fetchAllSeoPagesForAdmin(): Promise<{ ok: boolean; data?: 
     }
 
     const data = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pages: SeoPage[] = data.map((d: any) => ({
       id: d.id,
       routePath: d.route_path,

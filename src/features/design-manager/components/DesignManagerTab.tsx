@@ -58,11 +58,10 @@ export function DesignManagerTab() {
 
     // Validate URLs basic
     const isValidUrl = (url: string) => {
-      if (!url) return true;
-      if (url.startsWith('data:') || url.startsWith('blob:')) return false;
+      if (!url) return true; // allow empty to clear
       try {
-        new URL(url);
-        return true;
+        const parsed = new URL(url);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
       } catch {
         return false;
       }
