@@ -33,18 +33,39 @@ export function HomeHeroBanner() {
             Cập nhật chính xác liên tục các công bố sản phẩm Desembre và Dermagarden đang được phép lưu hành tại Việt Nam
           </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full max-w-[720px] mt-2">
+            {/* DESEMBRE CARD */}
             <Link 
               to="/desembre"
-              className="w-full sm:w-auto min-w-[200px] px-8 py-3.5 rounded-full bg-foreground text-background font-medium hover:bg-foreground/90 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 text-center"
+              className="group relative flex flex-col items-start text-left p-5 md:p-6 rounded-2xl bg-background/70 md:bg-background/80 backdrop-blur-md border border-border/40 shadow-sm hover:shadow-xl hover:bg-background/95 hover:border-border/60 transition-all duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
-              Xem Desembre
+              <h3 className="text-xl md:text-2xl font-black tracking-tight text-foreground mb-1 group-hover:text-primary transition-colors flex items-center justify-between w-full">
+                DESEMBRE
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </h3>
+              <p className="text-sm font-semibold text-foreground/80 mb-2">
+                Thương hiệu thẩm mỹ chuyên nghiệp
+              </p>
+              <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
+                Danh mục sản phẩm Desembre đang được công bố và cập nhật liên tục.
+              </p>
             </Link>
+
+            {/* DERMAGARDEN CARD */}
             <Link 
               to="/dermagarden"
-              className="w-full sm:w-auto min-w-[200px] px-8 py-3.5 rounded-full bg-background/90 backdrop-blur border border-border text-foreground font-medium hover:bg-muted transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 text-center"
+              className="group relative flex flex-col items-start text-left p-5 md:p-6 rounded-2xl bg-background/70 md:bg-background/80 backdrop-blur-md border border-border/40 shadow-sm hover:shadow-xl hover:bg-background/95 hover:border-border/60 transition-all duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
-              Xem Dermagarden
+              <h3 className="text-xl md:text-2xl font-black tracking-tight text-foreground mb-1 group-hover:text-primary transition-colors flex items-center justify-between w-full">
+                DERMAGARDEN
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </h3>
+              <p className="text-sm font-semibold text-foreground/80 mb-2">
+                Thương hiệu chăm sóc da chuyên sâu
+              </p>
+              <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
+                Tra cứu danh sách sản phẩm Dermagarden đang được phép lưu hành tại Việt Nam.
+              </p>
             </Link>
           </div>
         </div>
