@@ -36,6 +36,7 @@ type AdminProduct = {
 export default function Dashboard() {
   const navigate = useNavigate();
   const [sessionLoading, setSessionLoading] = useState(true);
+  const [session, setSession] = useState<any>(null);
   
   // Data state
   const [products, setProducts] = useState<AdminProduct[]>([]);
@@ -79,6 +80,8 @@ export default function Dashboard() {
         navigate("/admin/login");
         return;
       }
+      
+      setSession(session);
 
       // Check role
       try {
@@ -116,6 +119,8 @@ export default function Dashboard() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT' || (event !== 'INITIAL_SESSION' && !session)) {
         navigate("/admin/login");
+      } else if (session) {
+        setSession(session);
       }
     });
 
@@ -339,8 +344,13 @@ export default function Dashboard() {
       // Nếu có chọn ảnh mới thì upload
       if (imageFile) {
         console.log("[add-product:upload-image:start]");
+        
+        if (!session?.access_token) {
+          throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+        }
+
         const uploadRes = await withTimeout(
-          uploadProductImage(imageFile), 
+          uploadProductImage(imageFile, session.access_token), 
           30000, 
           "Upload ảnh quá lâu. Vui lòng thử lại."
         );
