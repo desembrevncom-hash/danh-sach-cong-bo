@@ -303,6 +303,8 @@ export default function Dashboard() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSavingRef.current) return;
+    
+    console.log("[add-product:start]", { id: editingId, name, section });
     isSavingRef.current = true;
     setIsSaving(true);
     
@@ -311,6 +313,8 @@ export default function Dashboard() {
     if (section === "__CREATE_NEW__") {
       const newSecName = prompt("Nhập tên nhóm sản phẩm mới:");
       if (!newSecName?.trim()) {
+        console.log("[add-product:cancel] Empty new section name");
+        isSavingRef.current = false;
         setIsSaving(false);
         return;
       }
@@ -329,13 +333,20 @@ export default function Dashboard() {
     }
 
     try {
+      console.log("[add-product:validate-ok]");
       let finalImageUrl = imageUrl;
 
       // Nếu có chọn ảnh mới thì upload
       if (imageFile) {
-        const uploadRes = await withTimeout(uploadProductImage(imageFile), 15000);
+        console.log("[add-product:upload-image:start]");
+        const uploadRes = await withTimeout(
+          uploadProductImage(imageFile), 
+          30000, 
+          "Upload ảnh quá lâu. Vui lòng thử lại."
+        );
         if (uploadRes.error) {
-          alert("Lỗi upload ảnh: " + uploadRes.error);
+          console.error("[add-product:error]", { step: "upload", message: uploadRes.error });
+          toast.error("Lỗi upload ảnh: " + uploadRes.error);
           isSavingRef.current = false;
           setIsSaving(false);
           return;
@@ -343,30 +354,55 @@ export default function Dashboard() {
         if (uploadRes.url) {
           finalImageUrl = uploadRes.url;
         }
+        console.log("[add-product:upload-image:success]");
       }
 
-      const res = await withTimeout(saveProductOverride({
-        action: editingId === null ? "create" : "upsert",
-        productId: editingId === null ? undefined : editingId,
-        brand: formBrand,
-        section: finalSection,
-        name: name.trim(),
-        desc: desc.trim(),
-        image_url: finalImageUrl || undefined,
-        link_url: linkUrl || undefined,
-        link_url_2: linkUrl2 || undefined,
-      }), 15000);
+      console.log("[add-product:edge-save:start]");
+      const res = await withTimeout(
+        saveProductOverride({
+          action: editingId === null ? "create" : "upsert",
+          productId: editingId === null ? undefined : editingId,
+          brand: formBrand,
+          section: finalSection,
+          name: name.trim(),
+          desc: desc.trim(),
+          image_url: finalImageUrl || undefined,
+          link_url: linkUrl || undefined,
+          link_url_2: linkUrl2 || undefined,
+        }), 
+        15000, 
+        "Lưu sản phẩm quá lâu. Vui lòng thử lại."
+      );
 
-      if (!res.ok) throw new Error(res.error);
+      if (!res.ok) {
+        console.error("[add-product:error]", { step: "edge-save", error: res.error });
+        throw new Error(res.error);
+      }
+      console.log("[add-product:edge-save:success]");
 
-      toast.success("Đã lưu sản phẩm thành công!");
       setIsFormOpen(false);
-      fetchProducts();
+      toast.success("Đã lưu sản phẩm thành công!");
+
+      console.log("[add-product:refresh:start]");
+      try {
+        await withTimeout(
+          fetchProducts(), 
+          12000, 
+          "Sản phẩm có thể đã được lưu, nhưng tải lại danh sách quá lâu. Vui lòng tải lại trang."
+        );
+        console.log("[add-product:refresh:success]");
+      } catch (refreshErr) {
+        console.error("[add-product:error]", { step: "refresh", error: refreshErr });
+        toast.warning(refreshErr instanceof Error ? refreshErr.message : "Đã lưu sản phẩm, nhưng chưa tải lại được danh sách. Vui lòng bấm F5.");
+      }
+      
+      console.log("[add-product:done]");
     } catch (err: unknown) {
+      console.error("[add-product:error]", { step: "general", error: err });
       if (err instanceof Error) {
-        alert("Lỗi khi lưu: " + err.message);
+        toast.error("Lỗi khi lưu: " + err.message);
       } else {
-        alert("Lỗi khi lưu không xác định!");
+        toast.error("Lỗi khi lưu không xác định!");
       }
     } finally {
       isSavingRef.current = false;

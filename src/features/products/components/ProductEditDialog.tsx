@@ -22,6 +22,7 @@ import { saveProductOverride } from "@/features/products/services/productOverrid
 import type { ProductOverrideRow as OverrideRow, ProductDialogInitial } from "@/features/products/types";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { withTimeout } from "@/lib/asyncState";
 import type { ProductViewModel } from "@/features/products/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -112,28 +113,54 @@ const ProductEditDialog = ({
       return;
     }
 
+    console.log("[add-product:start]", { id: form.id, name: form.name, section: finalSection });
     setSaving(true);
     const action = form.id ? "upsert" : "create";
     const payloadId = form.id ? form.id : undefined;
 
-    const res = await saveProductOverride({
-      action: action,
-      productId: payloadId,
-      brand: activeBrand,
-      section: finalSection,
-      name: form.name.trim(),
-      desc: form.desc.trim(),
-    });
-    setSaving(false);
-
-    if (!res.ok || !res.row) {
-      toast.error(res.error ?? "Lưu thất bại");
-      return;
+    try {
+      console.log("[add-product:validate-ok]");
+      console.log("[add-product:edge-save:start]");
+      
+      const res = await withTimeout(
+        saveProductOverride({
+          action: action,
+          productId: payloadId,
+          brand: activeBrand,
+          section: finalSection,
+          name: form.name.trim(),
+          desc: form.desc.trim(),
+        }),
+        15000,
+        "Lưu sản phẩm quá lâu. Vui lòng thử lại."
+      );
+      
+      if (!res.ok || !res.row) {
+        console.error("[add-product:error]", { step: "edge-save", error: res.error });
+        throw new Error(res.error ?? "Lưu thất bại");
+      }
+      
+      console.log("[add-product:edge-save:success]");
+      toast.success(isCreate ? "Đã thêm sản phẩm" : "Đã cập nhật");
+      
+      console.log("[add-product:refresh:start]");
+      // Assuming onSaved updates local state instantly instead of re-fetching from DB in the dialog.
+      // If the parent component does a fetch, it should handle the refresh timeout.
+      onSaved(res.row, isCreate ? insertPos : undefined);
+      console.log("[add-product:refresh:success]");
+      
+      onOpenChange(false);
+      console.log("[add-product:done]");
+    } catch (err: unknown) {
+      console.error("[add-product:error]", { step: "general", error: err });
+      if (err instanceof Error) {
+        toast.error("Lỗi khi lưu: " + err.message);
+      } else {
+        toast.error("Lỗi khi lưu không xác định!");
+      }
+    } finally {
+      setSaving(false);
     }
-
-    toast.success(isCreate ? "Đã thêm sản phẩm" : "Đã cập nhật");
-    onSaved(res.row, isCreate ? insertPos : undefined);
-    onOpenChange(false);
   };
 
   const currentSectionProducts = groupedProducts?.find(g => g[0] === finalSection)?.[1] || [];
