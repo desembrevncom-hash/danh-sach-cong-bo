@@ -335,7 +335,7 @@ export default function Dashboard() {
       if (imageFile) {
         const uploadRes = await withTimeout(uploadProductImage(imageFile), 15000);
         if (uploadRes.error) {
-          toast.error(uploadRes.error);
+          alert("Lỗi upload ảnh: " + uploadRes.error);
           isSavingRef.current = false;
           setIsSaving(false);
           return;
@@ -364,9 +364,9 @@ export default function Dashboard() {
       fetchProducts();
     } catch (err: unknown) {
       if (err instanceof Error) {
-        toast.error("Lỗi khi lưu: " + err.message);
+        alert("Lỗi khi lưu: " + err.message);
       } else {
-        toast.error("Lỗi khi lưu!");
+        alert("Lỗi khi lưu không xác định!");
       }
     } finally {
       isSavingRef.current = false;
