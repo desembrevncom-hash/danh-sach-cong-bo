@@ -63,7 +63,7 @@ export function HomeHeroBanner() {
                 </p>
                 
                 <div className="flex items-center gap-2 text-sm font-bold text-primary transition-all">
-                  Xem danh mục <span className="group-hover:translate-x-1.5 transition-transform duration-300">&rarr;</span>
+                  Tra cứu ngay <span className="group-hover:translate-x-1.5 transition-transform duration-300">&rarr;</span>
                 </div>
               </div>
               
@@ -95,7 +95,7 @@ export function HomeHeroBanner() {
                 </p>
                 
                 <div className="flex items-center gap-2 text-sm font-bold text-primary transition-all">
-                  Xem danh mục <span className="group-hover:translate-x-1.5 transition-transform duration-300">&rarr;</span>
+                  Tra cứu ngay <span className="group-hover:translate-x-1.5 transition-transform duration-300">&rarr;</span>
                 </div>
               </div>
               
