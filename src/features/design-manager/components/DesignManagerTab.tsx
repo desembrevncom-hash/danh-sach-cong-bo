@@ -217,6 +217,9 @@ export function DesignManagerTab() {
 // ----------------------------------------------------------------------
 
 function LogoCard({ 
+  title,
+  value,
+  onChange,
   onOpenPicker,
   fallbackSrc,
   fallbackText
