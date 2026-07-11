@@ -26,9 +26,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    // Bypass navigator.locks to prevent infinite hanging when a tab crashes and holds the lock
-    lock: async <T>(name: string, acquireTimeout: number, fn: () => Promise<T>) => {
-      return await fn();
-    },
   }
 });
