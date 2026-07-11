@@ -52,6 +52,10 @@ Tối ưu hóa công cụ tìm kiếm cho các trang đích:
 - Cho phép đổi Banner, Logo ở Header (Desembre, HYUNJIN, Dermagarden).
 - **Quy chuẩn Logo:** Kích thước khuyến nghị 600x180px, định dạng nền trong suốt (PNG/WebP).
 - **Ảnh thẻ thương hiệu trang chủ:** Khuyến nghị 1200×700px, PNG/JPG/WebP, dưới 800KB.
+- **Banner Hero trang chủ:**
+  - Desktop khuyến nghị 2400×1200px, tỉ lệ 2:1, JPG/WebP/PNG, dưới 1.5MB.
+  - Mobile khuyến nghị 1200×1600px, tỉ lệ 3:4 hoặc 4:5, dưới 1MB.
+  - Tránh đặt chữ/logo sát mép vì có thể bị crop trên mobile.
 - Sau khi thực hiện đổi, hãy F5 tải lại trang Public bên ngoài để kiểm tra kết quả.
 
 ## 9. Danh mục Công bố (Public Catalog)

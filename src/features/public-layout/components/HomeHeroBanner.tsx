@@ -3,15 +3,27 @@ import { useSiteSettings } from "@/features/seo/components/SiteSettingsProvider"
 
 export function HomeHeroBanner() {
   const { settings } = useSiteSettings();
-  const heroImageUrl = "/images/home-hero-banner.jpg";
+  const fallbackBanner = "/images/home-hero-banner.jpg";
+  const desktopBanner = settings?.homeHeroBannerImageUrl || fallbackBanner;
+  const mobileBanner = settings?.homeHeroBannerMobileImageUrl || desktopBanner;
 
   return (
     <section className="relative w-full min-h-[720px] md:min-h-[760px] lg:min-h-[820px] bg-muted/30 overflow-hidden isolate py-16 flex items-center">
-      {/* Background Image with Fallback Gradient */}
+      {/* Desktop Background Image */}
       <div 
-        className="absolute inset-0 -z-20 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 -z-20 bg-cover bg-center bg-no-repeat hidden md:block"
         style={{ 
-          backgroundImage: `url(${heroImageUrl})`,
+          backgroundImage: `url(${desktopBanner})`,
+          backgroundColor: 'hsl(var(--muted))'
+        }}
+        aria-hidden="true"
+      />
+      
+      {/* Mobile Background Image */}
+      <div 
+        className="absolute inset-0 -z-20 bg-cover bg-center bg-no-repeat block md:hidden"
+        style={{ 
+          backgroundImage: `url(${mobileBanner})`,
           backgroundColor: 'hsl(var(--muted))'
         }}
         aria-hidden="true"

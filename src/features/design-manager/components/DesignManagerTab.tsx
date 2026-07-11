@@ -18,7 +18,7 @@ export function DesignManagerTab() {
   
   // Pickers
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [currentBrandTarget, setCurrentBrandTarget] = useState<'desembre' | 'hyunjin' | 'dermagarden' | null>(null);
+  const [currentBrandTarget, setCurrentBrandTarget] = useState<'desembre' | 'hyunjin' | 'dermagarden' | 'bannerDesktop' | 'bannerMobile' | null>(null);
 
   // Form State
   const [logoDesembre, setLogoDesembre] = useState('');
@@ -26,6 +26,8 @@ export function DesignManagerTab() {
   const [logoDermagarden, setLogoDermagarden] = useState('');
   const [imageDesembre, setImageDesembre] = useState('');
   const [imageDermagarden, setImageDermagarden] = useState('');
+  const [bannerDesktop, setBannerDesktop] = useState('');
+  const [bannerMobile, setBannerMobile] = useState('');
   const [pickerFilter, setPickerFilter] = useState<string>('brand_logo');
 
   const requestIdRef = React.useRef(0);
@@ -49,6 +51,8 @@ export function DesignManagerTab() {
         setLogoDermagarden(res.data.headerLogoDermagardenUrl || '');
         setImageDesembre(res.data.homeBrandDesembreImageUrl || '');
         setImageDermagarden(res.data.homeBrandDermagardenImageUrl || '');
+        setBannerDesktop(res.data.homeHeroBannerImageUrl || '');
+        setBannerMobile(res.data.homeHeroBannerMobileImageUrl || '');
       } else {
         setErrorState(res.error || 'Lỗi không tải được Site Settings');
       }
@@ -76,7 +80,7 @@ export function DesignManagerTab() {
       }
     };
 
-    if (!isValidUrl(logoDesembre) || !isValidUrl(logoHyunjin) || !isValidUrl(logoDermagarden) || !isValidUrl(imageDesembre) || !isValidUrl(imageDermagarden)) {
+    if (!isValidUrl(logoDesembre) || !isValidUrl(logoHyunjin) || !isValidUrl(logoDermagarden) || !isValidUrl(imageDesembre) || !isValidUrl(imageDermagarden) || !isValidUrl(bannerDesktop) || !isValidUrl(bannerMobile)) {
       toast.error('URL không hợp lệ. Không hỗ trợ data/blob URL.');
       return;
     }
@@ -89,6 +93,8 @@ export function DesignManagerTab() {
         headerLogoDermagardenUrl: logoDermagarden || null,
         homeBrandDesembreImageUrl: imageDesembre || null,
         homeBrandDermagardenImageUrl: imageDermagarden || null,
+        homeHeroBannerImageUrl: bannerDesktop || null,
+        homeHeroBannerMobileImageUrl: bannerMobile || null,
       };
 
       const { ok, error } = await updateSiteSettings(payload);
@@ -127,6 +133,8 @@ export function DesignManagerTab() {
     } else {
       if (currentBrandTarget === 'desembre') setImageDesembre(url);
       if (currentBrandTarget === 'dermagarden') setImageDermagarden(url);
+      if (currentBrandTarget === 'bannerDesktop') setBannerDesktop(url);
+      if (currentBrandTarget === 'bannerMobile') setBannerMobile(url);
     }
   };
 
@@ -210,6 +218,58 @@ export function DesignManagerTab() {
         </div>
 
         {/* Action Button */}
+        <div className="flex justify-end pt-4 border-t border-border mt-4">
+          <button 
+            onClick={handleSave} 
+            disabled={saving}
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
+          >
+            {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+            Lưu thiết kế
+          </button>
+        </div>
+      </div>
+
+      {/* SECTION: Banner Hero trang chủ */}
+      <div className="bg-card border border-border rounded-lg shadow-sm p-6 space-y-6">
+        <div className="flex items-center gap-2 mb-2">
+          <ImageIcon className="w-6 h-6 text-primary" />
+          <h2 className="text-xl font-bold">Banner Hero trang chủ</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Ảnh nền lớn hiển thị ở phần đầu trang chủ. Khuyến nghị dùng ảnh JPG/WebP/PNG kích thước 2400×1200px, tỉ lệ 2:1, dung lượng dưới 1.5MB. Tránh đặt chữ, logo hoặc chi tiết quan trọng sát mép ảnh.
+        </p>
+        <p className="text-xs text-muted-foreground italic">
+          * Nếu không cấu hình banner mobile, hệ thống sẽ tự dùng banner desktop và căn giữa.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <BannerCard 
+            title="Banner desktop" 
+            helperText="Chuẩn đề xuất: 2400×1200px · Tỉ lệ 2:1 · JPG/WebP/PNG · <1.5MB"
+            aspectRatio="aspect-[2/1]"
+            value={bannerDesktop}
+            onChange={setBannerDesktop}
+            onOpenPicker={() => {
+              setCurrentBrandTarget('bannerDesktop');
+              setPickerFilter('');
+              setPickerOpen(true);
+            }}
+          />
+          <BannerCard 
+            title="Banner mobile (tùy chọn)" 
+            helperText="Chuẩn đề xuất: 1200×1600px · Tỉ lệ 3:4 hoặc 4:5 · JPG/WebP/PNG · <1MB"
+            aspectRatio="aspect-[3/4]"
+            value={bannerMobile}
+            onChange={setBannerMobile}
+            onOpenPicker={() => {
+              setCurrentBrandTarget('bannerMobile');
+              setPickerFilter('');
+              setPickerOpen(true);
+            }}
+          />
+        </div>
+
         <div className="flex justify-end pt-4 border-t border-border mt-4">
           <button 
             onClick={handleSave} 
@@ -438,5 +498,76 @@ function ImageCard({
   );
 }
 
+function BannerCard({ 
+  title,
+  helperText,
+  aspectRatio,
+  value,
+  onChange,
+  onOpenPicker
+}: { 
+  title: string; 
+  helperText: string;
+  aspectRatio: string;
+  value: string; 
+  onChange: (val: string) => void;
+  onOpenPicker: () => void;
+}) {
+  return (
+    <div className="border border-border rounded-md p-4 space-y-4 bg-muted/20">
+      <div>
+        <h3 className="font-semibold text-sm">{title}</h3>
+        <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">{helperText}</p>
+      </div>
+      
+      <div className={`${aspectRatio} w-full max-w-[400px] mx-auto bg-[#f8f5ef] dark:bg-card border border-border rounded flex items-center justify-center relative overflow-hidden group`}>
+        {value ? (
+          <img 
+            src={value} 
+            alt="Preview" 
+            className="w-full h-full object-cover" 
+            onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement?.classList.add('bg-destructive/10'); }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted/50">
+             <span className="text-xs font-medium text-muted-foreground">Mặc định (Gradient)</span>
+          </div>
+        )}
+      </div>
 
-
+      <div className="space-y-2">
+        <input 
+          type="text" 
+          value={value} 
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="https://..."
+          className="w-full text-xs p-2 border border-input rounded-md bg-background focus:ring-1 focus:ring-primary outline-none"
+        />
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button 
+            onClick={onOpenPicker}
+            className="flex-1 flex justify-center items-center gap-1 bg-secondary text-secondary-foreground text-xs py-1.5 px-2 rounded hover:bg-secondary/80 transition-colors"
+          >
+            <ImageIcon className="w-3.5 h-3.5" /> Thư viện
+          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => onChange('')}
+              title="Dùng ảnh mặc định"
+              className="px-2 py-1.5 bg-muted text-muted-foreground rounded hover:bg-muted/80 text-xs transition-colors"
+            >
+              Mặc định
+            </button>
+            <button 
+              onClick={() => onChange('')}
+              title="Xóa URL"
+              className="px-2 py-1.5 text-destructive bg-destructive/10 rounded hover:bg-destructive/20 text-xs transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

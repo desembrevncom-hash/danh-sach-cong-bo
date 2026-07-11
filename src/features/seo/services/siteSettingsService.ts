@@ -13,6 +13,8 @@ export type SiteSettings = {
   headerLogoDermagardenUrl?: string | null;
   homeBrandDesembreImageUrl?: string | null;
   homeBrandDermagardenImageUrl?: string | null;
+  homeHeroBannerImageUrl?: string | null;
+  homeHeroBannerMobileImageUrl?: string | null;
 };
 
 export type SiteSettingsRow = {
@@ -28,6 +30,8 @@ export type SiteSettingsRow = {
   header_logo_dermagarden_url?: string | null;
   home_brand_desembre_image_url?: string | null;
   home_brand_dermagarden_image_url?: string | null;
+  home_hero_banner_image_url?: string | null;
+  home_hero_banner_mobile_image_url?: string | null;
 };
 
 // Map DB snake_case to camelCase
@@ -45,6 +49,8 @@ export function mapSiteSettings(row: SiteSettingsRow): SiteSettings {
     headerLogoDermagardenUrl: row.header_logo_dermagarden_url,
     homeBrandDesembreImageUrl: row.home_brand_desembre_image_url,
     homeBrandDermagardenImageUrl: row.home_brand_dermagarden_image_url,
+    homeHeroBannerImageUrl: row.home_hero_banner_image_url,
+    homeHeroBannerMobileImageUrl: row.home_hero_banner_mobile_image_url,
   };
 }
 
@@ -82,7 +88,9 @@ export async function fetchSiteSettings(): Promise<{ ok: boolean; data?: SiteSet
         header_logo_hyunjin_url: null,
         header_logo_dermagarden_url: null,
         home_brand_desembre_image_url: null,
-        home_brand_dermagarden_image_url: null
+        home_brand_dermagarden_image_url: null,
+        home_hero_banner_image_url: null,
+        home_hero_banner_mobile_image_url: null
       }) };
     }
 
@@ -109,6 +117,9 @@ export async function updateSiteSettings(payload: Partial<SiteSettings>): Promis
 
     if (payload.homeBrandDesembreImageUrl !== undefined) updateData.home_brand_desembre_image_url = payload.homeBrandDesembreImageUrl;
     if (payload.homeBrandDermagardenImageUrl !== undefined) updateData.home_brand_dermagarden_image_url = payload.homeBrandDermagardenImageUrl;
+    
+    if (payload.homeHeroBannerImageUrl !== undefined) updateData.home_hero_banner_image_url = payload.homeHeroBannerImageUrl;
+    if (payload.homeHeroBannerMobileImageUrl !== undefined) updateData.home_hero_banner_mobile_image_url = payload.homeHeroBannerMobileImageUrl;
     
     // ensure updated_at is refreshed via trigger or implicitly, or explicitly set it
     updateData.updated_at = new Date().toISOString();
