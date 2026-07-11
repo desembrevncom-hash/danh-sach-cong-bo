@@ -161,7 +161,7 @@ const ProductLinkCell = ({ productId, href, onChange, label = "Link", variant = 
           className={`absolute z-30 ${mobile ? "left-0" : "right-0"} top-full mt-2 w-72 bg-card border border-border rounded-md shadow-lg p-3`}
         >
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
-            {label} sản phẩm #{String(productNo).padStart(2, "0")}
+            {label} sản phẩm #{String(productId).substring(0, 8)}
           </label>
           <input
             type="url"

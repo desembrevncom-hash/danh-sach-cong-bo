@@ -104,7 +104,7 @@ const ProductImageCell = ({ productId, src, onChange }: Props) => {
         {src ? (
           <img
             src={src}
-            alt={`Sản phẩm ${productNo}`}
+            alt={`Sản phẩm ${productId}`}
             className="w-full h-full object-cover md:transition-transform md:duration-200 md:group-hover:scale-[1.02]"
             onError={() => {
               setError("Không tải được ảnh.");
@@ -148,7 +148,7 @@ const ProductImageCell = ({ productId, src, onChange }: Props) => {
       {open && unlocked && (
         <div className="absolute z-30 top-full left-1/2 -translate-x-1/2 mt-2 w-72 bg-card border border-border rounded-md shadow-xl p-3 text-left">
           <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
-            Ảnh sản phẩm #{String(productNo).padStart(2, "0")}
+            Ảnh sản phẩm #{String(productId).substring(0, 8)}
           </div>
 
           <input
