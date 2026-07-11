@@ -164,8 +164,8 @@ export default function Dashboard() {
       const sectionsUrl = `${SUPABASE_URL}/rest/v1/catalog_sections?brand=eq.${selectedBrand}&select=*&order=sort_order.asc`;
 
       const [productsRes, sectionsRes] = await Promise.all([
-        withTimeout(fetch(productsUrl, { headers }), 15000, "Lỗi kết nối khi tải danh sách sản phẩm."),
-        withTimeout(fetch(sectionsUrl, { headers }), 15000, "Lỗi kết nối khi tải nhóm sản phẩm.")
+        withTimeout(fetch(productsUrl, { headers, cache: "no-store" }), 15000, "Lỗi kết nối khi tải danh sách sản phẩm."),
+        withTimeout(fetch(sectionsUrl, { headers, cache: "no-store" }), 15000, "Lỗi kết nối khi tải nhóm sản phẩm.")
       ]);
 
       if (requestId !== requestIdRef.current) return;
@@ -262,6 +262,8 @@ export default function Dashboard() {
   const handleDelete = async (p: AdminProduct) => {
     if (!window.confirm(`Bạn có chắc muốn ẩn sản phẩm "${p.name}"?`)) return;
     
+    console.log("[hide-product:start]", { id: p.id, name: p.name, deletedBefore: p.deleted });
+    
     if (!session?.access_token) {
       toast.error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
       return;
@@ -282,10 +284,17 @@ export default function Dashboard() {
       
       if (!res.ok) throw new Error(res.error);
       
+      console.log("[hide-product:save:success]", { id: p.id });
+      
       // Optimistic update
-      setProducts(prev => prev.map(item => item.id === p.id ? { ...item, deleted: true } : item));
+      setProducts(prev => prev.map(item => item.id === p.id ? { ...item, deleted: true, updated_at: new Date().toISOString() } : item));
+      console.log("[hide-product:local-state-updated]", { id: p.id, deleted: true });
       toast.success('Đã ẩn sản phẩm thành công!');
-      fetchProducts();
+      
+      // Fire and forget refresh
+      fetchProducts().then(() => {
+        console.log("[hide-product:after-refresh]");
+      });
     } catch (error) {
       const err = error as Error;
       console.error("Lỗi khi ẩn sản phẩm:", err);
@@ -295,6 +304,8 @@ export default function Dashboard() {
 
   // Khôi phục (Restore)
   const handleRestore = async (p: AdminProduct) => {
+    console.log("[restore-product:start]", { id: p.id, name: p.name, deletedBefore: p.deleted });
+    
     if (!session?.access_token) {
       toast.error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
       return;
@@ -315,10 +326,17 @@ export default function Dashboard() {
       
       if (!res.ok) throw new Error(res.error);
       
+      console.log("[restore-product:save:success]", { id: p.id });
+      
       // Optimistic update
-      setProducts(prev => prev.map(item => item.id === p.id ? { ...item, deleted: false } : item));
+      setProducts(prev => prev.map(item => item.id === p.id ? { ...item, deleted: false, updated_at: new Date().toISOString() } : item));
+      console.log("[restore-product:local-state-updated]", { id: p.id, deleted: false });
       toast.success('Đã khôi phục sản phẩm thành công!');
-      fetchProducts();
+      
+      // Fire and forget refresh
+      fetchProducts().then(() => {
+        console.log("[restore-product:after-refresh]");
+      });
     } catch (error) {
       const err = error as Error;
       console.error("Lỗi khi khôi phục sản phẩm:", err);
@@ -471,8 +489,8 @@ export default function Dashboard() {
     }
   };
 
-  // Derived state calculations based on ALL products (DB truth)
-  const stats = useMemo(() => buildStats(products), [products]);
+  // Derived state calculations based on current brand products (DB truth)
+  const stats = useMemo(() => buildStats(products.filter(p => (p.brand || "desembre") === selectedBrand)), [products, selectedBrand]);
   
   const alerts = useMemo(() => {
     return generateHealthAlerts(stats);
