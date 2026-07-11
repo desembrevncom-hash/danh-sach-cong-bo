@@ -341,15 +341,16 @@ export default function Dashboard() {
 
     try {
       console.log("[add-product:validate-ok]");
+      
+      if (!session?.access_token) {
+        throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+      }
+      
       let finalImageUrl = imageUrl;
 
       // Nếu có chọn ảnh mới thì upload
       if (imageFile) {
         console.log("[add-product:upload-image:start]");
-        
-        if (!session?.access_token) {
-          throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
-        }
 
         const uploadRes = await withTimeout(
           uploadProductImage(imageFile, session.access_token), 
@@ -381,8 +382,8 @@ export default function Dashboard() {
           image_url: finalImageUrl || undefined,
           link_url: linkUrl || undefined,
           link_url_2: linkUrl2 || undefined,
-        }), 
-        15000, 
+        }, session.access_token), 
+        30000, 
         "Lưu sản phẩm quá lâu. Vui lòng thử lại."
       );
 
