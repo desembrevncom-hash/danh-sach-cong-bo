@@ -40,7 +40,7 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       }
       return res.data;
     },
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 2,
   });
 
