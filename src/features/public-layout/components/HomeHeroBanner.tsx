@@ -40,29 +40,29 @@ export function HomeHeroBanner() {
             {/* DESEMBRE CARD */}
             <Link 
               to="/desembre"
-              className="group relative flex flex-col text-left rounded-[28px] bg-background/80 backdrop-blur-md border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full h-[280px] sm:h-[300px] lg:h-[340px]"
+              className="group relative flex flex-col text-left rounded-[28px] bg-background/80 backdrop-blur-md border border-border/60 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full h-[260px] sm:h-[320px] lg:h-[360px]"
             >
-              <div className="p-6 md:p-8 flex flex-col flex-1 z-10">
+              <div className="p-6 md:p-8 flex flex-col z-20">
                 <h3 className="text-2xl md:text-3xl font-black tracking-tight text-foreground mb-1 group-hover:text-primary transition-colors flex items-center justify-between w-full">
                   DESEMBRE
                 </h3>
-                <p className="text-sm font-semibold text-foreground/80 mb-3">
+                <p className="text-sm font-semibold text-foreground/80 mb-4">
                   Thương hiệu thẩm mỹ chuyên nghiệp
                 </p>
                 
-                <div className="mt-auto flex items-center gap-2 text-sm font-bold text-primary opacity-80 group-hover:opacity-100 transition-opacity">
-                  Xem danh mục <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                <div className="flex items-center gap-2 text-sm font-bold text-primary transition-all">
+                  Xem danh mục <span className="group-hover:translate-x-1.5 transition-transform duration-300">&rarr;</span>
                 </div>
               </div>
               
-              <div className="absolute bottom-0 left-0 right-0 h-[120px] md:h-[160px] lg:h-[180px] overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-background via-background/50 to-transparent z-10" />
-                <div className="absolute inset-0 bg-orange-100/30 dark:bg-orange-950/20" />
+              <div className="absolute bottom-0 left-0 right-0 h-[150px] sm:h-[180px] lg:h-[220px] overflow-hidden flex items-end justify-center">
+                <div className="absolute inset-0 bg-gradient-to-b from-background via-background/40 to-transparent z-10" />
+                <div className="absolute inset-0 bg-orange-100/20 dark:bg-orange-950/10" />
                 {settings?.homeBrandDesembreImageUrl && (
                   <img 
                     src={settings.homeBrandDesembreImageUrl} 
                     alt="Desembre" 
-                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700" 
+                    className="w-full h-[90%] object-contain object-bottom group-hover:scale-[1.03] transition-transform duration-700 opacity-95" 
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                 )}
@@ -72,29 +72,29 @@ export function HomeHeroBanner() {
             {/* DERMAGARDEN CARD */}
             <Link 
               to="/dermagarden"
-              className="group relative flex flex-col text-left rounded-[28px] bg-background/80 backdrop-blur-md border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full h-[280px] sm:h-[300px] lg:h-[340px]"
+              className="group relative flex flex-col text-left rounded-[28px] bg-background/80 backdrop-blur-md border border-border/60 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full h-[260px] sm:h-[320px] lg:h-[360px]"
             >
-              <div className="p-6 md:p-8 flex flex-col flex-1 z-10">
+              <div className="p-6 md:p-8 flex flex-col z-20">
                 <h3 className="text-2xl md:text-3xl font-black tracking-tight text-foreground mb-1 group-hover:text-primary transition-colors flex items-center justify-between w-full">
                   DERMAGARDEN
                 </h3>
-                <p className="text-sm font-semibold text-foreground/80 mb-3">
+                <p className="text-sm font-semibold text-foreground/80 mb-4">
                   Thương hiệu chăm sóc da chuyên sâu
                 </p>
                 
-                <div className="mt-auto flex items-center gap-2 text-sm font-bold text-primary opacity-80 group-hover:opacity-100 transition-opacity">
-                  Xem danh mục <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                <div className="flex items-center gap-2 text-sm font-bold text-primary transition-all">
+                  Xem danh mục <span className="group-hover:translate-x-1.5 transition-transform duration-300">&rarr;</span>
                 </div>
               </div>
               
-              <div className="absolute bottom-0 left-0 right-0 h-[120px] md:h-[160px] lg:h-[180px] overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-background via-background/50 to-transparent z-10" />
-                <div className="absolute inset-0 bg-emerald-100/30 dark:bg-emerald-950/20" />
+              <div className="absolute bottom-0 left-0 right-0 h-[150px] sm:h-[180px] lg:h-[220px] overflow-hidden flex items-end justify-center">
+                <div className="absolute inset-0 bg-gradient-to-b from-background via-background/40 to-transparent z-10" />
+                <div className="absolute inset-0 bg-emerald-100/20 dark:bg-emerald-950/10" />
                 {settings?.homeBrandDermagardenImageUrl && (
                   <img 
                     src={settings.homeBrandDermagardenImageUrl} 
                     alt="Dermagarden" 
-                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700" 
+                    className="w-full h-[90%] object-contain object-bottom group-hover:scale-[1.03] transition-transform duration-700 opacity-95" 
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                 )}
