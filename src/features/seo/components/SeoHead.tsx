@@ -44,7 +44,17 @@ export const SeoHead: React.FC<SeoHeadProps> = ({ routePath, title, description,
     };
   }, [routePath]);
 
-  const finalTitle = title || seo.title;
+  // Force update favicon in DOM to ensure browser picks it up even if Helmet appends a new one
+  useEffect(() => {
+    if (siteSettings?.faviconUrl) {
+      const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+      if (link && link.href !== siteSettings.faviconUrl) {
+        link.href = siteSettings.faviconUrl;
+      }
+    }
+  }, [siteSettings?.faviconUrl]);
+
+  const finalTitle = title || seo.title || siteSettings?.siteName;
   const finalDescription = description || seo.description;
   const finalRobots = robots || seo.robots || 'index,follow';
   
