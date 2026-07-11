@@ -176,3 +176,9 @@
 .product-table td {
   transition: background-color 0.2s ease;
 }
+
+/* Typewriter cursor blink */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}

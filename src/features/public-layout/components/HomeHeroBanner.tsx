@@ -1,8 +1,73 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowRight } from "lucide-react";
 import { useSiteSettings } from "@/features/seo/components/SiteSettingsProvider";
 
+// ─────────────────────────────────────────────
+// Hook: useTypewriter
+// ─────────────────────────────────────────────
+function useTypewriter(
+  fullText: string,
+  {
+    speed = 28,
+    startDelay = 600,
+    cursorBlinkDuration = 1800,
+    disabled = false,
+  }: {
+    speed?: number;
+    startDelay?: number;
+    cursorBlinkDuration?: number;
+    disabled?: boolean;
+  } = {}
+) {
+  const [displayed, setDisplayed] = useState(disabled ? fullText : "");
+  const [showCursor, setShowCursor] = useState(!disabled);
+  const [done, setDone] = useState(disabled);
+
+  useEffect(() => {
+    if (disabled) {
+      setDisplayed(fullText);
+      setShowCursor(false);
+      setDone(true);
+      return;
+    }
+
+    setDisplayed("");
+    setShowCursor(true);
+    setDone(false);
+
+    let charIndex = 0;
+    let typeInterval: ReturnType<typeof setInterval>;
+    let cursorTimer: ReturnType<typeof setTimeout>;
+
+    const startTimer = setTimeout(() => {
+      typeInterval = setInterval(() => {
+        charIndex++;
+        setDisplayed(fullText.slice(0, charIndex));
+        if (charIndex >= fullText.length) {
+          clearInterval(typeInterval);
+          setDone(true);
+          cursorTimer = setTimeout(() => {
+            setShowCursor(false);
+          }, cursorBlinkDuration);
+        }
+      }, speed);
+    }, startDelay);
+
+    return () => {
+      clearTimeout(startTimer);
+      clearInterval(typeInterval);
+      clearTimeout(cursorTimer);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fullText, disabled]);
+
+  return { displayed, showCursor, done };
+}
+
+// ─────────────────────────────────────────────
+// Component: BrandCard
+// ─────────────────────────────────────────────
 function BrandCard({
   to,
   imageUrl,
@@ -31,7 +96,7 @@ function BrandCard({
       to={to}
       className="group flex flex-col text-left rounded-[28px] overflow-hidden bg-background border border-border/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full"
     >
-      {/* IMAGE SECTION — full-bleed aspect-[12/7], no inner frame */}
+      {/* IMAGE SECTION — full-bleed aspect-[12/7] */}
       <div
         className="relative w-full aspect-[12/7] overflow-hidden flex-shrink-0"
         style={{ background: fallbackGradient }}
@@ -44,16 +109,14 @@ function BrandCard({
             onError={() => setImgError(true)}
           />
         ) : (
-          /* Gradient fallback — no path request, no 404 */
           <div className="absolute inset-0" style={{ background: fallbackGradient }} />
         )}
-
-        {/* Subtle bottom fade into content */}
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background/40 to-transparent pointer-events-none" />
+        {/* Bottom fade */}
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-background/35 to-transparent pointer-events-none" />
       </div>
 
       {/* CONTENT SECTION */}
-      <div className="flex items-center justify-between gap-4 px-6 py-5 md:px-7 md:py-6 bg-background min-h-[130px] md:min-h-[140px]">
+      <div className="flex items-center justify-between gap-3 px-6 py-5 md:px-7 md:py-6 bg-background min-h-[130px] md:min-h-[140px]">
         {/* Left: text */}
         <div className="flex flex-col min-w-0">
           <h3 className="text-2xl lg:text-[28px] font-black tracking-tight text-foreground group-hover:text-primary transition-colors leading-tight">
@@ -64,27 +127,85 @@ function BrandCard({
           </p>
         </div>
 
-        {/* Right: circle CTA button */}
+        {/* Right: Morph CTA — circle on desktop idle, pill on hover; always pill on mobile */}
         <div
-          className="flex-shrink-0 w-[46px] h-[46px] md:w-[52px] md:h-[52px] rounded-full bg-[#14221c] flex items-center justify-center shadow-md group-hover:scale-[1.06] group-hover:shadow-lg transition-all duration-300"
+          className={[
+            "flex-shrink-0 flex items-center justify-center overflow-hidden",
+            "rounded-full bg-[#14221c] text-white",
+            "transition-all duration-300 ease-in-out",
+            "shadow-md group-hover:shadow-lg",
+            // pulse ring — only on desktop, reduced-motion safe via CSS
+            "motion-safe:animate-none",
+            // Desktop: 46px circle → 108px pill on group-hover
+            "w-[46px] h-[46px]",
+            "md:w-[52px] md:h-[52px]",
+            "md:group-hover:w-[116px] md:group-focus-within:w-[116px]",
+            "md:group-hover:scale-[1.04] md:group-hover:shadow-xl",
+          ].join(" ")}
           aria-label={ctaLabel}
           role="img"
         >
+          {/* Text label — hidden on mobile, fade-in on desktop hover */}
+          <span
+            className={[
+              "whitespace-nowrap text-sm font-semibold leading-none",
+              // Mobile: always hidden (pill handled below)
+              "hidden",
+              // Desktop: hidden by default, visible on group-hover
+              "md:block md:max-w-0 md:opacity-0 md:overflow-hidden",
+              "md:group-hover:max-w-[60px] md:group-hover:opacity-100 md:group-hover:mr-1",
+              "transition-all duration-300 ease-in-out",
+            ].join(" ")}
+          >
+            Tra cứu
+          </span>
           <ArrowRight
-            className="w-5 h-5 text-white group-hover:translate-x-0.5 transition-transform duration-300"
+            className="w-[18px] h-[18px] flex-shrink-0 group-hover:translate-x-0.5 transition-transform duration-300"
             strokeWidth={2.2}
           />
+        </div>
+
+        {/* Mobile-only pill: always visible */}
+        <div
+          className={[
+            "md:hidden flex-shrink-0 flex items-center gap-1.5",
+            "rounded-full bg-[#14221c] text-white",
+            "px-4 h-[40px] text-sm font-semibold",
+            "shadow-md",
+          ].join(" ")}
+          aria-hidden="true"
+        >
+          Tra cứu <ArrowRight className="w-[14px] h-[14px]" strokeWidth={2.2} />
         </div>
       </div>
     </Link>
   );
 }
 
+// ─────────────────────────────────────────────
+// Main: HomeHeroBanner
+// ─────────────────────────────────────────────
+const DESCRIPTION =
+  "Cập nhật chính xác liên tục các công bố sản phẩm Desembre và Dermagarden đang được phép lưu hành tại Việt Nam";
+
 export function HomeHeroBanner() {
   const { settings } = useSiteSettings();
   const fallbackBanner = "/images/home-hero-banner.jpg";
   const desktopBanner = settings?.homeHeroBannerImageUrl || fallbackBanner;
   const mobileBanner = settings?.homeHeroBannerMobileImageUrl || desktopBanner;
+
+  // Detect prefers-reduced-motion
+  const reducedMotion = useRef(
+    typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ).current;
+
+  const { displayed, showCursor } = useTypewriter(DESCRIPTION, {
+    speed: 26,
+    startDelay: 700,
+    cursorBlinkDuration: 1800,
+    disabled: reducedMotion,
+  });
 
   return (
     <section className="relative w-full min-h-[720px] md:min-h-[760px] lg:min-h-[820px] bg-muted/30 overflow-hidden isolate py-16 flex items-center">
@@ -123,9 +244,26 @@ export function HomeHeroBanner() {
             </h1>
           </div>
 
-          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-10 max-w-[720px] mx-auto drop-shadow-sm px-2">
-            Cập nhật chính xác liên tục các công bố sản phẩm Desembre và Dermagarden đang được phép lưu hành tại Việt Nam
-          </p>
+          {/* Description with typewriter effect */}
+          <div
+            className="mb-10 max-w-[720px] mx-auto px-2"
+            /* min-height = roughly 2 lines to prevent layout shift */
+            style={{ minHeight: "3.5rem" }}
+          >
+            {/* Screen reader gets full text immediately */}
+            <span className="sr-only">{DESCRIPTION}</span>
+
+            {/* Visual typewriter (aria-hidden so SR doesn't read char by char) */}
+            <p
+              className="text-base sm:text-lg text-muted-foreground leading-relaxed drop-shadow-sm"
+              aria-hidden="true"
+            >
+              {displayed}
+              {showCursor && (
+                <span className="inline-block w-[2px] h-[1.1em] bg-muted-foreground/70 ml-0.5 align-middle animate-[blink_0.75s_step-end_infinite]" />
+              )}
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 lg:gap-7 w-full max-w-[1080px] lg:max-w-[1120px] mt-2">
             <BrandCard
