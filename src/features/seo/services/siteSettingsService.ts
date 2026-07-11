@@ -46,12 +46,13 @@ export async function fetchSiteSettings(): Promise<{ ok: boolean; data?: SiteSet
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     
     const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/site_settings?id=eq.site&select=*`;
     const res = await fetch(url, {
       headers: {
-        "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        "Authorization": `Bearer ${token || ''}`,
+        "apikey": anonKey,
+        "Authorization": `Bearer ${token || anonKey}`,
       },
       cache: "no-store"
     });
