@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     };
 
     let productId = pickStr("productId") ?? pickStr("id");
-    let mode = (!productId) ? "create" : "update";
+    const mode = (!productId) ? "create" : "update";
     let brand = pickStr("brand") || "desembre";
     const section = pickStr("section");
     const name = pickStr("name");

@@ -33,10 +33,12 @@ type AdminProduct = {
   updated_at?: string;
 };
 
+import type { Session } from "@supabase/supabase-js";
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [sessionLoading, setSessionLoading] = useState(true);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   
   // Data state
   const [products, setProducts] = useState<AdminProduct[]>([]);
@@ -410,7 +412,7 @@ export default function Dashboard() {
     } catch (err: unknown) {
       console.error("[add-product:error]", { step: "general", error: err });
       
-      let errorMsg = err instanceof Error ? err.message : "Lỗi khi lưu không xác định!";
+      const errorMsg = err instanceof Error ? err.message : "Lỗi khi lưu không xác định!";
       
       if (imageFile) {
          toast.error(`Ảnh đã tải lên nhưng lưu sản phẩm thất bại. Vui lòng thử lại hoặc kiểm tra thư viện ảnh. Chi tiết lỗi: ${errorMsg}`, { duration: 8000 });
