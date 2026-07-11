@@ -54,7 +54,17 @@ export default function Dashboard() {
   const [selectedBrand, setSelectedBrand] = useState<string>("desembre");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeMainTab, setActiveMainTab] = useState<"products" | "sections" | "seo" | "media" | "design">("products");
-  const [sectionOptions, setSectionOptions] = useState<SectionOption[]>([]);
+  const [allSections, setAllSections] = useState<SectionOption[]>([]);
+  
+  const sectionOptions = useMemo(() => {
+    if (allSections.length === 0) return fallbackSections.map((s, i) => ({ value: s.title, label: s.title, sort_order: i * 10, active: true, brand: selectedBrand }));
+    return allSections.filter(s => s.brand === selectedBrand);
+  }, [allSections, selectedBrand]);
+
+  const formSectionOptions = useMemo(() => {
+    if (allSections.length === 0) return fallbackSections.map((s, i) => ({ value: s.title, label: s.title, sort_order: i * 10, active: true, brand: formBrand }));
+    return allSections.filter(s => s.brand === formBrand);
+  }, [allSections, formBrand]);
   
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -161,7 +171,7 @@ export default function Dashboard() {
       };
 
       const productsUrl = `${SUPABASE_URL}/rest/v1/product_overrides?select=*&order=updated_at.desc`;
-      const sectionsUrl = `${SUPABASE_URL}/rest/v1/catalog_sections?brand=eq.${selectedBrand}&select=*&order=sort_order.asc`;
+      const sectionsUrl = `${SUPABASE_URL}/rest/v1/catalog_sections?select=*&order=brand.asc,sort_order.asc`;
 
       const [productsRes, sectionsRes] = await Promise.all([
         withTimeout(fetch(productsUrl, { headers, cache: "no-store" }), 15000, "Lỗi kết nối khi tải danh sách sản phẩm."),
@@ -183,9 +193,9 @@ export default function Dashboard() {
       const secData = await sectionsRes.json();
 
       if (secData && secData.length > 0) {
-        setSectionOptions(secData as SectionOption[]);
+        setAllSections(secData as SectionOption[]);
       } else {
-        setSectionOptions(fallbackSections.map((s, i) => ({ value: s.title, label: s.title, sort_order: i * 10, active: true })));
+        setAllSections([]);
       }
 
       if (data) {
@@ -237,8 +247,12 @@ export default function Dashboard() {
     setEditingId(null);
     setName("");
     setDesc("");
-    setSection(sectionOptions.length > 0 ? sectionOptions[0].value : fallbackSections[0].title);
     setFormBrand(selectedBrand);
+    
+    // Set default section directly using the newly calculated formSectionOptions
+    const defaultSections = allSections.length > 0 ? allSections.filter(s => s.brand === selectedBrand) : fallbackSections.map((s, i) => ({ value: s.title, label: s.title }));
+    setSection(defaultSections.length > 0 ? defaultSections[0].value : "");
+    
     setLinkUrl("");
     setLinkUrl2("");
     setImageUrl("");
@@ -250,8 +264,13 @@ export default function Dashboard() {
     setEditingId(p.id);
     setName(p.name || "");
     setDesc(p.desc || "");
-    setSection(p.section || (sectionOptions.length > 0 ? sectionOptions[0].value : fallbackSections[0].title));
     setFormBrand(p.brand || "desembre");
+    
+    // Evaluate section default based on product brand
+    const prodBrand = p.brand || "desembre";
+    const brandSections = allSections.length > 0 ? allSections.filter(s => s.brand === prodBrand) : fallbackSections.map((s, i) => ({ value: s.title, label: s.title }));
+    setSection(p.section || (brandSections.length > 0 ? brandSections[0].value : ""));
+    
     setLinkUrl(p.link_url || "");
     setLinkUrl2(p.link_url_2 || "");
     setImageUrl(p.image_url || "");
@@ -399,12 +418,19 @@ export default function Dashboard() {
         brand: formBrand,
         value: finalSection,
         label: newSecName.trim(),
-        sort_order: sectionOptions.length * 10,
+        sort_order: formSectionOptions.length * 10,
         active: true
       });
       if (!secErr) {
-        setSectionOptions(prev => [...prev, { value: finalSection, label: newSecName.trim(), sort_order: sectionOptions.length * 10, active: true }]);
+        setAllSections(prev => [...prev, { brand: formBrand, value: finalSection, label: newSecName.trim(), sort_order: formSectionOptions.length * 10, active: true }]);
       }
+    }
+
+    if (finalSection !== "__CREATE_NEW__" && !formSectionOptions.some(s => s.value === finalSection)) {
+      toast.error("Nhóm sản phẩm không thuộc thương hiệu đã chọn. Vui lòng chọn lại nhóm.");
+      isSavingRef.current = false;
+      setIsSaving(false);
+      return;
     }
 
     try {
@@ -858,16 +884,24 @@ export default function Dashboard() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-semibold">Nhóm sản phẩm <span className="text-destructive">*</span></label>
-                  <select required value={section} onChange={e=>setSection(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm shadow-sm">
-                    {sectionOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  <label className="text-sm font-semibold">Thương hiệu <span className="text-destructive">*</span></label>
+                  <select required value={formBrand} onChange={e => {
+                    const newBrand = e.target.value;
+                    setFormBrand(newBrand);
+                    const nextSections = allSections.filter(s => s.brand === newBrand);
+                    const stillValid = nextSections.some(s => s.value === section);
+                    if (!stillValid) {
+                      setSection(nextSections.length > 0 ? nextSections[0].value : fallbackSections[0].title);
+                    }
+                  }} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm shadow-sm">
+                    <option value="desembre">Desembre</option>
+                    <option value="dermagarden">Dermagarden</option>
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-semibold">Thương hiệu <span className="text-destructive">*</span></label>
-                  <select required value={formBrand} onChange={e=>setFormBrand(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm shadow-sm">
-                    <option value="desembre">Desembre</option>
-                    <option value="dermagarden">Dermagarden</option>
+                  <label className="text-sm font-semibold">Nhóm sản phẩm <span className="text-destructive">*</span></label>
+                  <select required value={section} onChange={e=>setSection(e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary focus:border-primary text-sm shadow-sm">
+                    {formSectionOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
               </div>

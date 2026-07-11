@@ -87,17 +87,28 @@ export async function saveProductOverride(payload: SaveProductOverridePayload, a
   return { ok: true as const, row: data?.row as ProductOverrideRow | undefined };
 }
 
-export async function saveProductOrder(payload: SaveProductOrderPayload) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const headers: Record<string, string> = {};
-  if (session?.access_token) {
-    headers["Authorization"] = `Bearer ${session.access_token}`;
-  }
+export async function saveProductOrder(payload: SaveProductOrderPayload, accessToken: string) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${accessToken}`,
+  };
 
-  const { data, error, status } = await supabase.functions.invoke("save-product-order", {
-    body: payload,
-    headers,
-  });
+  const functionUrl = `${SUPABASE_URL}/functions/v1/save-product-order`;
+
+  try {
+    const response = await fetch(functionUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    const status = response.status;
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
 
   if (status === 401) {
     return { ok: false as const, error: "Phiên đăng nhập hết hạn hoặc bạn cần đăng nhập Admin." };
@@ -108,15 +119,18 @@ export async function saveProductOrder(payload: SaveProductOrderPayload) {
   if (status === 400) {
     return { ok: false as const, error: data?.error || "Dữ liệu không hợp lệ." };
   }
-  if (status === 500) {
-    return { ok: false as const, error: "Lỗi hệ thống máy chủ." };
-  }
+    if (status === 500) {
+      return { ok: false as const, error: "Lỗi hệ thống máy chủ." };
+    }
 
-  if (error) {
-    return { ok: false as const, error: error.message ?? "Lỗi mạng khi gọi Edge Function" };
+    if (!response.ok) {
+      return { ok: false as const, error: data?.error || `Lỗi HTTP ${status}` };
+    }
+    if (data?.error) {
+      return { ok: false as const, error: data.error as string };
+    }
+    return { ok: true as const, rows: data?.rows as ProductOverrideRow[] | undefined };
+  } catch (err: unknown) {
+    return { ok: false as const, error: err instanceof Error ? err.message : "Lỗi mạng khi gọi Edge Function" };
   }
-  if (data?.error) {
-    return { ok: false as const, error: data.error as string };
-  }
-  return { ok: true as const, rows: data?.rows as ProductOverrideRow[] | undefined };
 }

@@ -60,6 +60,7 @@ export type SectionOption = {
   label: string;
   sort_order?: number;
   active?: boolean;
+  brand?: string;
 };
 
 export const ALL_SECTION_VALUE = "__ALL__";

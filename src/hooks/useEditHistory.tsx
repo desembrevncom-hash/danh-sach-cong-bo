@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 import { saveProductOverride } from "@/features/products/services/productOverrideService";
+import { useAdminSession } from "@/hooks/useAdminSession";
 import type { ProductOverrideRow as OverrideRow } from "@/features/products/types";
 import { useEditUnlock } from "@/features/edit-unlock/hooks/useEditUnlock";
 import { toast } from "sonner";
@@ -70,7 +71,8 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
     snap: Snapshot,
   ): Promise<boolean> => {
     if (!snap.prev) {
-      const res = await saveProductOverride({ action: "hard_delete", productId: snap.id });
+      if (!session?.access_token) return false;
+      const res = await saveProductOverride({ action: "hard_delete", productId: snap.id }, session.access_token);
       if (!res.ok) { toast.error(res.error ?? "Hoàn tác thất bại"); return false; }
       applyRestore(snap.id, null);
     } else {
@@ -83,7 +85,7 @@ export const EditHistoryProvider = ({ children, applyRestore }: Props) => {
         name: p.name,
         desc: p.desc,
         deleted: p.deleted,
-      });
+      }, session?.access_token || "");
       if (!res.ok) { toast.error(res.error ?? "Hoàn tác thất bại"); return false; }
       applyRestore(snap.id, p);
     }
