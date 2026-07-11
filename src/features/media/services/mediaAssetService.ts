@@ -110,25 +110,26 @@ export async function uploadMediaAsset(file: File, options: UploadOptions): Prom
 
 export async function listMediaAssets(filters?: { assetType?: MediaAssetType, brand?: string }): Promise<{ ok: boolean; data?: MediaAsset[]; error?: string }> {
   try {
-    let query = supabase
-      .from('media_assets')
-      .select('*')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false });
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    
+    let url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/media_assets?select=*&deleted_at=is.null&order=created_at.desc`;
+    if (filters?.assetType) url += `&asset_type=eq.${filters.assetType}`;
+    if (filters?.brand) url += `&brand=eq.${filters.brand}`;
 
-    if (filters?.assetType) {
-      query = query.eq('asset_type', filters.assetType);
+    const res = await fetch(url, {
+      headers: {
+        "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        "Authorization": `Bearer ${token || ''}`,
+      },
+      cache: "no-store"
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      return { ok: false, error: `Failed to fetch media assets: ${errText}` };
     }
-    if (filters?.brand) {
-      query = query.eq('brand', filters.brand);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      return { ok: false, error: error.message };
-    }
-
+    const data = await res.json();
     return { ok: true, data: data.map(mapMediaAsset) };
   } catch (err: unknown) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
@@ -137,15 +138,26 @@ export async function listMediaAssets(filters?: { assetType?: MediaAssetType, br
 
 export async function softDeleteMediaAsset(id: string): Promise<{ ok: boolean; error?: string }> {
   try {
-    const { error } = await supabase
-      .from('media_assets')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/media_assets?id=eq.${id}`;
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        "Authorization": `Bearer ${token || ''}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      },
+      body: JSON.stringify({ deleted_at: new Date().toISOString() }),
+      cache: "no-store"
+    });
 
-    if (error) {
-      return { ok: false, error: error.message };
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      return { ok: false, error: `Failed to delete media asset: ${errText}` };
     }
-
     return { ok: true };
   } catch (err: unknown) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };

@@ -44,58 +44,78 @@ export function mapSiteSettings(row: SiteSettingsRow): SiteSettings {
 
 export async function fetchSiteSettings(): Promise<{ ok: boolean; data?: SiteSettings; error?: string }> {
   try {
-    const { data, error } = await supabase
-      .from('site_settings')
-      .select('*')
-      .eq('id', 'site')
-      .single();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/site_settings?id=eq.site&select=*`;
+    const res = await fetch(url, {
+      headers: {
+        "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        "Authorization": `Bearer ${token || ''}`,
+      },
+      cache: "no-store"
+    });
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // Not found, return a default placeholder
-        return { ok: true, data: mapSiteSettings({ 
-          id: 'site', 
-          site_name: 'Hệ thống tra cứu công bố sản phẩm',
-          favicon_url: null,
-          apple_touch_icon_url: null,
-          web_app_icon_192_url: null,
-          web_app_icon_512_url: null,
-          default_og_image_url: null,
-          header_logo_desembre_url: null,
-          header_logo_hyunjin_url: null,
-          header_logo_dermagarden_url: null
-        }) };
-      }
-      return { ok: false, error: error.message };
+    if (!res.ok) {
+      return { ok: false, error: `Failed to fetch site settings: ${res.statusText}` };
     }
 
-    return { ok: true, data: mapSiteSettings(data as unknown as SiteSettingsRow) };
+    const data = await res.json();
+    if (!data || data.length === 0) {
+      // Not found, return a default placeholder
+      return { ok: true, data: mapSiteSettings({ 
+        id: 'site', 
+        site_name: 'Hệ thống tra cứu công bố sản phẩm',
+        favicon_url: null,
+        apple_touch_icon_url: null,
+        web_app_icon_192_url: null,
+        web_app_icon_512_url: null,
+        default_og_image_url: null,
+        header_logo_desembre_url: null,
+        header_logo_hyunjin_url: null,
+        header_logo_dermagarden_url: null
+      }) };
+    }
+
+    return { ok: true, data: mapSiteSettings(data[0] as unknown as SiteSettingsRow) };
   } catch (err: unknown) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
 export async function updateSiteSettings(payload: Partial<SiteSettings>): Promise<{ ok: boolean; error?: string }> {
-  const updateData: Record<string, unknown> = {};
-  
-  if (payload.siteName !== undefined) updateData.site_name = payload.siteName;
-  if (payload.faviconUrl !== undefined) updateData.favicon_url = payload.faviconUrl;
-  if (payload.appleTouchIconUrl !== undefined) updateData.apple_touch_icon_url = payload.appleTouchIconUrl;
-  if (payload.webAppIcon192Url !== undefined) updateData.web_app_icon_192_url = payload.webAppIcon192Url;
-  if (payload.webAppIcon512Url !== undefined) updateData.web_app_icon_512_url = payload.webAppIcon512Url;
-  if (payload.defaultOgImageUrl !== undefined) updateData.default_og_image_url = payload.defaultOgImageUrl;
-  
-  // ensure updated_at is refreshed via trigger or implicitly, or explicitly set it
-  updateData.updated_at = new Date().toISOString();
-
   try {
-    const { error } = await supabase
-      .from('site_settings')
-      .update(updateData)
-      .eq('id', 'site');
+    const updateData: Record<string, unknown> = {};
+    
+    if (payload.siteName !== undefined) updateData.site_name = payload.siteName;
+    if (payload.faviconUrl !== undefined) updateData.favicon_url = payload.faviconUrl;
+    if (payload.appleTouchIconUrl !== undefined) updateData.apple_touch_icon_url = payload.appleTouchIconUrl;
+    if (payload.webAppIcon192Url !== undefined) updateData.web_app_icon_192_url = payload.webAppIcon192Url;
+    if (payload.webAppIcon512Url !== undefined) updateData.web_app_icon_512_url = payload.webAppIcon512Url;
+    if (payload.defaultOgImageUrl !== undefined) updateData.default_og_image_url = payload.defaultOgImageUrl;
+    
+    // ensure updated_at is refreshed via trigger or implicitly, or explicitly set it
+    updateData.updated_at = new Date().toISOString();
 
-    if (error) {
-      return { ok: false, error: error.message };
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/site_settings?id=eq.site`;
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        "Authorization": `Bearer ${token || ''}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      },
+      body: JSON.stringify(updateData),
+      cache: "no-store"
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      return { ok: false, error: `Failed to update site settings: ${errText}` };
     }
 
     return { ok: true };
