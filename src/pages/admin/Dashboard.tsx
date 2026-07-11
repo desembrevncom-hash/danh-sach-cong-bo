@@ -19,6 +19,9 @@ import { DesignManagerTab } from "@/features/design-manager/components/DesignMan
 import { withTimeout, getErrorMessage } from "@/lib/asyncState";
 import { DashboardErrorState } from "@/components/ui/dashboard-error";
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
 type AdminProduct = {
   id: string;
   section: string;
@@ -146,24 +149,43 @@ export default function Dashboard() {
     setErrorState(null);
     
     try {
-      // Admin lấy trực tiếp từ bảng product_overrides để quản lý toàn bộ bản ghi (cả ẩn và hiện)
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+      }
+
+      const headers = {
+        "Authorization": `Bearer ${accessToken}`,
+        "apikey": SUPABASE_ANON_KEY,
+        "Content-Type": "application/json"
+      };
+
+      const productsUrl = `${SUPABASE_URL}/rest/v1/product_overrides?select=*&order=updated_at.desc`;
+      const sectionsUrl = `${SUPABASE_URL}/rest/v1/catalog_sections?brand=eq.${selectedBrand}&select=*&order=sort_order.asc`;
+
       const [productsRes, sectionsRes] = await Promise.all([
-        withTimeout(supabase.from("product_overrides").select("*").order("updated_at", { ascending: false }), 10000),
-        withTimeout(supabase.from("catalog_sections").select("*").eq("brand", selectedBrand).order("sort_order", { ascending: true }), 10000)
+        withTimeout(fetch(productsUrl, { headers }), 15000, "Lỗi kết nối khi tải danh sách sản phẩm."),
+        withTimeout(fetch(sectionsUrl, { headers }), 15000, "Lỗi kết nối khi tải nhóm sản phẩm.")
       ]);
 
       if (requestId !== requestIdRef.current) return;
 
-      const { data, error } = productsRes;
-      const { data: secData, error: secError } = sectionsRes;
+      if (!productsRes.ok) {
+        const errText = await productsRes.text().catch(() => "");
+        throw new Error(`Lỗi tải danh sách sản phẩm (${productsRes.status}): ${errText}`);
+      }
+      if (!sectionsRes.ok) {
+        const errText = await sectionsRes.text().catch(() => "");
+        throw new Error(`Lỗi tải nhóm sản phẩm (${sectionsRes.status}): ${errText}`);
+      }
 
-      if (secError) throw secError;
-      if (error) throw error;
+      const data = await productsRes.json();
+      const secData = await sectionsRes.json();
 
       if (secData && secData.length > 0) {
         setSectionOptions(secData as SectionOption[]);
       } else {
-        setSectionOptions(fallbackSections.map((s, i) => ({ value: s.title, label: s.title, sort_order: i * 10 })));
+        setSectionOptions(fallbackSections.map((s, i) => ({ value: s.title, label: s.title, sort_order: i * 10, active: true })));
       }
 
       if (data) {
@@ -198,7 +220,7 @@ export default function Dashboard() {
       if (requestId !== requestIdRef.current) return;
       const msg = getErrorMessage(error);
       setErrorState(msg);
-      if (import.meta.env.DEV) console.error("fetchProducts error:", error);
+      toast.error(msg);
     } finally {
       if (requestId === requestIdRef.current) {
         setIsLoading(false);
@@ -398,15 +420,11 @@ export default function Dashboard() {
 
       console.log("[add-product:refresh:start]");
       try {
-        await withTimeout(
-          fetchProducts(), 
-          12000, 
-          "Sản phẩm có thể đã được lưu, nhưng tải lại danh sách quá lâu. Vui lòng tải lại trang."
-        );
+        await fetchProducts();
         console.log("[add-product:refresh:success]");
       } catch (refreshErr) {
         console.error("[add-product:error]", { step: "refresh", error: refreshErr });
-        toast.warning(refreshErr instanceof Error ? refreshErr.message : "Đã lưu sản phẩm, nhưng chưa tải lại được danh sách. Vui lòng bấm F5.");
+        toast.warning(refreshErr instanceof Error ? refreshErr.message : "Sản phẩm đã lưu nhưng chưa tải lại được danh sách. Vui lòng bấm Thử lại.");
       }
       
       console.log("[add-product:done]");
