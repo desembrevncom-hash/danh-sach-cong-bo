@@ -300,6 +300,7 @@ export default function Dashboard() {
   // 5. Lưu sản phẩm (Thêm mới hoặc Cập nhật)
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     setIsSaving(true);
     
     // Nếu chọn tạo nhóm mới thông qua prompt nhanh
@@ -795,7 +796,7 @@ export default function Dashboard() {
               <button type="button" onClick={() => setIsFormOpen(false)} disabled={isSaving} className="px-5 py-2 font-medium text-sm rounded-md border border-input bg-background hover:bg-muted transition-colors shadow-sm">
                 Hủy
               </button>
-              <button onClick={handleSave} disabled={isSaving} className="px-6 py-2 bg-primary text-primary-foreground font-medium text-sm rounded-md hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2 shadow-sm active:scale-95">
+              <button type="submit" disabled={isSaving} className="px-6 py-2 bg-primary text-primary-foreground font-medium text-sm rounded-md hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2 shadow-sm active:scale-95">
                 {isSaving ? (
                   <>
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
