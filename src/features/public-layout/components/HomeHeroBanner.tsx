@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
+import { useSiteSettings } from "@/features/seo/components/SiteSettingsProvider";
 
 export function HomeHeroBanner() {
+  const { settings } = useSiteSettings();
   const heroImageUrl = "/images/home-hero-banner.jpg";
 
   return (
-    <section className="relative w-full h-[560px] md:h-[680px] lg:h-[720px] bg-muted/30 overflow-hidden isolate">
+    <section className="relative w-full min-h-[720px] md:min-h-[760px] lg:min-h-[820px] bg-muted/30 overflow-hidden isolate py-16 flex items-center">
       {/* Background Image with Fallback Gradient */}
       <div 
         className="absolute inset-0 -z-20 bg-cover bg-center bg-no-repeat"
@@ -18,54 +20,85 @@ export function HomeHeroBanner() {
       {/* Strong Overlay for Text Readability */}
       <div className="absolute inset-0 -z-10 bg-background/80 md:bg-gradient-to-r md:from-background/95 md:via-background/70 md:to-background/90 backdrop-blur-[2px]" />
 
-      <div className="container mx-auto px-4 sm:px-6 h-full flex flex-col justify-center items-center">
-        <div className="max-w-[860px] w-full mx-auto text-center animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out fill-mode-both flex flex-col items-center">
+      <div className="container mx-auto px-4 sm:px-6 h-full flex flex-col justify-center items-center mt-8">
+        <div className="w-full mx-auto text-center animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out fill-mode-both flex flex-col items-center">
           <p className="inline-flex items-center px-4 py-1.5 mb-6 md:mb-8 rounded-full bg-muted/60 border border-border/50 text-foreground text-xs font-bold tracking-[0.18em] uppercase backdrop-blur-md shadow-sm">
             Tập đoàn HYUNJIN C&T
           </p>
           
-          <h1 className="elegant-title text-[34px] leading-[1.2] sm:text-[42px] md:text-[56px] lg:text-[72px] font-bold text-foreground tracking-tight mb-6 sm:mb-8">
-            Danh sách công bố <br className="hidden sm:block" />
-            sản phẩm
-          </h1>
+          <div className="max-w-[1180px] mx-auto w-full">
+            <h1 className="elegant-title text-[clamp(38px,8vw,48px)] lg:text-[clamp(48px,4.4vw,72px)] lg:leading-[1.08] lg:whitespace-nowrap font-bold text-foreground tracking-tight mb-6 sm:mb-8">
+              Danh sách công bố sản phẩm
+            </h1>
+          </div>
           
-          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-10 max-w-[620px] mx-auto drop-shadow-sm">
+          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-10 max-w-[720px] mx-auto drop-shadow-sm px-2">
             Cập nhật chính xác liên tục các công bố sản phẩm Desembre và Dermagarden đang được phép lưu hành tại Việt Nam
           </p>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full max-w-[720px] mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full max-w-[960px] lg:max-w-[1040px] mt-2">
             {/* DESEMBRE CARD */}
             <Link 
               to="/desembre"
-              className="group relative flex flex-col items-start text-left p-5 md:p-6 rounded-2xl bg-background/70 md:bg-background/80 backdrop-blur-md border border-border/40 shadow-sm hover:shadow-xl hover:bg-background/95 hover:border-border/60 transition-all duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              className="group relative flex flex-col text-left rounded-[28px] bg-background/80 backdrop-blur-md border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full h-[280px] sm:h-[300px] lg:h-[340px]"
             >
-              <h3 className="text-xl md:text-2xl font-black tracking-tight text-foreground mb-1 group-hover:text-primary transition-colors flex items-center justify-between w-full">
-                DESEMBRE
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-              </h3>
-              <p className="text-sm font-semibold text-foreground/80 mb-2">
-                Thương hiệu thẩm mỹ chuyên nghiệp
-              </p>
-              <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-                Danh mục sản phẩm Desembre đang được công bố và cập nhật liên tục.
-              </p>
+              <div className="p-6 md:p-8 flex flex-col flex-1 z-10">
+                <h3 className="text-2xl md:text-3xl font-black tracking-tight text-foreground mb-1 group-hover:text-primary transition-colors flex items-center justify-between w-full">
+                  DESEMBRE
+                </h3>
+                <p className="text-sm font-semibold text-foreground/80 mb-3">
+                  Thương hiệu thẩm mỹ chuyên nghiệp
+                </p>
+                
+                <div className="mt-auto flex items-center gap-2 text-sm font-bold text-primary opacity-80 group-hover:opacity-100 transition-opacity">
+                  Xem danh mục <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                </div>
+              </div>
+              
+              <div className="absolute bottom-0 left-0 right-0 h-[120px] md:h-[160px] lg:h-[180px] overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-b from-background via-background/50 to-transparent z-10" />
+                <div className="absolute inset-0 bg-orange-100/30 dark:bg-orange-950/20" />
+                {settings?.homeBrandDesembreImageUrl && (
+                  <img 
+                    src={settings.homeBrandDesembreImageUrl} 
+                    alt="Desembre" 
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700" 
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                )}
+              </div>
             </Link>
 
             {/* DERMAGARDEN CARD */}
             <Link 
               to="/dermagarden"
-              className="group relative flex flex-col items-start text-left p-5 md:p-6 rounded-2xl bg-background/70 md:bg-background/80 backdrop-blur-md border border-border/40 shadow-sm hover:shadow-xl hover:bg-background/95 hover:border-border/60 transition-all duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              className="group relative flex flex-col text-left rounded-[28px] bg-background/80 backdrop-blur-md border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 w-full h-[280px] sm:h-[300px] lg:h-[340px]"
             >
-              <h3 className="text-xl md:text-2xl font-black tracking-tight text-foreground mb-1 group-hover:text-primary transition-colors flex items-center justify-between w-full">
-                DERMAGARDEN
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-              </h3>
-              <p className="text-sm font-semibold text-foreground/80 mb-2">
-                Thương hiệu chăm sóc da chuyên sâu
-              </p>
-              <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-                Tra cứu danh sách sản phẩm Dermagarden đang được phép lưu hành tại Việt Nam.
-              </p>
+              <div className="p-6 md:p-8 flex flex-col flex-1 z-10">
+                <h3 className="text-2xl md:text-3xl font-black tracking-tight text-foreground mb-1 group-hover:text-primary transition-colors flex items-center justify-between w-full">
+                  DERMAGARDEN
+                </h3>
+                <p className="text-sm font-semibold text-foreground/80 mb-3">
+                  Thương hiệu chăm sóc da chuyên sâu
+                </p>
+                
+                <div className="mt-auto flex items-center gap-2 text-sm font-bold text-primary opacity-80 group-hover:opacity-100 transition-opacity">
+                  Xem danh mục <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                </div>
+              </div>
+              
+              <div className="absolute bottom-0 left-0 right-0 h-[120px] md:h-[160px] lg:h-[180px] overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-b from-background via-background/50 to-transparent z-10" />
+                <div className="absolute inset-0 bg-emerald-100/30 dark:bg-emerald-950/20" />
+                {settings?.homeBrandDermagardenImageUrl && (
+                  <img 
+                    src={settings.homeBrandDermagardenImageUrl} 
+                    alt="Dermagarden" 
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700" 
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                )}
+              </div>
             </Link>
           </div>
         </div>

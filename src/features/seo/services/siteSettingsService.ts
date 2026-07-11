@@ -11,6 +11,8 @@ export type SiteSettings = {
   headerLogoDesembreUrl?: string | null;
   headerLogoHyunjinUrl?: string | null;
   headerLogoDermagardenUrl?: string | null;
+  homeBrandDesembreImageUrl?: string | null;
+  homeBrandDermagardenImageUrl?: string | null;
 };
 
 export type SiteSettingsRow = {
@@ -24,6 +26,8 @@ export type SiteSettingsRow = {
   header_logo_desembre_url?: string | null;
   header_logo_hyunjin_url?: string | null;
   header_logo_dermagarden_url?: string | null;
+  home_brand_desembre_image_url?: string | null;
+  home_brand_dermagarden_image_url?: string | null;
 };
 
 // Map DB snake_case to camelCase
@@ -39,6 +43,8 @@ export function mapSiteSettings(row: SiteSettingsRow): SiteSettings {
     headerLogoDesembreUrl: row.header_logo_desembre_url,
     headerLogoHyunjinUrl: row.header_logo_hyunjin_url,
     headerLogoDermagardenUrl: row.header_logo_dermagarden_url,
+    homeBrandDesembreImageUrl: row.home_brand_desembre_image_url,
+    homeBrandDermagardenImageUrl: row.home_brand_dermagarden_image_url,
   };
 }
 
@@ -74,7 +80,9 @@ export async function fetchSiteSettings(): Promise<{ ok: boolean; data?: SiteSet
         default_og_image_url: null,
         header_logo_desembre_url: null,
         header_logo_hyunjin_url: null,
-        header_logo_dermagarden_url: null
+        header_logo_dermagarden_url: null,
+        home_brand_desembre_image_url: null,
+        home_brand_dermagarden_image_url: null
       }) };
     }
 
@@ -98,6 +106,9 @@ export async function updateSiteSettings(payload: Partial<SiteSettings>): Promis
     if (payload.headerLogoDesembreUrl !== undefined) updateData.header_logo_desembre_url = payload.headerLogoDesembreUrl;
     if (payload.headerLogoHyunjinUrl !== undefined) updateData.header_logo_hyunjin_url = payload.headerLogoHyunjinUrl;
     if (payload.headerLogoDermagardenUrl !== undefined) updateData.header_logo_dermagarden_url = payload.headerLogoDermagardenUrl;
+
+    if (payload.homeBrandDesembreImageUrl !== undefined) updateData.home_brand_desembre_image_url = payload.homeBrandDesembreImageUrl;
+    if (payload.homeBrandDermagardenImageUrl !== undefined) updateData.home_brand_dermagarden_image_url = payload.homeBrandDermagardenImageUrl;
     
     // ensure updated_at is refreshed via trigger or implicitly, or explicitly set it
     updateData.updated_at = new Date().toISOString();
