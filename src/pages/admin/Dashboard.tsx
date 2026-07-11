@@ -371,7 +371,6 @@ export default function Dashboard() {
     } finally {
       isSavingRef.current = false;
       setIsSaving(false);
-      toast.info("Đã chạy xong finally");
     }
   };
 
