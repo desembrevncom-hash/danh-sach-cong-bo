@@ -12,7 +12,7 @@ export function HomeBrandCards() {
   const dermagardenImage = "/images/dermagarden-card.jpg";
 
   return (
-    <section className="py-20 bg-background">
+    <section className="py-12 md:py-[72px] bg-background">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-4">Danh mục thương hiệu</h2>
