@@ -73,3 +73,9 @@ Tối ưu hóa công cụ tìm kiếm cho các trang đích:
 - Mobile khuyến nghị 1200×1400px, tỉ lệ 6:7 hoặc 4:5, dưới 1MB.
 - Nên đặt visual/sản phẩm ở giữa hoặc bên phải, tránh chữ/logo sát mép.
 - Nếu không cấu hình, hệ thống dùng ảnh thẻ thương hiệu hoặc banner trang chủ làm fallback.
+
+## 12. Gallery sản phẩm trang chủ
+- Cho phép thêm tối đa 12 ảnh hiển thị dưới dạng Mosaic trên trang chủ.
+- Ảnh nên dùng tỉ lệ 1:1, dung lượng dưới 600KB.
+- Kéo thả để sắp xếp, bật/tắt hiển thị dễ dàng.
+

@@ -30,6 +30,15 @@ describe('siteSettingsService', () => {
         headerLogoDesembreUrl: 'https://example.com/desembre.png',
         headerLogoHyunjinUrl: 'https://example.com/hyunjin.png',
         headerLogoDermagardenUrl: 'https://example.com/dermagarden.png',
+        homeBrandDesembreImageUrl: undefined,
+        homeBrandDermagardenImageUrl: undefined,
+        homeHeroBannerImageUrl: undefined,
+        homeHeroBannerMobileImageUrl: undefined,
+        catalogDesembreBannerImageUrl: undefined,
+        catalogDesembreBannerMobileImageUrl: undefined,
+        catalogDermagardenBannerImageUrl: undefined,
+        catalogDermagardenBannerMobileImageUrl: undefined,
+        homeProductGalleryImages: [],
       });
     });
 

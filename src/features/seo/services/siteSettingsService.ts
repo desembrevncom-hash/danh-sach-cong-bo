@@ -1,5 +1,14 @@
 import { supabase } from '@/integrations/supabase/client';
 
+export type GalleryImage = {
+  id: string;
+  url: string;
+  alt: string;
+  brand: 'desembre' | 'dermagarden' | 'chung';
+  caption: string;
+  isActive: boolean;
+};
+
 export type SiteSettings = {
   id: string;
   siteName: string;
@@ -19,6 +28,7 @@ export type SiteSettings = {
   catalogDesembreBannerMobileImageUrl?: string | null;
   catalogDermagardenBannerImageUrl?: string | null;
   catalogDermagardenBannerMobileImageUrl?: string | null;
+  homeProductGalleryImages?: GalleryImage[];
 };
 
 export type SiteSettingsRow = {
@@ -40,6 +50,7 @@ export type SiteSettingsRow = {
   catalog_desembre_banner_mobile_image_url?: string | null;
   catalog_dermagarden_banner_image_url?: string | null;
   catalog_dermagarden_banner_mobile_image_url?: string | null;
+  home_product_gallery_images?: any;
 };
 
 // Map DB snake_case to camelCase
@@ -63,6 +74,7 @@ export function mapSiteSettings(row: SiteSettingsRow): SiteSettings {
     catalogDesembreBannerMobileImageUrl: row.catalog_desembre_banner_mobile_image_url,
     catalogDermagardenBannerImageUrl: row.catalog_dermagarden_banner_image_url,
     catalogDermagardenBannerMobileImageUrl: row.catalog_dermagarden_banner_mobile_image_url,
+    homeProductGalleryImages: Array.isArray(row.home_product_gallery_images) ? row.home_product_gallery_images : [],
   };
 }
 
@@ -106,7 +118,8 @@ export async function fetchSiteSettings(): Promise<{ ok: boolean; data?: SiteSet
         catalog_desembre_banner_image_url: null,
         catalog_desembre_banner_mobile_image_url: null,
         catalog_dermagarden_banner_image_url: null,
-        catalog_dermagarden_banner_mobile_image_url: null
+        catalog_dermagarden_banner_mobile_image_url: null,
+        home_product_gallery_images: []
       }) };
     }
 
@@ -141,6 +154,7 @@ export async function updateSiteSettings(payload: Partial<SiteSettings>): Promis
     if (payload.catalogDesembreBannerMobileImageUrl !== undefined) updateData.catalog_desembre_banner_mobile_image_url = payload.catalogDesembreBannerMobileImageUrl;
     if (payload.catalogDermagardenBannerImageUrl !== undefined) updateData.catalog_dermagarden_banner_image_url = payload.catalogDermagardenBannerImageUrl;
     if (payload.catalogDermagardenBannerMobileImageUrl !== undefined) updateData.catalog_dermagarden_banner_mobile_image_url = payload.catalogDermagardenBannerMobileImageUrl;
+    if (payload.homeProductGalleryImages !== undefined) updateData.home_product_gallery_images = payload.homeProductGalleryImages;
     
     // ensure updated_at is refreshed via trigger or implicitly, or explicitly set it
     updateData.updated_at = new Date().toISOString();

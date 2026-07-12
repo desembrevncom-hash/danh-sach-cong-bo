@@ -1,6 +1,6 @@
 import { SeoHead } from "@/features/seo/components/SeoHead";
 import { HomeHeroBanner } from "@/features/public-layout/components/HomeHeroBanner";
-import { HomeProcessSection } from "@/features/public-layout/components/HomeProcessSection";
+import { HomeProductGallery } from "@/features/public-layout/components/HomeProductGallery";
 
 export default function HomePage() {
 
@@ -9,7 +9,7 @@ export default function HomePage() {
       <SeoHead routePath="/" />
       
       <HomeHeroBanner />
-      <HomeProcessSection />
+      <HomeProductGallery />
     </>
   );
 }

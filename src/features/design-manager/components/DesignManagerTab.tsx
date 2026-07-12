@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Image as ImageIcon, RefreshCw, X, LayoutTemplate, Eye as EyeIcon } from 'lucide-react';
-import { fetchSiteSettings, updateSiteSettings, type SiteSettings } from '@/features/seo/services/siteSettingsService';
+import { fetchSiteSettings, updateSiteSettings, type SiteSettings, type GalleryImage } from '@/features/seo/services/siteSettingsService';
 import { MediaAssetPickerDialog } from '@/features/media/components/MediaAssetPickerDialog';
 import { DashboardErrorState } from '@/components/ui/dashboard-error';
 import { useSiteSettings } from '@/features/seo/components/SiteSettingsProvider';
@@ -18,7 +18,7 @@ export function DesignManagerTab() {
   
   // Pickers
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [currentBrandTarget, setCurrentBrandTarget] = useState<'desembre' | 'hyunjin' | 'dermagarden' | 'bannerDesktop' | 'bannerMobile' | 'catalogBannerDesembreDesktop' | 'catalogBannerDesembreMobile' | 'catalogBannerDermagardenDesktop' | 'catalogBannerDermagardenMobile' | null>(null);
+  const [currentBrandTarget, setCurrentBrandTarget] = useState<string | number | null>(null);
 
   // Form State
   const [logoDesembre, setLogoDesembre] = useState('');
@@ -33,6 +33,7 @@ export function DesignManagerTab() {
   const [catalogBannerDesembreMobile, setCatalogBannerDesembreMobile] = useState('');
   const [catalogBannerDermagardenDesktop, setCatalogBannerDermagardenDesktop] = useState('');
   const [catalogBannerDermagardenMobile, setCatalogBannerDermagardenMobile] = useState('');
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   
   const [pickerFilter, setPickerFilter] = useState<string>('brand_logo');
 
@@ -63,6 +64,7 @@ export function DesignManagerTab() {
         setCatalogBannerDesembreMobile(res.data.catalogDesembreBannerMobileImageUrl || '');
         setCatalogBannerDermagardenDesktop(res.data.catalogDermagardenBannerImageUrl || '');
         setCatalogBannerDermagardenMobile(res.data.catalogDermagardenBannerMobileImageUrl || '');
+        setGalleryImages(res.data.homeProductGalleryImages || []);
       } else {
         setErrorState(res.error || 'Lỗi không tải được Site Settings');
       }
@@ -109,6 +111,7 @@ export function DesignManagerTab() {
         catalogDesembreBannerMobileImageUrl: catalogBannerDesembreMobile || null,
         catalogDermagardenBannerImageUrl: catalogBannerDermagardenDesktop || null,
         catalogDermagardenBannerMobileImageUrl: catalogBannerDermagardenMobile || null,
+        homeProductGalleryImages: galleryImages,
       };
 
       const { ok, error } = await updateSiteSettings(payload);
@@ -153,6 +156,13 @@ export function DesignManagerTab() {
       if (currentBrandTarget === 'catalogBannerDesembreMobile') setCatalogBannerDesembreMobile(url);
       if (currentBrandTarget === 'catalogBannerDermagardenDesktop') setCatalogBannerDermagardenDesktop(url);
       if (currentBrandTarget === 'catalogBannerDermagardenMobile') setCatalogBannerDermagardenMobile(url);
+      if (typeof currentBrandTarget === 'number') {
+        setGalleryImages(prev => {
+          const next = [...prev];
+          if (next[currentBrandTarget]) next[currentBrandTarget].url = url;
+          return next;
+        });
+      }
     }
   };
 
@@ -244,6 +254,205 @@ export function DesignManagerTab() {
           >
             {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
             Lưu thiết kế
+          </button>
+        </div>
+      </div>
+
+      {/* SECTION: Gallery sản phẩm trang chủ */}
+      <div className="bg-card border border-border rounded-lg shadow-sm p-6 space-y-6">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-6 h-6 text-primary" />
+            <h2 className="text-xl font-bold">Gallery sản phẩm trang chủ</h2>
+          </div>
+          <span className="text-sm text-muted-foreground font-medium">{galleryImages.length}/12 ảnh</span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Ảnh dùng cho gallery sản phẩm ở trang chủ. Trang chủ sẽ hiển thị khoảng 6 ảnh cùng lúc và tự thay phiên ảnh để tạo chuyển động.<br/>
+          <strong>Chuẩn đề xuất:</strong> 1000×1000px · Tỉ lệ 1:1 · PNG/JPG/WebP · &lt;600KB/ảnh. Ưu tiên ảnh sản phẩm nền sáng hoặc nền trong suốt.
+        </p>
+
+        <div className="space-y-4">
+          {galleryImages.map((img, index) => (
+            <div key={img.id || index} className="flex flex-col md:flex-row gap-4 p-4 border border-border rounded-lg bg-background relative group transition-colors hover:border-primary/50">
+              {/* Preview */}
+              <div className="w-24 h-24 shrink-0 bg-muted rounded-md overflow-hidden border border-border/50 relative flex items-center justify-center">
+                {img.url ? (
+                  <img src={img.url} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
+                )}
+              </div>
+              
+              {/* Fields */}
+              <div className="flex-1 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">URL Ảnh</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={img.url} 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setGalleryImages(prev => {
+                            const next = [...prev];
+                            next[index].url = val;
+                            return next;
+                          });
+                        }}
+                        className="flex-1 bg-background border border-input rounded-md px-3 py-1.5 text-sm" 
+                        placeholder="https://..." 
+                      />
+                      <button 
+                        onClick={() => {
+                          setCurrentBrandTarget(index);
+                          setPickerFilter('');
+                          setPickerOpen(true);
+                        }}
+                        className="bg-secondary text-secondary-foreground px-3 py-1.5 rounded-md text-sm whitespace-nowrap hover:bg-secondary/80"
+                      >
+                        Thư viện
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="w-full sm:w-32 shrink-0">
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Thương hiệu</label>
+                    <select 
+                      value={img.brand} 
+                      onChange={(e) => {
+                        const val = e.target.value as any;
+                        setGalleryImages(prev => {
+                          const next = [...prev];
+                          next[index].brand = val;
+                          return next;
+                        });
+                      }}
+                      className="w-full bg-background border border-input rounded-md px-3 py-1.5 text-sm"
+                    >
+                      <option value="chung">Chung</option>
+                      <option value="desembre">Desembre</option>
+                      <option value="dermagarden">Dermagarden</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Mô tả ngắn (Caption)</label>
+                    <input 
+                      type="text" 
+                      value={img.caption} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setGalleryImages(prev => {
+                          const next = [...prev];
+                          next[index].caption = val;
+                          return next;
+                        });
+                      }}
+                      className="w-full bg-background border border-input rounded-md px-3 py-1.5 text-sm" 
+                      placeholder="Ví dụ: Kem chống nắng Desembre" 
+                    />
+                  </div>
+                  <div className="flex items-end pb-1.5">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm">
+                      <input 
+                        type="checkbox" 
+                        checked={img.isActive}
+                        onChange={(e) => {
+                          const val = e.target.checked;
+                          setGalleryImages(prev => {
+                            const next = [...prev];
+                            next[index].isActive = val;
+                            return next;
+                          });
+                        }}
+                        className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4"
+                      />
+                      <span className="font-medium text-foreground">Hiển thị</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Controls */}
+              <div className="flex flex-row md:flex-col justify-end md:justify-center gap-2 absolute md:static top-4 right-4">
+                <div className="flex bg-muted rounded-md overflow-hidden border border-border/50">
+                  <button 
+                    title="Lên"
+                    disabled={index === 0}
+                    onClick={() => {
+                      setGalleryImages(prev => {
+                        const next = [...prev];
+                        const temp = next[index - 1];
+                        next[index - 1] = next[index];
+                        next[index] = temp;
+                        return next;
+                      });
+                    }}
+                    className="p-1.5 text-muted-foreground hover:bg-background hover:text-foreground disabled:opacity-30 transition-colors"
+                  >
+                    ↑
+                  </button>
+                  <div className="w-px bg-border/50" />
+                  <button 
+                    title="Xuống"
+                    disabled={index === galleryImages.length - 1}
+                    onClick={() => {
+                      setGalleryImages(prev => {
+                        const next = [...prev];
+                        const temp = next[index + 1];
+                        next[index + 1] = next[index];
+                        next[index] = temp;
+                        return next;
+                      });
+                    }}
+                    className="p-1.5 text-muted-foreground hover:bg-background hover:text-foreground disabled:opacity-30 transition-colors"
+                  >
+                    ↓
+                  </button>
+                </div>
+                <button 
+                  title="Xóa"
+                  onClick={() => {
+                    if(confirm("Bạn có chắc chắn muốn xóa ảnh này khỏi danh sách?")) {
+                      setGalleryImages(prev => prev.filter((_, i) => i !== index));
+                    }
+                  }}
+                  className="p-1.5 text-destructive/70 hover:bg-destructive/10 hover:text-destructive rounded-md transition-colors border border-transparent md:mt-2"
+                >
+                  <X className="w-4 h-4 mx-auto" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {galleryImages.length < 12 && (
+          <button
+            onClick={() => {
+              setGalleryImages(prev => [
+                ...prev, 
+                { id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(), url: '', alt: 'Gallery Image', brand: 'chung', caption: '', isActive: true }
+              ]);
+            }}
+            className="w-full py-4 border-2 border-dashed border-border rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground hover:border-primary/50 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+          >
+            + Thêm ảnh ({galleryImages.length}/12)
+          </button>
+        )}
+        
+        {/* Action Button */}
+        <div className="flex justify-end pt-4 border-t border-border mt-4">
+          <button 
+            onClick={handleSave} 
+            disabled={saving}
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
+          >
+            {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+            Lưu danh sách ảnh
           </button>
         </div>
       </div>
