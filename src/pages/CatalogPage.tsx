@@ -343,7 +343,7 @@ const IndexInner = ({
       
       <BrandHero brandId={activeBrand} totalCount={brandTotalCount} />
 
-      <section className="container mx-auto px-3 md:px-6 pt-3 md:pt-8 sticky top-16 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-2">
+      <section id="catalog-search" className="container mx-auto px-3 md:px-6 pt-3 md:pt-8 sticky top-16 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-2">
         <ProductToolbar
           query={query}
           onSearchChange={setQuery}

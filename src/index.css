@@ -197,3 +197,18 @@
     animation: none;
   }
 }
+
+/* Scroll indicator bounce */
+@keyframes scroll-bounce-soft {
+  0%, 100% { transform: translateY(-15%); }
+  50% { transform: translateY(15%); }
+}
+.animate-scroll-bounce {
+  animation: scroll-bounce-soft 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-scroll-bounce {
+    animation: none;
+    transform: translateY(0);
+  }
+}

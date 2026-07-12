@@ -1,6 +1,5 @@
-import { Link } from "react-router-dom";
 import { BrandId, BRAND_THEMES } from "@/config/brands";
-import { ArrowRight } from "lucide-react";
+import { ArrowDown } from "lucide-react";
 
 interface BrandHeroProps {
   brandId: BrandId;
@@ -10,8 +9,6 @@ interface BrandHeroProps {
 export function BrandHero({ brandId, totalCount }: BrandHeroProps) {
   const theme = BRAND_THEMES[brandId];
   if (!theme) return null;
-
-  const otherTheme = BRAND_THEMES[theme.otherBrandId];
 
   return (
     <div className={`relative w-full overflow-hidden border-b border-border transition-colors duration-700 ${theme.backgroundClass}`}>
@@ -35,16 +32,22 @@ export function BrandHero({ brandId, totalCount }: BrandHeroProps) {
               : `Hiện tại đang có tổng số ${totalCount} công bố sản phẩm thương hiệu ${theme.name} trên hệ thống. Xin mời tra cứu.`}
           </p>
 
-          <div className="flex items-center gap-4">
-            {otherTheme && (
-              <Link 
-                to={`/${otherTheme.id}`}
-                className="group flex items-center gap-2 px-6 py-3 rounded-full bg-card hover:bg-muted border border-border shadow-sm transition-all duration-300 hover:shadow text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-              >
-                Khám phá {otherTheme.name}
-                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-foreground transition-transform" />
-              </Link>
-            )}
+          <div className="flex items-center gap-4 mt-2">
+            <button
+              onClick={() => {
+                document.getElementById("catalog-search")?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+              }}
+              aria-label={`Cuộn xuống tra cứu sản phẩm ${theme.name}`}
+              className="group flex flex-col items-center gap-2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg p-2 transition-colors"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border/50 bg-card/50 shadow-sm transition-all group-hover:border-border group-hover:bg-card">
+                <ArrowDown className="h-4 w-4 text-accent-foreground animate-scroll-bounce" />
+              </div>
+              <span className="text-xs font-medium tracking-wide">Cuộn xuống tra cứu</span>
+            </button>
           </div>
         </div>
       </div>
