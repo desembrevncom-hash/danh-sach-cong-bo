@@ -343,6 +343,86 @@ export function DesignManagerTab() {
         </div>
       </div>
 
+      {/* SECTION: Banner trang danh mục thương hiệu */}
+      <div className="bg-card border border-border rounded-lg shadow-sm p-6 space-y-6">
+        <div className="flex items-center gap-2 mb-2">
+          <ImageIcon className="w-6 h-6 text-primary" />
+          <h2 className="text-xl font-bold">Banner trang danh mục thương hiệu</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Ảnh nền hiển thị ở phần đầu trang /desembre và /dermagarden. Khuyến nghị dùng ảnh JPG/WebP/PNG kích thước 2400×900px, tỉ lệ 8:3, dung lượng dưới 1.2MB. Nên đặt sản phẩm/visual ở giữa hoặc bên phải, chừa vùng trái thoáng cho tiêu đề.
+        </p>
+        <p className="text-xs text-muted-foreground italic">
+          * Nếu không cấu hình banner riêng, hệ thống sẽ tự dùng ảnh thẻ thương hiệu hoặc banner trang chủ làm fallback.
+        </p>
+
+        {/* Desembre Banners */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 border-b border-border pb-6">
+          <BannerCard 
+            title="Banner Desembre desktop" 
+            helperText="Chuẩn đề xuất: 2400×900px · Tỉ lệ 8:3 · JPG/WebP/PNG · <1.2MB"
+            aspectRatio="aspect-[8/3]"
+            value={catalogBannerDesembreDesktop}
+            onChange={setCatalogBannerDesembreDesktop}
+            onOpenPicker={() => {
+              setCurrentBrandTarget('catalogBannerDesembreDesktop');
+              setPickerFilter('');
+              setPickerOpen(true);
+            }}
+          />
+          <BannerCard 
+            title="Banner Desembre mobile" 
+            helperText="Chuẩn đề xuất: 1200×1400px · Tỉ lệ 6:7 hoặc 4:5 · JPG/WebP/PNG · <1MB"
+            aspectRatio="aspect-[6/7]"
+            value={catalogBannerDesembreMobile}
+            onChange={setCatalogBannerDesembreMobile}
+            onOpenPicker={() => {
+              setCurrentBrandTarget('catalogBannerDesembreMobile');
+              setPickerFilter('');
+              setPickerOpen(true);
+            }}
+          />
+        </div>
+
+        {/* Dermagarden Banners */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <BannerCard 
+            title="Banner Dermagarden desktop" 
+            helperText="Chuẩn đề xuất: 2400×900px · Tỉ lệ 8:3 · JPG/WebP/PNG · <1.2MB"
+            aspectRatio="aspect-[8/3]"
+            value={catalogBannerDermagardenDesktop}
+            onChange={setCatalogBannerDermagardenDesktop}
+            onOpenPicker={() => {
+              setCurrentBrandTarget('catalogBannerDermagardenDesktop');
+              setPickerFilter('');
+              setPickerOpen(true);
+            }}
+          />
+          <BannerCard 
+            title="Banner Dermagarden mobile" 
+            helperText="Chuẩn đề xuất: 1200×1400px · Tỉ lệ 6:7 hoặc 4:5 · JPG/WebP/PNG · <1MB"
+            aspectRatio="aspect-[6/7]"
+            value={catalogBannerDermagardenMobile}
+            onChange={setCatalogBannerDermagardenMobile}
+            onOpenPicker={() => {
+              setCurrentBrandTarget('catalogBannerDermagardenMobile');
+              setPickerFilter('');
+              setPickerOpen(true);
+            }}
+          />
+        </div>
+
+        <div className="flex justify-end pt-4 border-t border-border mt-4">
+          <button 
+            onClick={handleSave} 
+            disabled={saving}
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
+          >
+            {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+            Lưu thiết kế
+          </button>
+        </div>
+      </div>
 
       <MediaAssetPickerDialog
         isOpen={pickerOpen}
