@@ -322,7 +322,7 @@ export function DesignManagerTab() {
                     <select 
                       value={img.brand} 
                       onChange={(e) => {
-                        const val = e.target.value as any;
+                        const val = e.target.value as GalleryImage['brand'];
                         setGalleryImages(prev => {
                           const next = [...prev];
                           next[index].brand = val;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useSiteSettings } from "@/features/seo/components/SiteSettingsProvider";
 import type { GalleryImage } from "@/features/seo/services/siteSettingsService";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,10 @@ export function HomeProductGallery() {
   const [fadeState, setFadeState] = useState<Record<number, boolean>>({}); // true = fading out
   const [hasAnimatedIn, setHasAnimatedIn] = useState(false);
   
-  const activeImages = settings?.homeProductGalleryImages?.filter(img => img.isActive) || [];
+  const activeImages = useMemo(
+    () => settings?.homeProductGalleryImages?.filter(img => img.isActive) ?? [],
+    [settings?.homeProductGalleryImages]
+  );
 
   // Observe reduced motion
   useEffect(() => {
@@ -32,13 +35,14 @@ export function HomeProductGallery() {
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
-  // Initial load
+  // Initial load — seed visible slots when activeImages first become available
   useEffect(() => {
     if (activeImages.length > 0 && visibleSlots.length === 0) {
       setVisibleSlots(activeImages.slice(0, 6));
       setTimeout(() => setHasAnimatedIn(true), 100);
     }
-  }, [activeImages, visibleSlots.length]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeImages]);
 
   // Auto-cycle logic
   const activeImagesRef = useRef(activeImages);

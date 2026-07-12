@@ -50,7 +50,7 @@ export type SiteSettingsRow = {
   catalog_desembre_banner_mobile_image_url?: string | null;
   catalog_dermagarden_banner_image_url?: string | null;
   catalog_dermagarden_banner_mobile_image_url?: string | null;
-  home_product_gallery_images?: any;
+  home_product_gallery_images?: unknown;
 };
 
 // Map DB snake_case to camelCase
