@@ -23,16 +23,26 @@ export function BrandHero({ brandId, totalCount }: BrandHeroProps) {
     ? (settings?.catalogDesembreBannerMobileImageUrl || settings?.catalogDesembreBannerImageUrl || settings?.homeBrandDesembreImageUrl || settings?.homeHeroBannerMobileImageUrl || settings?.homeHeroBannerImageUrl)
     : (settings?.catalogDermagardenBannerMobileImageUrl || settings?.catalogDermagardenBannerImageUrl || settings?.homeBrandDermagardenImageUrl || settings?.homeHeroBannerMobileImageUrl || settings?.homeHeroBannerImageUrl);
 
-  const style = {
-    '--hero-bg-desktop': desktopBg ? `url('${desktopBg}')` : 'none',
-    '--hero-bg-mobile': mobileBg ? `url('${mobileBg}')` : 'none',
-  } as React.CSSProperties;
-
   return (
     <div 
-      style={style}
-      className={`relative w-full overflow-hidden border-b border-border transition-colors duration-700 ${theme.backgroundClass} min-h-[420px] md:min-h-[520px] bg-[image:var(--hero-bg-mobile)] md:bg-[image:var(--hero-bg-desktop)] bg-cover bg-center md:bg-right`}
+      className={`relative w-full overflow-hidden border-b border-border transition-colors duration-700 ${theme.backgroundClass} min-h-[420px] md:min-h-[520px]`}
     >
+      {/* Mobile Background */}
+      {mobileBg && (
+        <div 
+          className="absolute inset-0 bg-cover bg-center md:hidden z-0"
+          style={{ backgroundImage: `url('${mobileBg}')` }}
+        />
+      )}
+      
+      {/* Desktop Background */}
+      {desktopBg && (
+        <div 
+          className="absolute inset-0 bg-cover bg-right hidden md:block z-0"
+          style={{ backgroundImage: `url('${desktopBg}')` }}
+        />
+      )}
+
       {/* Overlay gradient for text readability - Lighter on right to reveal image */}
       <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/70 to-background/30 md:from-background/95 md:via-background/60 md:to-background/20 z-0" />
       
