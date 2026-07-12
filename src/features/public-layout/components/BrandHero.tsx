@@ -1,5 +1,6 @@
 import { BrandId, BRAND_THEMES } from "@/config/brands";
 import { ArrowDown } from "lucide-react";
+import { useSiteSettings } from "@/features/seo/components/SiteSettingsProvider";
 
 interface BrandHeroProps {
   brandId: BrandId;
@@ -8,12 +9,35 @@ interface BrandHeroProps {
 
 export function BrandHero({ brandId, totalCount }: BrandHeroProps) {
   const theme = BRAND_THEMES[brandId];
+  const { settings } = useSiteSettings();
+
   if (!theme) return null;
 
+  // Fallback logic for Desktop
+  const desktopBg = brandId === 'desembre'
+    ? (settings?.catalogDesembreBannerImageUrl || settings?.homeBrandDesembreImageUrl || settings?.homeHeroBannerImageUrl)
+    : (settings?.catalogDermagardenBannerImageUrl || settings?.homeBrandDermagardenImageUrl || settings?.homeHeroBannerImageUrl);
+
+  // Fallback logic for Mobile
+  const mobileBg = brandId === 'desembre'
+    ? (settings?.catalogDesembreBannerMobileImageUrl || settings?.catalogDesembreBannerImageUrl || settings?.homeBrandDesembreImageUrl || settings?.homeHeroBannerMobileImageUrl || settings?.homeHeroBannerImageUrl)
+    : (settings?.catalogDermagardenBannerMobileImageUrl || settings?.catalogDermagardenBannerImageUrl || settings?.homeBrandDermagardenImageUrl || settings?.homeHeroBannerMobileImageUrl || settings?.homeHeroBannerImageUrl);
+
+  const style = {
+    '--hero-bg-desktop': desktopBg ? `url('${desktopBg}')` : 'none',
+    '--hero-bg-mobile': mobileBg ? `url('${mobileBg}')` : 'none',
+  } as React.CSSProperties;
+
   return (
-    <div className={`relative w-full overflow-hidden border-b border-border transition-colors duration-700 ${theme.backgroundClass}`}>
-      <div className="container mx-auto px-6 py-16 md:py-24 relative z-10">
-        <div className="max-w-3xl flex flex-col items-start text-left animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div 
+      style={style}
+      className={`relative w-full overflow-hidden border-b border-border transition-colors duration-700 ${theme.backgroundClass} min-h-[520px] bg-[image:var(--hero-bg-mobile)] md:bg-[image:var(--hero-bg-desktop)] bg-cover bg-center md:bg-right`}
+    >
+      {/* Overlay gradient for text readability */}
+      <div className="absolute inset-0 bg-background/85 md:bg-gradient-to-r md:from-background/95 md:via-background/82 md:to-background/45 z-0" />
+      
+      <div className="container mx-auto px-6 py-16 md:py-24 relative z-10 flex h-full">
+        <div className="max-w-3xl flex flex-col items-start text-left animate-in fade-in slide-in-from-bottom-4 duration-700 justify-center">
           <p className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground font-semibold mb-4">
             {theme.eyebrow}
           </p>

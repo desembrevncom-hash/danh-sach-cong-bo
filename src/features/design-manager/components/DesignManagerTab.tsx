@@ -18,7 +18,7 @@ export function DesignManagerTab() {
   
   // Pickers
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [currentBrandTarget, setCurrentBrandTarget] = useState<'desembre' | 'hyunjin' | 'dermagarden' | 'bannerDesktop' | 'bannerMobile' | null>(null);
+  const [currentBrandTarget, setCurrentBrandTarget] = useState<'desembre' | 'hyunjin' | 'dermagarden' | 'bannerDesktop' | 'bannerMobile' | 'catalogBannerDesembreDesktop' | 'catalogBannerDesembreMobile' | 'catalogBannerDermagardenDesktop' | 'catalogBannerDermagardenMobile' | null>(null);
 
   // Form State
   const [logoDesembre, setLogoDesembre] = useState('');
@@ -28,6 +28,12 @@ export function DesignManagerTab() {
   const [imageDermagarden, setImageDermagarden] = useState('');
   const [bannerDesktop, setBannerDesktop] = useState('');
   const [bannerMobile, setBannerMobile] = useState('');
+  
+  const [catalogBannerDesembreDesktop, setCatalogBannerDesembreDesktop] = useState('');
+  const [catalogBannerDesembreMobile, setCatalogBannerDesembreMobile] = useState('');
+  const [catalogBannerDermagardenDesktop, setCatalogBannerDermagardenDesktop] = useState('');
+  const [catalogBannerDermagardenMobile, setCatalogBannerDermagardenMobile] = useState('');
+  
   const [pickerFilter, setPickerFilter] = useState<string>('brand_logo');
 
   const requestIdRef = React.useRef(0);
@@ -53,6 +59,10 @@ export function DesignManagerTab() {
         setImageDermagarden(res.data.homeBrandDermagardenImageUrl || '');
         setBannerDesktop(res.data.homeHeroBannerImageUrl || '');
         setBannerMobile(res.data.homeHeroBannerMobileImageUrl || '');
+        setCatalogBannerDesembreDesktop(res.data.catalogDesembreBannerImageUrl || '');
+        setCatalogBannerDesembreMobile(res.data.catalogDesembreBannerMobileImageUrl || '');
+        setCatalogBannerDermagardenDesktop(res.data.catalogDermagardenBannerImageUrl || '');
+        setCatalogBannerDermagardenMobile(res.data.catalogDermagardenBannerMobileImageUrl || '');
       } else {
         setErrorState(res.error || 'Lỗi không tải được Site Settings');
       }
@@ -80,7 +90,7 @@ export function DesignManagerTab() {
       }
     };
 
-    if (!isValidUrl(logoDesembre) || !isValidUrl(logoHyunjin) || !isValidUrl(logoDermagarden) || !isValidUrl(imageDesembre) || !isValidUrl(imageDermagarden) || !isValidUrl(bannerDesktop) || !isValidUrl(bannerMobile)) {
+    if (!isValidUrl(logoDesembre) || !isValidUrl(logoHyunjin) || !isValidUrl(logoDermagarden) || !isValidUrl(imageDesembre) || !isValidUrl(imageDermagarden) || !isValidUrl(bannerDesktop) || !isValidUrl(bannerMobile) || !isValidUrl(catalogBannerDesembreDesktop) || !isValidUrl(catalogBannerDesembreMobile) || !isValidUrl(catalogBannerDermagardenDesktop) || !isValidUrl(catalogBannerDermagardenMobile)) {
       toast.error('URL không hợp lệ. Không hỗ trợ data/blob URL.');
       return;
     }
@@ -95,6 +105,10 @@ export function DesignManagerTab() {
         homeBrandDermagardenImageUrl: imageDermagarden || null,
         homeHeroBannerImageUrl: bannerDesktop || null,
         homeHeroBannerMobileImageUrl: bannerMobile || null,
+        catalogDesembreBannerImageUrl: catalogBannerDesembreDesktop || null,
+        catalogDesembreBannerMobileImageUrl: catalogBannerDesembreMobile || null,
+        catalogDermagardenBannerImageUrl: catalogBannerDermagardenDesktop || null,
+        catalogDermagardenBannerMobileImageUrl: catalogBannerDermagardenMobile || null,
       };
 
       const { ok, error } = await updateSiteSettings(payload);
@@ -135,6 +149,10 @@ export function DesignManagerTab() {
       if (currentBrandTarget === 'dermagarden') setImageDermagarden(url);
       if (currentBrandTarget === 'bannerDesktop') setBannerDesktop(url);
       if (currentBrandTarget === 'bannerMobile') setBannerMobile(url);
+      if (currentBrandTarget === 'catalogBannerDesembreDesktop') setCatalogBannerDesembreDesktop(url);
+      if (currentBrandTarget === 'catalogBannerDesembreMobile') setCatalogBannerDesembreMobile(url);
+      if (currentBrandTarget === 'catalogBannerDermagardenDesktop') setCatalogBannerDermagardenDesktop(url);
+      if (currentBrandTarget === 'catalogBannerDermagardenMobile') setCatalogBannerDermagardenMobile(url);
     }
   };
 

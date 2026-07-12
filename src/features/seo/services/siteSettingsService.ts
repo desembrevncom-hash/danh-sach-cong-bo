@@ -15,6 +15,10 @@ export type SiteSettings = {
   homeBrandDermagardenImageUrl?: string | null;
   homeHeroBannerImageUrl?: string | null;
   homeHeroBannerMobileImageUrl?: string | null;
+  catalogDesembreBannerImageUrl?: string | null;
+  catalogDesembreBannerMobileImageUrl?: string | null;
+  catalogDermagardenBannerImageUrl?: string | null;
+  catalogDermagardenBannerMobileImageUrl?: string | null;
 };
 
 export type SiteSettingsRow = {
@@ -32,6 +36,10 @@ export type SiteSettingsRow = {
   home_brand_dermagarden_image_url?: string | null;
   home_hero_banner_image_url?: string | null;
   home_hero_banner_mobile_image_url?: string | null;
+  catalog_desembre_banner_image_url?: string | null;
+  catalog_desembre_banner_mobile_image_url?: string | null;
+  catalog_dermagarden_banner_image_url?: string | null;
+  catalog_dermagarden_banner_mobile_image_url?: string | null;
 };
 
 // Map DB snake_case to camelCase
@@ -51,6 +59,10 @@ export function mapSiteSettings(row: SiteSettingsRow): SiteSettings {
     homeBrandDermagardenImageUrl: row.home_brand_dermagarden_image_url,
     homeHeroBannerImageUrl: row.home_hero_banner_image_url,
     homeHeroBannerMobileImageUrl: row.home_hero_banner_mobile_image_url,
+    catalogDesembreBannerImageUrl: row.catalog_desembre_banner_image_url,
+    catalogDesembreBannerMobileImageUrl: row.catalog_desembre_banner_mobile_image_url,
+    catalogDermagardenBannerImageUrl: row.catalog_dermagarden_banner_image_url,
+    catalogDermagardenBannerMobileImageUrl: row.catalog_dermagarden_banner_mobile_image_url,
   };
 }
 
@@ -90,7 +102,11 @@ export async function fetchSiteSettings(): Promise<{ ok: boolean; data?: SiteSet
         home_brand_desembre_image_url: null,
         home_brand_dermagarden_image_url: null,
         home_hero_banner_image_url: null,
-        home_hero_banner_mobile_image_url: null
+        home_hero_banner_mobile_image_url: null,
+        catalog_desembre_banner_image_url: null,
+        catalog_desembre_banner_mobile_image_url: null,
+        catalog_dermagarden_banner_image_url: null,
+        catalog_dermagarden_banner_mobile_image_url: null
       }) };
     }
 
@@ -120,6 +136,11 @@ export async function updateSiteSettings(payload: Partial<SiteSettings>): Promis
     
     if (payload.homeHeroBannerImageUrl !== undefined) updateData.home_hero_banner_image_url = payload.homeHeroBannerImageUrl;
     if (payload.homeHeroBannerMobileImageUrl !== undefined) updateData.home_hero_banner_mobile_image_url = payload.homeHeroBannerMobileImageUrl;
+    
+    if (payload.catalogDesembreBannerImageUrl !== undefined) updateData.catalog_desembre_banner_image_url = payload.catalogDesembreBannerImageUrl;
+    if (payload.catalogDesembreBannerMobileImageUrl !== undefined) updateData.catalog_desembre_banner_mobile_image_url = payload.catalogDesembreBannerMobileImageUrl;
+    if (payload.catalogDermagardenBannerImageUrl !== undefined) updateData.catalog_dermagarden_banner_image_url = payload.catalogDermagardenBannerImageUrl;
+    if (payload.catalogDermagardenBannerMobileImageUrl !== undefined) updateData.catalog_dermagarden_banner_mobile_image_url = payload.catalogDermagardenBannerMobileImageUrl;
     
     // ensure updated_at is refreshed via trigger or implicitly, or explicitly set it
     updateData.updated_at = new Date().toISOString();

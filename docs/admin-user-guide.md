@@ -67,3 +67,9 @@ Tối ưu hóa công cụ tìm kiếm cho các trang đích:
 ## 10. Xuất tệp PDF (Export PDF)
 - Hệ thống hỗ trợ xuất file PDF tương ứng với những sản phẩm đang được hiển thị trên giao diện lúc đó (theo bộ lọc và phân trang hiện hành).
 - Việc xuất toàn bộ thư viện (Export All) sẽ là tính năng được mở rộng ở các phiên bản tiếp theo.
+
+## 11. Banner trang danh mục thương hiệu
+- Desktop khuyến nghị 2400×900px, tỉ lệ 8:3, dưới 1.2MB.
+- Mobile khuyến nghị 1200×1400px, tỉ lệ 6:7 hoặc 4:5, dưới 1MB.
+- Nên đặt visual/sản phẩm ở giữa hoặc bên phải, tránh chữ/logo sát mép.
+- Nếu không cấu hình, hệ thống dùng ảnh thẻ thương hiệu hoặc banner trang chủ làm fallback.
