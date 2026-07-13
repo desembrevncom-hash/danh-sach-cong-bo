@@ -1,0 +1,1 @@
+alter table product_overrides add column if not exists link_url_2 text;

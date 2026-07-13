@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+
+Sitemap: https://cong-bo.hjcnt.com.vn/sitemap.xml

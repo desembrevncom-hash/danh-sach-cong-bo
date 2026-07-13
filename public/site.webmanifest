@@ -1,0 +1,19 @@
+{
+  "name": "Hệ thống tra cứu công bố sản phẩm",
+  "short_name": "Công bố SP",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#17231d",
+  "background_color": "#f7f4ef",
+  "display": "standalone"
+}
